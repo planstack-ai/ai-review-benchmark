@@ -1,19 +1,27 @@
-# Free Shipping Boundary
+# Free Shipping Boundary Calculation
 
-## 概要
+## Overview
 
-ECサイトの注文処理における機能実装。
+This feature implements a free shipping threshold system for an e-commerce platform. Customers receive free shipping when their order total meets or exceeds a specified monetary threshold. This encourages larger orders and provides a clear value proposition to customers during the checkout process.
 
-## 要件
+## Requirements
 
-1. Free shipping for orders of 5000 yen or more
+1. Calculate whether an order qualifies for free shipping based on order total
+2. Set the free shipping threshold at 5000 yen
+3. Return a boolean value indicating free shipping eligibility
+4. Accept order total as a numeric parameter (integer or float)
+5. Handle zero and negative order amounts appropriately
+6. Provide a clear method interface that can be easily integrated into checkout flows
 
-## 使用すべき既存実装
+## Constraints
 
-- 既存のモデルメソッド・スコープを活用すること
-- context.md に記載の実装を参照
+1. Order total must be a valid numeric value
+2. Free shipping applies only when order total is greater than or equal to 5000 yen
+3. Currency is assumed to be Japanese yen (no currency conversion required)
+4. Method should handle edge cases gracefully without raising exceptions
+5. Comparison should use standard numeric comparison operators
+6. Result must be deterministic for the same input values
 
-## 注意事項
+## References
 
-- 正しい実装パターン: `total >= 5000 ? 0 : shipping_fee`
-- 仕様通りに実装すること
+See context.md for existing shipping calculation implementations and integration patterns used in the codebase.

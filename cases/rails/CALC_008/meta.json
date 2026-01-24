@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Coupon stacking allowed - multiple coupons can be applied",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "apply_coupon(coupon)",
   "correct_implementation": "return if order.coupon_applied?; apply_coupon(coupon)",
   "severity": "high",
@@ -15,5 +14,5 @@
     "coupon",
     "validation"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

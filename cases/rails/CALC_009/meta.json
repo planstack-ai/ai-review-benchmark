@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Minimum check on pre-discount amount instead of post-discount",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "subtotal >= 1000",
   "correct_implementation": "(subtotal - discount) >= 1000",
   "severity": "medium",
@@ -15,5 +14,5 @@
     "validation",
     "minimum"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

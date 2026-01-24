@@ -1,19 +1,26 @@
-# Minimum Order Amount
+# Minimum Order Amount Validation
 
-## 概要
+## Overview
 
-ECサイトの注文処理における機能実装。
+The system must enforce a minimum order amount of 1000 yen to ensure order profitability and reduce processing costs for small transactions. This validation should occur after all discounts have been applied to determine the final order total that the customer will pay.
 
-## 要件
+## Requirements
 
-1. Minimum order amount is 1000 yen after discounts
+1. The system must validate that the final order amount (after all discounts) meets the minimum threshold of 1000 yen
+2. The validation must be performed before order confirmation or payment processing
+3. If the order amount falls below the minimum threshold, the system must reject the order with an appropriate error message
+4. The minimum amount check must use the discounted total, not the original subtotal
+5. The system must clearly communicate the minimum order requirement to users when validation fails
+6. The validation must handle edge cases where the order total equals exactly 1000 yen (should be accepted)
 
-## 使用すべき既存実装
+## Constraints
 
-- 既存のモデルメソッド・スコープを活用すること
-- context.md に記載の実装を参照
+1. The minimum order amount is fixed at 1000 yen and should not be configurable
+2. Validation must occur after discount calculations are complete
+3. Free shipping promotions or other non-monetary benefits do not count toward the minimum amount
+4. Tax calculations should not affect the minimum order validation (validate against pre-tax discounted amount)
+5. The system must handle decimal precision correctly when comparing amounts
 
-## 注意事項
+## References
 
-- 正しい実装パターン: `(subtotal - discount) >= 1000`
-- 仕様通りに実装すること
+See context.md for existing discount calculation implementations and order processing flow.

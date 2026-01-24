@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "Boundary condition error - >= 5000 vs > 5000",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "total > 5000 ? 0 : shipping_fee",
   "correct_implementation": "total >= 5000 ? 0 : shipping_fee",
   "severity": "medium",
@@ -15,5 +14,5 @@
     "shipping",
     "boundary"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

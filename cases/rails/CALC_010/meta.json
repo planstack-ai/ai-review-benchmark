@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": true,
   "bug_description": "Integer overflow on unit_price * quantity for large orders",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "unit_price * quantity",
   "correct_implementation": "BigDecimal(unit_price) * quantity",
   "severity": "critical",
@@ -15,5 +14,5 @@
     "overflow",
     "bulk"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }
