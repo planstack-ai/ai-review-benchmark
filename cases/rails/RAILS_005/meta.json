@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_005",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "job_outside_after_commit",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Job enqueued in transaction - runs even if rollback",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "after_save { NotifyJob.perform_later(id) }",
+  "correct_implementation": "after_commit { NotifyJob.perform_later(id) }",
+  "severity": "critical",
+  "tags": [
+    "rails",
+    "job",
+    "transaction"
+  ],
+  "notes": ""
+}

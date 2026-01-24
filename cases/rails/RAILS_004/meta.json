@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_004",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "dependent_destroy_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "dependent: :destroy missing - children orphaned on parent delete",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "has_many :items",
+  "correct_implementation": "has_many :items, dependent: :destroy",
+  "severity": "high",
+  "tags": [
+    "rails",
+    "association",
+    "dependent"
+  ],
+  "notes": ""
+}

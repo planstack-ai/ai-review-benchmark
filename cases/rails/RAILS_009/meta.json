@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_009",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "pluck_vs_select",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "select loads full objects when only attributes needed",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "Order.select(:id, :total).map { |o| [o.id, o.total] }",
+  "correct_implementation": "Order.pluck(:id, :total)",
+  "severity": "medium",
+  "tags": [
+    "rails",
+    "pluck",
+    "performance"
+  ],
+  "notes": ""
+}

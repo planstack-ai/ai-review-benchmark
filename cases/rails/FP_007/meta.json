@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_007",
+  "category": "false_positive",
+  "axis": null,
+  "name": "complex_callback_chain",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "Ordered callbacks with dependencies handled",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "callback",
+    "complex"
+  ],
+  "notes": "Many callbacks look fragile but order is correct"
+}

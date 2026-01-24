@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_013",
+  "category": "false_positive",
+  "axis": null,
+  "name": "intentional_update_all",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "Intentional update_all for performance",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "update_all",
+    "intentional"
+  ],
+  "notes": "update_all looks wrong but callbacks not needed"
+}

@@ -1,0 +1,19 @@
+{
+  "case_id": "STATE_007",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "delivery_status_regression",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Delivered can regress to shipping status",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "update(delivery_status: new_status)",
+  "correct_implementation": "raise InvalidTransition if delivered? && new_status == :shipping",
+  "severity": "medium",
+  "tags": [
+    "state",
+    "delivery",
+    "regression"
+  ],
+  "notes": ""
+}

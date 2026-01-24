@@ -1,0 +1,19 @@
+{
+  "case_id": "AUTH_005",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "guest_member_pricing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Guest users getting member pricing - membership check hole",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "member_price",
+  "correct_implementation": "current_user&.member? ? member_price : regular_price",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "membership",
+    "pricing"
+  ],
+  "notes": ""
+}

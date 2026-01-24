@@ -1,0 +1,19 @@
+{
+  "case_id": "TIME_007",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "business_day_calculation",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Weekends and holidays not excluded from business days",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "3.days.from_now",
+  "correct_implementation": "3.business_days.from_now",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "business_day",
+    "holiday"
+  ],
+  "notes": ""
+}

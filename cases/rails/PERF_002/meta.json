@@ -1,0 +1,19 @@
+{
+  "case_id": "PERF_002",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "full_table_load",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Loading all orders into memory - Order.all on 1M records",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "Order.all.each { |o| process(o) }",
+  "correct_implementation": "Order.find_each { |o| process(o) }",
+  "severity": "critical",
+  "tags": [
+    "performance",
+    "memory",
+    "batch"
+  ],
+  "notes": ""
+}

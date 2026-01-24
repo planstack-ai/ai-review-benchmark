@@ -1,0 +1,19 @@
+{
+  "case_id": "CALC_002",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "tax_calculation_order",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Tax calculation order wrong - applying tax before discount yields different amount",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "(subtotal * 1.1) - discount",
+  "correct_implementation": "(subtotal - discount) * 1.1",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "tax",
+    "discount"
+  ],
+  "notes": ""
+}

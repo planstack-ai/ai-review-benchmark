@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_007",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "find_or_create_race",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Race condition creates duplicate records",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "find_or_create_by without handling",
+  "correct_implementation": "find_or_create_by with unique constraint + rescue",
+  "severity": "high",
+  "tags": [
+    "rails",
+    "race_condition",
+    "create"
+  ],
+  "notes": ""
+}

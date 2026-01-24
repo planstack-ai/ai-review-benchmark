@@ -1,0 +1,19 @@
+{
+  "case_id": "STOCK_002",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "non_atomic_stock_update",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Race condition between stock check and update",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "if product.stock > 0; product.update(stock: product.stock - 1); end",
+  "correct_implementation": "Product.where('stock > 0').update_all('stock = stock - 1')",
+  "severity": "critical",
+  "tags": [
+    "inventory",
+    "race_condition",
+    "atomic"
+  ],
+  "notes": ""
+}

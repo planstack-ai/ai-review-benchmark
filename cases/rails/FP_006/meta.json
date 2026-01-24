@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_006",
+  "category": "false_positive",
+  "axis": null,
+  "name": "complex_nested_transaction",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "Nested transaction with requires_new: true",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "transaction",
+    "complex"
+  ],
+  "notes": "Nested transactions look suspicious but are correct"
+}

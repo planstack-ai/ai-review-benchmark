@@ -1,0 +1,19 @@
+{
+  "case_id": "STOCK_004",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "reserved_actual_confusion",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Reserved stock counted as available - double counting",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "available = total_stock",
+  "correct_implementation": "available = total_stock - reserved_stock",
+  "severity": "critical",
+  "tags": [
+    "inventory",
+    "reservation",
+    "counting"
+  ],
+  "notes": ""
+}

@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_004",
+  "category": "false_positive",
+  "axis": null,
+  "name": "standard_scope",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "scope :active, -> { where(active: true) }",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "scope",
+    "baseline"
+  ],
+  "notes": "None - standard implementation"
+}

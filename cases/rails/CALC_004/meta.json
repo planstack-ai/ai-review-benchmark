@@ -1,0 +1,19 @@
+{
+  "case_id": "CALC_004",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "floating_point_currency",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Floating point precision error - 0.1 + 0.2 != 0.3 problem",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "0.1 + 0.2",
+  "correct_implementation": "BigDecimal('0.1') + BigDecimal('0.2')",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "currency",
+    "precision"
+  ],
+  "notes": ""
+}

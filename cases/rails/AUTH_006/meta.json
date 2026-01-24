@@ -1,0 +1,19 @@
+{
+  "case_id": "AUTH_006",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "access_other_points",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Can access other user's points via API",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "User.find(params[:user_id]).points",
+  "correct_implementation": "current_user.points",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "points",
+    "api"
+  ],
+  "notes": ""
+}

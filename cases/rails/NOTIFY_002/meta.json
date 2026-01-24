@@ -1,0 +1,19 @@
+{
+  "case_id": "NOTIFY_002",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "async_error_swallowed",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Background job fails silently - user not notified",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "rescue => e; logger.error(e)",
+  "correct_implementation": "rescue => e; notify_admin(e); raise",
+  "severity": "high",
+  "tags": [
+    "notification",
+    "async",
+    "error"
+  ],
+  "notes": ""
+}

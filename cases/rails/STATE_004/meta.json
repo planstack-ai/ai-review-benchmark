@@ -1,0 +1,19 @@
+{
+  "case_id": "STATE_004",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "duplicate_payment",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Double-click charges twice - no duplicate check",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "process_payment",
+  "correct_implementation": "return if paid?; with_lock { process_payment }",
+  "severity": "critical",
+  "tags": [
+    "state",
+    "payment",
+    "duplicate"
+  ],
+  "notes": ""
+}

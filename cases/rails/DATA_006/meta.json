@@ -1,0 +1,19 @@
+{
+  "case_id": "DATA_006",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "column_default_null",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "New column defaults to NULL causing downstream errors",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "add_column :orders, :priority, :integer",
+  "correct_implementation": "add_column :orders, :priority, :integer, default: 0, null: false",
+  "severity": "medium",
+  "tags": [
+    "data",
+    "default",
+    "null"
+  ],
+  "notes": ""
+}

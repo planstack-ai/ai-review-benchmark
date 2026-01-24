@@ -1,0 +1,19 @@
+{
+  "case_id": "NOTIFY_006",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "bulk_rate_limit",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Mass email send gets blocked by rate limit",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "users.each { |u| send_email(u) }",
+  "correct_implementation": "users.find_each { |u| EmailJob.perform_later(u) }",
+  "severity": "medium",
+  "tags": [
+    "notification",
+    "bulk",
+    "rate_limit"
+  ],
+  "notes": ""
+}

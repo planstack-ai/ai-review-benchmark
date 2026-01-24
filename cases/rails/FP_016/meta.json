@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_016",
+  "category": "false_positive",
+  "axis": null,
+  "name": "optimized_counter_cache",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "counter_cache: true properly configured",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "counter_cache"
+  ],
+  "notes": "Looks like denormalization but correct pattern"
+}

@@ -1,0 +1,19 @@
+{
+  "case_id": "STOCK_008",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "bundle_stock_calculation",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Bundle stock not calculated as minimum of components",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "components.sum(&:stock)",
+  "correct_implementation": "components.map(&:stock).min",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "bundle",
+    "calculation"
+  ],
+  "notes": ""
+}

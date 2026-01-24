@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_010",
+  "category": "false_positive",
+  "axis": null,
+  "name": "complex_authorization",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "Proper authorization checks at all levels",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "authorization",
+    "complex"
+  ],
+  "notes": "Complex permissions but all correct"
+}

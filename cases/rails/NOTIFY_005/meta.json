@@ -1,0 +1,19 @@
+{
+  "case_id": "NOTIFY_005",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "recipient_mixup",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Email sent to wrong user due to variable scope",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "OrderMailer.confirmation(user).deliver_later",
+  "correct_implementation": "OrderMailer.confirmation(order.user).deliver_later",
+  "severity": "critical",
+  "tags": [
+    "notification",
+    "recipient",
+    "privacy"
+  ],
+  "notes": ""
+}

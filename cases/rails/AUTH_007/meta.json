@@ -1,0 +1,19 @@
+{
+  "case_id": "AUTH_007",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "coupon_owner_missing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Can use another user's coupon code",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "Coupon.find_by(code: code)",
+  "correct_implementation": "current_user.coupons.find_by(code: code)",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "coupon",
+    "ownership"
+  ],
+  "notes": ""
+}

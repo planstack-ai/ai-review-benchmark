@@ -1,0 +1,19 @@
+{
+  "case_id": "STATE_002",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "cancel_window_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Cancellation succeeds even after shipment",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "cancel!",
+  "correct_implementation": "raise CannotCancel if shipped?; cancel!",
+  "severity": "high",
+  "tags": [
+    "state",
+    "cancellation",
+    "validation"
+  ],
+  "notes": ""
+}

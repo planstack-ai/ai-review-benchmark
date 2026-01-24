@@ -1,0 +1,19 @@
+{
+  "case_id": "DATA_001",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "no_foreign_key",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "No foreign key constraint - orphan records on parent delete",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "belongs_to :order without FK",
+  "correct_implementation": "add_foreign_key :order_items, :orders",
+  "severity": "high",
+  "tags": [
+    "data",
+    "foreign_key",
+    "integrity"
+  ],
+  "notes": ""
+}

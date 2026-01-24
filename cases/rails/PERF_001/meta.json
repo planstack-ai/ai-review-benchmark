@@ -1,0 +1,19 @@
+{
+  "case_id": "PERF_001",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "n_plus_one_query",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "N+1 query on order items accessing product names",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "order.items.each { |i| i.product.name }",
+  "correct_implementation": "order.items.includes(:product).each { |i| i.product.name }",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "n_plus_one",
+    "eager_load"
+  ],
+  "notes": ""
+}

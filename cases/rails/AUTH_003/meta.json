@@ -1,0 +1,19 @@
+{
+  "case_id": "AUTH_003",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "deleted_user_data",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Deleted user's order data still accessible",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "orders",
+  "correct_implementation": "orders.joins(:user).where(users: { deleted_at: nil })",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "deleted",
+    "privacy"
+  ],
+  "notes": ""
+}

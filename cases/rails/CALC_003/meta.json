@@ -1,0 +1,18 @@
+{
+  "case_id": "CALC_003",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "inconsistent_rounding",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Inconsistent rounding - round per item then sum vs sum then round yields different results",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "items.sum { |i| i.subtotal.round }",
+  "correct_implementation": "(items.sum(&:subtotal)).round",
+  "severity": "medium",
+  "tags": [
+    "calculation",
+    "rounding"
+  ],
+  "notes": ""
+}

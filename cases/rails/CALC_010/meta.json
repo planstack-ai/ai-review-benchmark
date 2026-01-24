@@ -1,0 +1,19 @@
+{
+  "case_id": "CALC_010",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "quantity_overflow",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Integer overflow on unit_price * quantity for large orders",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "unit_price * quantity",
+  "correct_implementation": "BigDecimal(unit_price) * quantity",
+  "severity": "critical",
+  "tags": [
+    "calculation",
+    "overflow",
+    "bulk"
+  ],
+  "notes": ""
+}

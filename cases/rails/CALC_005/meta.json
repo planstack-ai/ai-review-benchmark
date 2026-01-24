@@ -1,0 +1,19 @@
+{
+  "case_id": "CALC_005",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "hardcoded_tax_rate",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Hardcoded old tax rate - still using 8% instead of 10%",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "subtotal * 0.08",
+  "correct_implementation": "subtotal * TaxRate.current",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "tax",
+    "hardcode"
+  ],
+  "notes": ""
+}

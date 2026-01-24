@@ -1,0 +1,19 @@
+{
+  "case_id": "EXT_005",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "inventory_sync_delay",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "External warehouse stock diff not considered",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "available = local_stock",
+  "correct_implementation": "available = local_stock - pending_sync",
+  "severity": "high",
+  "tags": [
+    "external",
+    "inventory",
+    "sync"
+  ],
+  "notes": ""
+}

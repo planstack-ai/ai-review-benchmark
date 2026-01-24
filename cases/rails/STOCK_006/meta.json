@@ -1,0 +1,19 @@
+{
+  "case_id": "STOCK_006",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "negative_stock_allowed",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Cancellation processing can drive stock negative",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "stock += cancelled_qty",
+  "correct_implementation": "stock = [stock + cancelled_qty, max_stock].min",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "cancellation",
+    "negative"
+  ],
+  "notes": ""
+}

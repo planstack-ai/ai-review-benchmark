@@ -1,0 +1,19 @@
+{
+  "case_id": "AUTH_004",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "admin_permission_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Regular users can change prices - admin check missing",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "update_price",
+  "correct_implementation": "authorize! :manage, Product; update_price",
+  "severity": "critical",
+  "tags": [
+    "authorization",
+    "admin",
+    "permission"
+  ],
+  "notes": ""
+}

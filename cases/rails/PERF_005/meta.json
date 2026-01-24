@@ -1,0 +1,19 @@
+{
+  "case_id": "PERF_005",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "index_not_used",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Search condition on non-indexed column causes full scan",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "query without index",
+  "correct_implementation": "add_index :orders, :status",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "index",
+    "query"
+  ],
+  "notes": ""
+}

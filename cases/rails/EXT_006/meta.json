@@ -1,0 +1,19 @@
+{
+  "case_id": "EXT_006",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "shipping_error_swallowed",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Shipping API error swallowed, treated as success",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "response rescue nil",
+  "correct_implementation": "raise ShippingError unless response.success?",
+  "severity": "high",
+  "tags": [
+    "external",
+    "shipping",
+    "error"
+  ],
+  "notes": ""
+}

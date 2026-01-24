@@ -1,0 +1,19 @@
+{
+  "case_id": "STATE_006",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "refund_status_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Payment shows unpaid despite refund completion",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "process_refund without status update",
+  "correct_implementation": "update(payment_status: :refunded) after refund",
+  "severity": "high",
+  "tags": [
+    "state",
+    "refund",
+    "status"
+  ],
+  "notes": ""
+}

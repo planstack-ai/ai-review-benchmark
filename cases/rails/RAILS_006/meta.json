@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_006",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "strong_parameters_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Strong Parameters missing - mass assignment vulnerability",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "params[:order]",
+  "correct_implementation": "params.require(:order).permit(:quantity, :address)",
+  "severity": "critical",
+  "tags": [
+    "rails",
+    "security",
+    "strong_params"
+  ],
+  "notes": ""
+}

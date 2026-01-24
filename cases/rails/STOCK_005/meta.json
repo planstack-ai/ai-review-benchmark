@@ -1,0 +1,19 @@
+{
+  "case_id": "STOCK_005",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "zero_quantity_order",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Zero quantity orders allowed through validation gap",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "validates :quantity, numericality: { greater_than_or_equal_to: 0 }",
+  "correct_implementation": "validates :quantity, numericality: { greater_than: 0 }",
+  "severity": "medium",
+  "tags": [
+    "inventory",
+    "validation",
+    "quantity"
+  ],
+  "notes": ""
+}

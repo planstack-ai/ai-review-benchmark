@@ -1,0 +1,19 @@
+{
+  "case_id": "STATE_005",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "partial_cancel_integrity",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Total amount wrong after partial item cancellation",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "partial_cancel without recalculation",
+  "correct_implementation": "recalculate_total after partial_cancel",
+  "severity": "high",
+  "tags": [
+    "state",
+    "cancellation",
+    "calculation"
+  ],
+  "notes": ""
+}

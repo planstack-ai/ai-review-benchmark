@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_010",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "includes_preload_eager_load",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Wrong eager loading method generates unexpected query",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "orders.includes(:items).where(items: { ... })",
+  "correct_implementation": "orders.preload(:items) for separate queries",
+  "severity": "medium",
+  "tags": [
+    "rails",
+    "eager_load",
+    "query"
+  ],
+  "notes": ""
+}

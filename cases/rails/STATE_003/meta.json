@@ -1,0 +1,19 @@
+{
+  "case_id": "STATE_003",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "payment_timeout",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Payment accepted after order expiration time",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "process_payment",
+  "correct_implementation": "raise OrderExpired if expired?; process_payment",
+  "severity": "critical",
+  "tags": [
+    "state",
+    "payment",
+    "timeout"
+  ],
+  "notes": ""
+}

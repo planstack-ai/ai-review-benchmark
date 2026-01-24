@@ -1,0 +1,19 @@
+{
+  "case_id": "TIME_001",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "timezone_not_considered",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Timezone not considered - UTC saved, displayed incorrectly as JST",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "created_at",
+  "correct_implementation": "created_at.in_time_zone(user.timezone)",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "timezone",
+    "display"
+  ],
+  "notes": ""
+}

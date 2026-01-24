@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_008",
+  "category": "false_positive",
+  "axis": null,
+  "name": "complex_state_machine",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "All transitions validated and tested",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "state",
+    "complex"
+  ],
+  "notes": "Complex state logic but all paths valid"
+}

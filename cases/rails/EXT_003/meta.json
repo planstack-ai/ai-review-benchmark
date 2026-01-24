@@ -1,0 +1,19 @@
+{
+  "case_id": "EXT_003",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "api_call_in_transaction",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Payment charged even if transaction rolls back",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "transaction { order.save!; charge_payment }",
+  "correct_implementation": "order.save!; charge_payment",
+  "severity": "critical",
+  "tags": [
+    "external",
+    "transaction",
+    "api"
+  ],
+  "notes": ""
+}

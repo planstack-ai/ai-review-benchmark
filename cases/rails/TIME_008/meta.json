@@ -1,0 +1,19 @@
+{
+  "case_id": "TIME_008",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "past_delivery_date",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Past delivery dates accepted",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "validates :delivery_date, presence: true",
+  "correct_implementation": "validates :delivery_date, comparison: { greater_than: Date.current }",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "validation",
+    "future"
+  ],
+  "notes": ""
+}

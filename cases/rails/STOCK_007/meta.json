@@ -1,0 +1,19 @@
+{
+  "case_id": "STOCK_007",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "duplicate_stock_restoration",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Cancel spam increases stock - no idempotency check",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "restore_stock",
+  "correct_implementation": "return if already_restored?; restore_stock",
+  "severity": "critical",
+  "tags": [
+    "inventory",
+    "cancellation",
+    "idempotency"
+  ],
+  "notes": ""
+}

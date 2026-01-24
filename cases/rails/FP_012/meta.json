@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_012",
+  "category": "false_positive",
+  "axis": null,
+  "name": "intentional_raw_sql",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "Optimized SQL with proper sanitization",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "sql",
+    "intentional"
+  ],
+  "notes": "Raw SQL looks dangerous but is sanitized"
+}

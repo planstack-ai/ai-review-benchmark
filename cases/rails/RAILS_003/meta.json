@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_003",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "callback_order_dependency",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "before_save callback order affects result",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "assume callback order",
+  "correct_implementation": "prepend: true for critical callbacks",
+  "severity": "high",
+  "tags": [
+    "rails",
+    "callback",
+    "order"
+  ],
+  "notes": ""
+}

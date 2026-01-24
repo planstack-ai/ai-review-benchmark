@@ -1,0 +1,19 @@
+{
+  "case_id": "PERF_003",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "unnecessary_eager_loading",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Eager loading unused associations wastes resources",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "orders.includes(:items, :payments, :shipments, :user)",
+  "correct_implementation": "orders.includes(:items)",
+  "severity": "medium",
+  "tags": [
+    "performance",
+    "eager_load",
+    "waste"
+  ],
+  "notes": ""
+}

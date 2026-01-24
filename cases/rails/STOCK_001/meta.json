@@ -1,0 +1,19 @@
+{
+  "case_id": "STOCK_001",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "stock_allocation_timing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Stock allocated at cart addition instead of payment confirmation",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "reserve_stock on add_to_cart",
+  "correct_implementation": "reserve_stock on checkout",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "timing",
+    "reservation"
+  ],
+  "notes": ""
+}

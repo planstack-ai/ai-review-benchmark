@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_005",
+  "category": "false_positive",
+  "axis": null,
+  "name": "standard_callback",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "after_create, before_save callbacks",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "callback",
+    "baseline"
+  ],
+  "notes": "None - standard implementation"
+}

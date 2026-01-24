@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_019",
+  "category": "false_positive",
+  "axis": null,
+  "name": "optimized_denormalization",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "Materialized view pattern correctly implemented",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "denormalization"
+  ],
+  "notes": "Duplication looks wrong but for performance"
+}

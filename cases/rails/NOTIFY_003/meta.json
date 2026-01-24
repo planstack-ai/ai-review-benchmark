@@ -1,0 +1,19 @@
+{
+  "case_id": "NOTIFY_003",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "notification_timing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Order complete email sent before payment confirmation",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "send_confirmation on order_create",
+  "correct_implementation": "after payment_confirmed: send_confirmation",
+  "severity": "high",
+  "tags": [
+    "notification",
+    "timing",
+    "order"
+  ],
+  "notes": ""
+}

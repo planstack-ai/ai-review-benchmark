@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_002",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "enum_not_used",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "String literal comparison instead of enum",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "order.status == 'pending'",
+  "correct_implementation": "order.pending?",
+  "severity": "medium",
+  "tags": [
+    "rails",
+    "enum",
+    "type_safety"
+  ],
+  "notes": ""
+}

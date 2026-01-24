@@ -1,0 +1,19 @@
+{
+  "case_id": "DATA_003",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "optimistic_lock_missing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "No optimistic locking - last write wins silently",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "update without version check",
+  "correct_implementation": "add_column :orders, :lock_version, :integer",
+  "severity": "high",
+  "tags": [
+    "data",
+    "locking",
+    "concurrent"
+  ],
+  "notes": ""
+}

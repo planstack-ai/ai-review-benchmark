@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_017",
+  "category": "false_positive",
+  "axis": null,
+  "name": "optimized_batch_insert",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "insert_all with proper duplicate handling",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "batch"
+  ],
+  "notes": "Bypassing validations but intentional for bulk"
+}

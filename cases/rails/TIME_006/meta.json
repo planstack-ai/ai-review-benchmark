@@ -1,0 +1,19 @@
+{
+  "case_id": "TIME_006",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "year_crossing",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Year crossing logic error - 12/31 to 1/1 fails",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "Date.new(year, month, day + 1)",
+  "correct_implementation": "1.day.from_now",
+  "severity": "high",
+  "tags": [
+    "time",
+    "year_end",
+    "boundary"
+  ],
+  "notes": ""
+}

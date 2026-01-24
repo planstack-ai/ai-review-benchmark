@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_001",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "scope_not_used",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Scope not used - reimplementing where(status: 'active') everywhere",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "Product.where(status: 'active')",
+  "correct_implementation": "Product.active",
+  "severity": "medium",
+  "tags": [
+    "rails",
+    "scope",
+    "dry"
+  ],
+  "notes": ""
+}

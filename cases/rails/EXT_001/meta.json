@@ -1,0 +1,19 @@
+{
+  "case_id": "EXT_001",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "payment_timeout_unhandled",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Payment timeout leaves order in unknown state",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "rescue Timeout::Error => e; raise",
+  "correct_implementation": "rescue Timeout::Error => e; mark_pending_verification; notify_admin",
+  "severity": "critical",
+  "tags": [
+    "external",
+    "payment",
+    "timeout"
+  ],
+  "notes": ""
+}

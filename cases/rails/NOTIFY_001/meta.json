@@ -1,0 +1,19 @@
+{
+  "case_id": "NOTIFY_001",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "duplicate_email",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Retry logic sends duplicate confirmation emails",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "send_email",
+  "correct_implementation": "return if email_sent?; send_email; mark_sent!",
+  "severity": "high",
+  "tags": [
+    "notification",
+    "email",
+    "duplicate"
+  ],
+  "notes": ""
+}

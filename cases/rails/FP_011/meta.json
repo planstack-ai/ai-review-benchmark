@@ -1,0 +1,19 @@
+{
+  "case_id": "FP_011",
+  "category": "false_positive",
+  "axis": null,
+  "name": "intentional_no_validation",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_location": null,
+  "bug_anchor": null,
+  "correct_implementation": "Intentional skip_validation for admin",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "validation",
+    "intentional"
+  ],
+  "notes": "Looks like missing validation but intentional"
+}

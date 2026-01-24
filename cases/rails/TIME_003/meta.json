@@ -1,0 +1,19 @@
+{
+  "case_id": "TIME_003",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "coupon_expiry_comparison",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Off-by-one on expiry - using < instead of <=",
+  "bug_location": "impl.rb:10",
+  "bug_anchor": "Time.current < expires_at",
+  "correct_implementation": "Time.current <= expires_at.end_of_day",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "expiry",
+    "comparison"
+  ],
+  "notes": ""
+}
