@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Can use another user's coupon code",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "Coupon.find_by(code: code)",
   "correct_implementation": "current_user.coupons.find_by(code: code)",
   "severity": "high",
@@ -15,5 +14,5 @@
     "coupon",
     "ownership"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "Can manipulate other user's cart by specifying cart_id",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "Cart.find(params[:cart_id]).add_item(item)",
   "correct_implementation": "current_user.cart.add_item(item)",
   "severity": "critical",
@@ -15,5 +14,5 @@
     "cart",
     "security"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

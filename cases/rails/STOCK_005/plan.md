@@ -1,19 +1,28 @@
-# Zero Quantity Order
+# Zero Quantity Order Validation
 
-## 概要
+## Overview
 
-ECサイトの注文処理における機能実装。
+The inventory management system must prevent orders from being processed when items have zero or negative quantities. This validation ensures data integrity and prevents invalid business transactions that could lead to overselling or negative inventory states.
 
-## 要件
+## Requirements
 
-1. Validate item quantity is positive
+1. The system must validate that item quantities are greater than zero before processing any order
+2. When an item quantity is zero, the system must reject the order with an appropriate error message
+3. When an item quantity is negative, the system must reject the order with an appropriate error message
+4. The validation must occur before any inventory updates are committed to the database
+5. Error messages must clearly indicate which item(s) have invalid quantities
+6. The system must handle validation for single-item orders
+7. The system must handle validation for multi-item orders, checking each item individually
+8. Valid orders with positive quantities must be processed successfully without interference from the validation
 
-## 使用すべき既存実装
+## Constraints
 
-- 既存のモデルメソッド・スコープを活用すること
-- context.md に記載の実装を参照
+- Quantity validation must be performed on integer values only
+- Zero is considered an invalid quantity for ordering purposes
+- Fractional quantities are not supported in this system
+- The validation must not modify the original order data during the check process
+- Database transactions must be rolled back if validation fails after starting
 
-## 注意事項
+## References
 
-- 正しい実装パターン: `validates :quantity, numericality: { greater_than: 0 }`
-- 仕様通りに実装すること
+See context.md for existing inventory management patterns and validation implementations used throughout the codebase.

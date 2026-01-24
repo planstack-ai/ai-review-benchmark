@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "Can access other user's points via API",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "User.find(params[:user_id]).points",
   "correct_implementation": "current_user.points",
   "severity": "high",
@@ -15,5 +14,5 @@
     "points",
     "api"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

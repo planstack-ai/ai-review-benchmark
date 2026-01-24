@@ -1,19 +1,31 @@
-# Manipulate Other Cart
+# Shopping Cart Authorization - User Cart Access Control
 
-## 概要
+## Overview
 
-ECサイトの注文処理における機能実装。
+This feature implements authorization controls for shopping cart operations to ensure users can only access and modify their own shopping carts. The system must prevent unauthorized access to other users' cart data and operations, maintaining data privacy and security in the e-commerce application.
 
-## 要件
+## Requirements
 
-1. Users can only modify their own cart
+1. Users must only be able to view their own cart contents
+2. Users must only be able to add items to their own cart
+3. Users must only be able to remove items from their own cart
+4. Users must only be able to update item quantities in their own cart
+5. Users must only be able to clear/empty their own cart
+6. Any attempt to access another user's cart must be rejected with appropriate authorization error
+7. Cart operations must verify the requesting user owns the target cart before proceeding
+8. Anonymous users must only be able to access session-based carts tied to their session
+9. Authenticated users must only be able to access carts associated with their user account
+10. The system must return appropriate HTTP status codes for unauthorized access attempts
 
-## 使用すべき既存実装
+## Constraints
 
-- 既存のモデルメソッド・スコープを活用すること
-- context.md に記載の実装を参照
+1. Cart ownership verification must occur before any cart modification operations
+2. User authentication status must be validated before cart access
+3. Session-based carts for anonymous users must not be accessible by other sessions
+4. Database queries for cart operations must include user/session ownership filters
+5. Authorization failures must not expose information about the existence of other users' carts
+6. Cart identifiers must not be predictable or enumerable to prevent unauthorized access attempts
 
-## 注意事項
+## References
 
-- 正しい実装パターン: `current_user.cart.add_item(item)`
-- 仕様通りに実装すること
+See context.md for existing authentication patterns, user models, cart models, and session management implementations that should be leveraged for this authorization feature.

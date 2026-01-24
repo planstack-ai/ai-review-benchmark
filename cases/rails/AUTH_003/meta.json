@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Deleted user's order data still accessible",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "orders",
   "correct_implementation": "orders.joins(:user).where(users: { deleted_at: nil })",
   "severity": "high",
@@ -15,5 +14,5 @@
     "deleted",
     "privacy"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

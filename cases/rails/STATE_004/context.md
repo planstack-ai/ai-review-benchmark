@@ -1,38 +1,133 @@
-# 既存コードベース
+# Existing Codebase
 
-## スキーマ
+## Schema
 
 ```ruby
-# orders table
-# - id: bigint
-# - status: integer (enum: pending, confirmed, shipped, delivered, canceled)
-# - payment_status: integer (enum: unpaid, paid, refunded)
-# - shipped_at: datetime
-# - delivered_at: datetime
-# - canceled_at: datetime
+# == Schema Information
+#
+# Table name: orders
+#
+#  id           :bigint           not null, primary key
+#  user_id      :bigint           not null
+#  total_amount :decimal(10,2)    not null
+#  status       :string           default("pending"), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#
+# Table name: payments
+#
+#  id                :bigint           not null, primary key
+#  order_id          :bigint           not null
+#  amount            :decimal(10,2)    not null
+#  payment_method    :string           not null
+#  transaction_id    :string
+#  status            :string           default("pending"), not null
+#  processed_at      :datetime
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#
+# Table name: payment_attempts
+#
+#  id         :bigint           not null, primary key
+#  order_id   :bigint           not null
+#  amount     :decimal(10,2)    not null
+#  status     :string           not null
+#  error_code :string
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
 ```
 
-## モデル・サービス
+## Models
 
 ```ruby
 class Order < ApplicationRecord
-  enum status: {
-    pending: 0,
-    confirmed: 1,
-    shipped: 2,
-    delivered: 3,
-    canceled: 4
-  }
+  belongs_to :user
+  has_many :payments, dependent: :destroy
+  has_many :payment_attempts, dependent: :destroy
 
-  CANCELLABLE_STATUSES = %w[pending confirmed].freeze
+  STATUSES = %w[pending processing paid cancelled].freeze
+  
+  validates :status, inclusion: { in: STATUSES }
+  validates :total_amount, presence: true, numericality: { greater_than: 0 }
 
-  def can_cancel?
-    CANCELLABLE_STATUSES.include?(status)
+  scope :pending, -> { where(status: 'pending') }
+  scope :paid, -> { where(status: 'paid') }
+
+  def pending?
+    status == 'pending'
   end
 
-  def cancel!
-    raise CannotCancel unless can_cancel?
-    update!(status: :canceled, canceled_at: Time.current)
+  def paid?
+    status == 'paid'
+  end
+
+  def mark_as_paid!
+    update!(status: 'paid')
+  end
+end
+
+class Payment < ApplicationRecord
+  belongs_to :order
+
+  STATUSES = %w[pending processing completed failed].freeze
+  PAYMENT_METHODS = %w[credit_card paypal bank_transfer].freeze
+
+  validates :status, inclusion: { in: STATUSES }
+  validates :payment_method, inclusion: { in: PAYMENT_METHODS }
+  validates :amount, presence: true, numericality: { greater_than: 0 }
+
+  scope :completed, -> { where(status: 'completed') }
+  scope :failed, -> { where(status: 'failed') }
+  scope :pending, -> { where(status: 'pending') }
+
+  def completed?
+    status == 'completed'
+  end
+
+  def failed?
+    status == 'failed'
+  end
+
+  def mark_as_completed!(transaction_id)
+    update!(
+      status: 'completed',
+      transaction_id: transaction_id,
+      processed_at: Time.current
+    )
+  end
+end
+
+class PaymentAttempt < ApplicationRecord
+  belongs_to :order
+
+  STATUSES = %w[initiated processing completed failed].freeze
+
+  validates :status, inclusion: { in: STATUSES }
+  validates :amount, presence: true, numericality: { greater_than: 0 }
+
+  scope :completed, -> { where(status: 'completed') }
+  scope :failed, -> { where(status: 'failed') }
+end
+
+class PaymentGateway
+  class DuplicatePaymentError < StandardError; end
+  class PaymentProcessingError < StandardError; end
+
+  def self.process_payment(order, payment_params)
+    new(order, payment_params).process
+  end
+
+  private
+
+  def initialize(order, payment_params)
+    @order = order
+    @payment_params = payment_params
+  end
+
+  def process
+    # Gateway processing logic would go here
+    # Returns transaction_id on success
+    "txn_#{SecureRandom.hex(8)}"
   end
 end
 ```
