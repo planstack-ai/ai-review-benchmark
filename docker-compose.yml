@@ -1,0 +1,25 @@
+services:
+  benchmark:
+    build: .
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - ./results:/app/results
+      - ./cases:/app/cases:ro
+    # デフォルトコマンドを上書きして実行
+    # 例: docker compose run benchmark --model claude-sonnet --dry-run
+
+  # 開発用（シェルに入る）
+  dev:
+    build: .
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - .:/app
+    entrypoint: /bin/bash
+    stdin_open: true
+    tty: true

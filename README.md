@@ -61,31 +61,50 @@ ai-review-benchmark/
 
 ## 使い方
 
-### 1. 環境構築
+### 1. 環境構築（Docker推奨）
+
+```bash
+# APIキーを設定
+cp .env.example .env
+# .env を編集してAPIキーを入力
+
+# Dockerイメージをビルド
+docker compose build
+```
+
+### 2. ベンチマーク実行
+
+```bash
+# dry-run（ケース一覧確認）
+docker compose run --rm benchmark --model claude-sonnet --dry-run
+
+# 単一モデルで実行
+docker compose run --rm benchmark --model claude-sonnet
+docker compose run --rm benchmark --model deepseek-v3
+docker compose run --rm benchmark --model deepseek-r1
+docker compose run --rm benchmark --model gemini-pro
+
+# 全モデルで実行
+docker compose run --rm benchmark --model all
+
+# 特定カテゴリのみ実行
+docker compose run --rm benchmark --model claude-sonnet --cases cases/rails/plan_mismatch
+```
+
+### 3. 採点・レポート生成
+
+```bash
+docker compose run --rm benchmark python scripts/evaluator.py --run-dir results/{timestamp}_run
+```
+
+### ローカル実行（Dockerなし）
 
 ```bash
 pip install -r requirements.txt
-```
-
-### 2. テストケース生成
-
-```bash
-python scripts/generator.py
-```
-
-### 3. ベンチマーク実行
-
-```bash
+export ANTHROPIC_API_KEY=xxx
+export DEEPSEEK_API_KEY=xxx
+export GOOGLE_API_KEY=xxx
 python scripts/runner.py --model claude-sonnet
-python scripts/runner.py --model deepseek-v3
-python scripts/runner.py --model deepseek-r1
-python scripts/runner.py --model gemini-pro
-```
-
-### 4. 採点・レポート生成
-
-```bash
-python scripts/evaluator.py --run-dir results/{timestamp}_run
 ```
 
 ## 評価指標
