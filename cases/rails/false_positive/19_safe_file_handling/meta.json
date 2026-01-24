@@ -1,0 +1,11 @@
+{
+  "case_id": "false_positive_19",
+  "category": "false_positive",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": "バグなし。サービス層とモデル層の両方でバリデーションを実施。ActiveStorageがファイル名のサニタイズを担当。",
+  "bug_location": null,
+  "correct_implementation": null,
+  "tags": ["file_upload", "security", "validation", "correct"],
+  "notes": "多層防御の実装。AIが「ファイル名のサニタイズがない」と誤検知しないかをテスト。ActiveStorageが内部で処理することを認識できるかが重要。"
+}

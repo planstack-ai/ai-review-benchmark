@@ -1,0 +1,11 @@
+{
+  "case_id": "logic_bug_06",
+  "category": "logic_bug",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "空の結果セットに対して first を呼び出すと nil が返るが、その nil に対して .score や .student を呼び出すと NoMethodError が発生する。",
+  "bug_location": "impl.rb:13,19",
+  "correct_implementation": "results.first&.score",
+  "tags": ["nil_check", "empty_collection", "safe_navigation"],
+  "notes": "コレクションが空の可能性を考慮していない典型的なバグ。safe navigation operator または事前の空チェックが必要。"
+}

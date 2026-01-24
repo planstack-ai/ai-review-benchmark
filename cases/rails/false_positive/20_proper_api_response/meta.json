@@ -1,0 +1,11 @@
+{
+  "case_id": "false_positive_20",
+  "category": "false_positive",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": "バグなし。ApiResponse モジュールを使用して統一されたレスポンス形式を返している。",
+  "bug_location": null,
+  "correct_implementation": null,
+  "tags": ["api", "response", "correct"],
+  "notes": "Strong Parameters、適切なHTTPステータス、統一されたレスポンス形式の全てが正しく実装されている。"
+}

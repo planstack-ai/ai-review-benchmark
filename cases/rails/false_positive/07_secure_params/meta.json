@@ -1,0 +1,11 @@
+{
+  "case_id": "false_positive_07",
+  "category": "false_positive",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": "バグなし。permit で許可するパラメータを明示的に指定している。",
+  "bug_location": null,
+  "correct_implementation": null,
+  "tags": ["strong_parameters", "security", "correct"],
+  "notes": "logic_bug_16 の正しい実装版。permit! ではなく permit を使用している。"
+}

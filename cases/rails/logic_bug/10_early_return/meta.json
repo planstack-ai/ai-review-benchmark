@@ -1,0 +1,11 @@
+{
+  "case_id": "logic_bug_10",
+  "category": "logic_bug",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "return キーワードが欠落している。'false unless condition' は条件を評価して false を返すが、メソッドから抜けない。結果として条件を満たさないユーザーにもメールが送信される。",
+  "bug_location": "impl.rb:11-12",
+  "correct_implementation": "return false unless @user.email_notifications_enabled?\nreturn false unless @user.email_verified?",
+  "tags": ["early_return", "return_keyword", "control_flow"],
+  "notes": "Ruby では return を省略できるが、早期リターンには明示的な return が必要。この種のバグは静的解析では検出しにくい。"
+}

@@ -1,0 +1,11 @@
+{
+  "case_id": "plan_mismatch_18",
+  "category": "plan_mismatch",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "2つの問題: (1) in_stock スコープが欠落（在庫なし商品も表示される）、(2) oldest_first を使用しているが newest_first が正しい。",
+  "bug_location": "impl.rb:11-13",
+  "correct_implementation": "Product.published\n       .price_between(@min_price, @max_price)\n       .in_stock\n       .newest_first",
+  "tags": ["scope", "chaining", "missing_condition", "sort_order"],
+  "notes": "スコープチェインの欠落と誤ったスコープの使用。仕様を注意深く読めば発見できる。"
+}

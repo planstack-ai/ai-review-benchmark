@@ -1,0 +1,11 @@
+{
+  "case_id": "false_positive_13",
+  "category": "false_positive",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": "バグなし。session[:return_to] は事前に request.path（相対パス）で保存されるため、外部URLは含まれない。また reset_session でセッション固定攻撃も防いでいる。",
+  "bug_location": null,
+  "correct_implementation": null,
+  "tags": ["redirect", "security", "correct"],
+  "notes": "AIが「session[:return_to] の検証がない」と誤検知しないかをテスト。保存時に安全なパスのみが格納されることを認識できるかが重要。"
+}

@@ -1,0 +1,11 @@
+{
+  "case_id": "logic_bug_03",
+  "category": "logic_bug",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "BigDecimal を Float に変換することで精度が失われる。金額計算では浮動小数点誤差により、例えば 999.999999999 が 1000.0 と判定されたり、その逆が起きる可能性がある。",
+  "bug_location": "impl.rb:13",
+  "correct_implementation": "def total_amount\n  @transactions.sum(&:amount)\nend",
+  "tags": ["float", "precision", "bigdecimal", "money"],
+  "notes": "金額計算における典型的なバグ。RailsのdecimalはBigDecimalとして扱われるため、to_fせずにそのまま計算すべき。money-rails gem などを使用するのも一つの解決策。"
+}

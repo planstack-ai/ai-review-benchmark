@@ -1,0 +1,11 @@
+{
+  "case_id": "false_positive_11",
+  "category": "false_positive",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": "バグなし。リトライ処理と例外ハンドリングが正しく実装されている。",
+  "bug_location": null,
+  "correct_implementation": null,
+  "tags": ["error_handling", "retry", "correct"],
+  "notes": "リトライはTimeoutErrorのみ、最終的にはTimeoutErrorとApiError両方をキャッチしてnilを返す正しい設計。"
+}

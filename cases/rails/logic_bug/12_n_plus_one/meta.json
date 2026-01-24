@@ -1,0 +1,11 @@
+{
+  "case_id": "logic_bug_12",
+  "category": "logic_bug",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "N+1 クエリ問題。Article.published の各レコードに対して article.author.name でクエリが発行される。includes(:author) または with_author スコープを使用すべき。",
+  "bug_location": "impl.rb:7",
+  "correct_implementation": "Article.published.with_author.map do |article|",
+  "tags": ["n_plus_one", "performance", "includes"],
+  "notes": "典型的な N+1 問題。100件の記事があれば 101 回のクエリが発行される。"
+}

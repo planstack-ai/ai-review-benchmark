@@ -1,0 +1,11 @@
+{
+  "case_id": "plan_mismatch_19",
+  "category": "plan_mismatch",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "エラーコードを数値（1, 2）でハードコードしているが、仕様では文字列形式（\"E001\", \"E002\"）を使用すべき。ErrorCode 定数を使用していない。",
+  "bug_location": "impl.rb:15,21",
+  "correct_implementation": "build_response(ErrorCode::INVALID_PARAMS, ErrorCode.message_for(ErrorCode::INVALID_PARAMS), 400)",
+  "tags": ["constant", "error_code", "hardcode"],
+  "notes": "定義済み定数を使用せずにハードコードしてしまった例。型（文字列vs数値）も間違っている。"
+}

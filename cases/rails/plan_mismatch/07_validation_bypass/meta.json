@@ -1,0 +1,11 @@
+{
+  "case_id": "plan_mismatch_07",
+  "category": "plan_mismatch",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Planで指定されたvalid_for?メソッドを使わず、expired?のみをチェックしている。使用回数制限、最低金額チェック、初回限定チェックが漏れている。",
+  "bug_location": "impl.rb:13",
+  "correct_implementation": "raise InvalidCouponError unless coupon.valid_for?(@order)",
+  "tags": ["validation", "incomplete_check", "method_not_used"],
+  "notes": "部分的なバリデーション実装は危険。既存の包括的なメソッドを使用すべき。"
+}

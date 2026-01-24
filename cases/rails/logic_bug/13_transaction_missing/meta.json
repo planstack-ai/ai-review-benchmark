@@ -1,0 +1,11 @@
+{
+  "case_id": "logic_bug_13",
+  "category": "logic_bug",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "トランザクションが欠落している。withdraw 成功後に deposit や create! が失敗すると、送金元の残高だけが減り、データ不整合が発生する。",
+  "bug_location": "impl.rb:12-15",
+  "correct_implementation": "ActiveRecord::Base.transaction do\n  @sender.withdraw(@amount)\n  @receiver.deposit(@amount)\n  Transfer.create!(sender: @sender, receiver: @receiver, amount: @amount)\nend",
+  "tags": ["transaction", "atomicity", "data_integrity"],
+  "notes": "金銭を扱う処理では必須のトランザクション。ACID 特性の Atomicity を保証する必要がある。"
+}

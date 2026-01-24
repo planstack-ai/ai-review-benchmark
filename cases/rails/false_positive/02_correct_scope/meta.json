@@ -1,0 +1,11 @@
+{
+  "case_id": "false_positive_02",
+  "category": "false_positive",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": "バグなし。既存スコープを正しく組み合わせて使用している。",
+  "bug_location": null,
+  "correct_implementation": null,
+  "tags": ["scope", "query", "correct"],
+  "notes": "plan_mismatch_02 の正しい実装版。AIが条件漏れを誤検知しないかをテスト。"
+}

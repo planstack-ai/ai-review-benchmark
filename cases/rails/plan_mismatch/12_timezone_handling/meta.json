@@ -1,0 +1,11 @@
+{
+  "case_id": "plan_mismatch_12",
+  "category": "plan_mismatch",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Time.zone（アプリケーションのデフォルト）を使用しているが、仕様では user.timezone を使用すべき。ユーザーごとに異なるタイムゾーンで表示されない。",
+  "bug_location": "impl.rb:12",
+  "correct_implementation": "local_time = @event.starts_at.in_time_zone(@user.timezone)",
+  "tags": ["timezone", "user_setting", "localization"],
+  "notes": "タイムゾーン処理の典型的なミス。Time.zone と user.timezone の違いを理解していない。"
+}

@@ -1,0 +1,11 @@
+{
+  "case_id": "false_positive_09",
+  "category": "false_positive",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": "バグなし。confirm! を呼ぶだけで、コールバックにより在庫減少とメール送信が実行される。",
+  "bug_location": null,
+  "correct_implementation": null,
+  "tags": ["callback", "model", "correct"],
+  "notes": "AIが「在庫を減らす処理がない」「メール送信がない」と誤検知しないかをテスト。コールバックの存在を認識できるかが重要。"
+}

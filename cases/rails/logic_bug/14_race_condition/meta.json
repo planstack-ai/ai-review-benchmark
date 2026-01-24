@@ -1,0 +1,11 @@
+{
+  "case_id": "logic_bug_14",
+  "category": "logic_bug",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "レースコンディション（TOCTOU: Time-of-check to time-of-use）。stock チェック後、decrement! 前に別リクエストが在庫を減らす可能性がある。既存の reserve_stock! メソッドは with_lock でこれを防いでいる。",
+  "bug_location": "impl.rb:13-15",
+  "correct_implementation": "@product.reserve_stock!(@quantity)\nReservation.create!(product: @product, user: @user, quantity: @quantity)",
+  "tags": ["race_condition", "concurrency", "lock", "toctou"],
+  "notes": "同時アクセスのあるWebアプリケーションでは必ず考慮すべき問題。楽観的ロックまたは悲観的ロックで対処する。"
+}

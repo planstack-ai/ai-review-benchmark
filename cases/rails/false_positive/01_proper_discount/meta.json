@@ -1,0 +1,11 @@
+{
+  "case_id": "false_positive_01",
+  "category": "false_positive",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": "バグなし。10%割引を支払い率0.9として正しく実装している。",
+  "bug_location": null,
+  "correct_implementation": null,
+  "tags": ["discount", "calculation", "correct"],
+  "notes": "plan_mismatch_01 の正しい実装版。AIが「0.1であるべき」と誤検知しないかをテスト。"
+}

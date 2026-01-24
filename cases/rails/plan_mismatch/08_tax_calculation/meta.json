@@ -1,0 +1,11 @@
+{
+  "case_id": "plan_mismatch_08",
+  "category": "plan_mismatch",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Planで指定されたTaxCalculatorモジュールを使用せず、独自にTAX_RATEを定義して計算している。TaxCalculator.tax_included_price()とTaxCalculator.tax_amount()を使用すべき。",
+  "bug_location": "impl.rb:4,33,37",
+  "correct_implementation": "TaxCalculator.tax_amount(@order.subtotal) / TaxCalculator.tax_included_price(@order.subtotal)",
+  "tags": ["calculation", "tax", "duplicate_logic"],
+  "notes": "ロジックの重複は将来の税率変更時にバグの原因となる。既存モジュールへの集約が重要。"
+}

@@ -1,0 +1,11 @@
+{
+  "case_id": "plan_mismatch_04",
+  "category": "plan_mismatch",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "ソート順がascになっているが、Planでは「新しい順」（降順）と指定されている。古い記事が先に表示されてしまう。",
+  "bug_location": "impl.rb:6",
+  "correct_implementation": "Article.published.newest_first.limit(20)",
+  "tags": ["sort", "order", "asc_desc"],
+  "notes": "asc/descの取り違えは頻出バグ。既存のnewest_firstスコープを使用していない点も指摘可能。"
+}

@@ -1,0 +1,11 @@
+{
+  "case_id": "plan_mismatch_05",
+  "category": "plan_mismatch",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Planで指定された数量上限100個のチェックが実装されていない。quantity_exceeded?メソッドで確認し、超過時はCartQuantityExceededErrorを発生させるべき。",
+  "bug_location": "impl.rb:14",
+  "correct_implementation": "raise CartQuantityExceededError if cart_item.quantity_exceeded?",
+  "tags": ["validation", "limit", "missing_check"],
+  "notes": "バリデーションはモデルにあるが、saveで例外が発生するとActiveRecord::RecordInvalidになる。Planで指定された専用エラーを使うべき。"
+}

@@ -1,0 +1,11 @@
+{
+  "case_id": "logic_bug_16",
+  "category": "logic_bug",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Mass Assignment 脆弱性。permit! は全てのパラメータを許可するため、攻撃者が role: 'admin' を送信すると権限昇格できる。",
+  "bug_location": "impl.rb:9",
+  "correct_implementation": "@user.update(params[:user].permit(:name, :email))",
+  "tags": ["mass_assignment", "security", "strong_parameters"],
+  "notes": "Rails のセキュリティベストプラクティス違反。permit! は危険であり、必要な属性のみを明示的に permit すべき。"
+}

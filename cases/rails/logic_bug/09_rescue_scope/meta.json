@@ -1,0 +1,11 @@
+{
+  "case_id": "logic_bug_09",
+  "category": "logic_bug",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "parse_data メソッドで rescue している例外クラスが間違っている。DataParser.parse は ParseError を発生させるが、JSON::ParserError を rescue しているため、ParseError がキャッチされずに上位に伝播する。",
+  "bug_location": "impl.rb:32",
+  "correct_implementation": "rescue DataParser::ParseError => e",
+  "tags": ["exception", "rescue", "error_handling"],
+  "notes": "例外クラスの階層や、ラッパーメソッドが発生させる例外の種類を正しく理解していないことによるバグ。"
+}

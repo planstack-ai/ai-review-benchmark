@@ -1,0 +1,11 @@
+{
+  "case_id": "logic_bug_18",
+  "category": "logic_bug",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "セッション固定攻撃（Session Fixation）に脆弱。ログイン成功時に reset_session を呼ばないため、攻撃者が事前に設定したセッションIDが引き継がれる。",
+  "bug_location": "impl.rb:10",
+  "correct_implementation": "reset_session\nsession[:user_id] = user.id",
+  "tags": ["session_fixation", "security", "authentication"],
+  "notes": "OWASP で指摘されるセキュリティ脆弱性。認証成功時は必ず新しいセッションIDを発行すべき。"
+}

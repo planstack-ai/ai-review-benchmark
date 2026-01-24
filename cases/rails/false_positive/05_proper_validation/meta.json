@@ -1,0 +1,11 @@
+{
+  "case_id": "false_positive_05",
+  "category": "false_positive",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": "バグなし。モデルのバリデーションを活用し、許可されたパラメータのみを使用している。",
+  "bug_location": null,
+  "correct_implementation": null,
+  "tags": ["validation", "security", "correct"],
+  "notes": "slice で必要なパラメータのみを抽出している点も正しい。"
+}

@@ -1,0 +1,11 @@
+{
+  "case_id": "plan_mismatch_10",
+  "category": "plan_mismatch",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "ページ番号が1始まりなのに、offset計算が page * PER_PAGE になっている。1ページ目でoffset=20となり、最初の20件が取得できない。正しくは (page - 1) * PER_PAGE、またはKaminariのpageメソッドを使用すべき。",
+  "bug_location": "impl.rb:21",
+  "correct_implementation": "Product.visible.page(@page).per(PER_PAGE)  # または offset = (@page - 1) * PER_PAGE",
+  "tags": ["pagination", "off_by_one", "offset"],
+  "notes": "off-by-oneエラーの典型例。既存のpageスコープを使えば回避できる。"
+}

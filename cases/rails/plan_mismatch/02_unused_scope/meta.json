@@ -1,0 +1,11 @@
+{
+  "case_id": "plan_mismatch_02",
+  "category": "plan_mismatch",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "User.activeスコープを使わず独自実装しており、suspended条件が漏れている。停止中ユーザーも取得されてしまう。",
+  "bug_location": "impl.rb:7",
+  "correct_implementation": "User.active.recently_logged_in(30).by_created_at",
+  "tags": ["scope", "query", "missing_condition"],
+  "notes": "既存スコープを使わないことで条件漏れが発生する典型例。Plan内で明確に既存スコープの使用を指示している。"
+}
