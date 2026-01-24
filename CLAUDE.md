@@ -1,5 +1,7 @@
 # CLAUDE.md - AI Review Benchmark Project Guide
 
+> **詳細仕様書:** [docs/benchmark-spec-v2.md](docs/benchmark-spec-v2.md) を参照
+
 ## プロジェクト概要
 
 RailsアプリケーションのAIコードレビュー品質を評価するベンチマークプロジェクト。
@@ -19,13 +21,21 @@ APIコストが1/20のDeepSeek V3/R1が、実務レベルのコードレビュ�
 | DeepSeek R1 | $0.14 | Reasoner |
 | Gemini 1.5 Pro | $1.25 | Long Context |
 
-## テストケース構成（計60ケース）
+## テストケース構成（v2: 95パターン → 100+ケース）
 
-| カテゴリ | ケース数 | 検証ポイント |
-|----------|----------|--------------|
-| **plan_mismatch** | 20 | 仕様通りに実装されていない（コードは動く） |
-| **logic_bug** | 20 | N+1、トランザクション、セキュリティ等 |
-| **false_positive** | 20 | 完璧なコード（過剰検知しないか） |
+| カテゴリ | パターン数 | 検証ポイント |
+|----------|------------|--------------|
+| Price Calculation | 10 | 割引、税金、丸め、通貨 |
+| Inventory & Quantity | 8 | 在庫割当、競合状態、数量バリデーション |
+| State Transitions | 7 | 注文状態、キャンセル、返金 |
+| User & Authorization | 7 | 権限チェック、他ユーザーリソースアクセス |
+| Time & Duration | 8 | タイムゾーン、期間検証、境界値 |
+| External Integration | 6 | 決済API、Webhook、冪等性 |
+| Performance | 6 | N+1、全件ロード、キャッシュ |
+| Data Integrity | 6 | 制約、ロック、論理削除 |
+| Notifications & Email | 6 | 重複送信、タイミング、宛先 |
+| Rails-Specific | 11 | Scope、enum、callback、transaction |
+| **False Positive** | 20 | バグなし（過剰検知テスト） |
 
 ## 評価指標
 
