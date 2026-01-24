@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Review Benchmark Project Guide
 
-> **Full Specification:** See [docs/benchmark-spec-v2.md](docs/benchmark-spec-v2.md)
+> **Full Specification:** See [docs/benchmark-spec-v3.md](docs/benchmark-spec-v3.md)
 
 ## Language
 
@@ -25,30 +25,41 @@ Quantitatively verify whether DeepSeek V3/R1, at 1/20th the API cost, can delive
 | DeepSeek R1 | $0.14 | Reasoner |
 | Gemini 1.5 Pro | $1.25 | Long Context |
 
-## Test Case Structure (v2: 95 patterns → 100+ cases)
+## Test Case Structure (v3: 95 cases)
 
-| Category | Patterns | Verification Points |
-|----------|----------|---------------------|
-| Price Calculation | 10 | Discounts, tax, rounding, currency |
-| Inventory & Quantity | 8 | Stock allocation, race conditions, quantity validation |
-| State Transitions | 7 | Order status, cancellation, refunds |
-| User & Authorization | 7 | Permission checks, accessing other users' resources |
-| Time & Duration | 8 | Timezone, period validation, boundary values |
-| External Integration | 6 | Payment API, Webhook, idempotency |
-| Performance | 6 | N+1, full table loads, caching |
-| Data Integrity | 6 | Constraints, locking, soft deletes |
-| Notifications & Email | 6 | Duplicate sends, timing, recipients |
-| Rails-Specific | 11 | Scope, enum, callbacks, transactions |
-| **False Positive** | 20 | No bugs (over-detection test) |
+### Two-Axis Analysis
+
+| Axis | Categories | Cases | What it measures |
+|------|------------|-------|------------------|
+| **Spec Alignment** | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 46 | Plan vs Code mismatches |
+| **Implicit Knowledge** | EXT, PERF, DATA, RAILS | 29 | Issues not written in Plan |
+| **False Positive** | FP | 20 | Over-detection test |
+
+### By Category
+
+| Category | Cases | Axis |
+|----------|-------|------|
+| Price Calculation (CALC) | 10 | Spec Alignment |
+| Inventory & Quantity (STOCK) | 8 | Spec Alignment |
+| State Transitions (STATE) | 7 | Spec Alignment |
+| User & Authorization (AUTH) | 7 | Spec Alignment |
+| Time & Duration (TIME) | 8 | Spec Alignment |
+| Notifications & Email (NOTIFY) | 6 | Spec Alignment |
+| External Integration (EXT) | 6 | Implicit Knowledge |
+| Performance (PERF) | 6 | Implicit Knowledge |
+| Data Integrity (DATA) | 6 | Implicit Knowledge |
+| Rails-Specific (RAILS) | 11 | Implicit Knowledge |
+| False Positive (FP) | 20 | - |
 
 ## Evaluation Metrics
 
 | Metric | Calculation | Target |
 |--------|-------------|--------|
-| **Recall** | Detections / Total Bugs | > 80% |
-| **Precision** | Correct Findings / All Findings | > 70% |
-| **False Positive Rate** | False Detections / FP Cases | < 20% |
-| **Cost per Review** | API Cost / Case Count | For comparison |
+| **Recall** | TP / (TP + FN) | > 80% |
+| **Precision** | TP / (TP + FP) | > 70% |
+| **False Positive Rate** | FP cases flagged / 20 | < 20% |
+| **Noise Rate** | Extra findings / Total findings | Reference |
+| **Cost per Review** | API Cost / 95 cases | For comparison |
 
 ## Coding Standards
 
@@ -69,7 +80,7 @@ Quantitatively verify whether DeepSeek V3/R1, at 1/20th the API cost, can delive
 ## Directory Structure
 
 ```
-cases/rails/{category}/{case_id}/
+cases/rails/{CASE_ID}/
 ├── plan.md      # Specification
 ├── context.md   # Existing codebase info
 ├── impl.rb      # Code under review
@@ -100,15 +111,17 @@ cases/rails/{category}/{case_id}/
 
 ```json
 {
-  "case_id": "plan_mismatch_01",
-  "category": "plan_mismatch | logic_bug | false_positive",
+  "case_id": "CALC_001",
+  "category": "calculation",
+  "axis": "spec_alignment | implicit_knowledge",
+  "name": "discount_rate_direction",
   "difficulty": "easy | medium | hard",
   "expected_detection": true | false,
   "bug_description": "Description of the issue",
-  "bug_location": "impl.rb:line_number",
+  "bug_anchor": "code snippet to match",
   "correct_implementation": "Correct implementation example",
-  "tags": ["calculation", "discount"],
-  "notes": "Additional notes"
+  "severity": "critical | high | medium | low",
+  "tags": ["calculation", "discount"]
 }
 ```
 
@@ -116,7 +129,7 @@ cases/rails/{category}/{case_id}/
 
 ### Test Case Generation
 ```bash
-python scripts/generator.py --category plan_mismatch --count 20
+python scripts/generator.py --pattern CALC_001
 ```
 
 ### Benchmark Execution
@@ -141,12 +154,14 @@ export GOOGLE_API_KEY=xxx
 
 ## Key Design Decisions
 
-1. **Judge Model**: Uses Claude 3.5 Sonnet (+ GPT-4o for cross-validation)
-2. **Evaluation Format**: Quantitative evaluation via JSON output (eliminates natural language ambiguity)
-3. **Case Independence**: Each case is designed to be evaluated independently
+1. **Judge Model**: Claude 3.5 Sonnet with 20-case human validation
+2. **Evaluation Format**: JSON output for quantitative evaluation
+3. **Two-Axis Analysis**: Spec Alignment vs Implicit Knowledge
+4. **Bug Anchor**: String match instead of line numbers for robustness
 
-## Notes
+## Disclaimers
 
-- Test cases are created for benchmarking, not from real Rails code
-- Bugs are intentionally injected, not actual security vulnerabilities
-- Results are point-in-time snapshots; may vary with model updates
+- **Single execution**: Models run once with temperature=0
+- **Judge model**: Claude 3.5 Sonnet; human validation on 20 cases
+- **AI-generated cases**: 20 cases human-reviewed for realism
+- **Rails-specific**: Results may not generalize to other frameworks

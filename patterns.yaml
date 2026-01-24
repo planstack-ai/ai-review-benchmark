@@ -1,13 +1,14 @@
 # AI Code Review Benchmark - Bug Pattern Definitions
 # 95 patterns (75 bugs + 20 false positives) for Rails e-commerce order processing
-# Version: 2.0
+# Version: 3.0
 
 # =============================================================================
-# Price Calculation (10 patterns)
+# Price Calculation (10 patterns) — Spec Alignment
 # =============================================================================
 
 - id: CALC_001
   category: calculation
+  axis: spec_alignment
   name: discount_rate_direction
   plan: "Apply 10% discount for members"
   bug_description: "Discount rate direction wrong, becomes 90% off"
@@ -19,6 +20,7 @@
 
 - id: CALC_002
   category: calculation
+  axis: spec_alignment
   name: tax_calculation_order
   plan: "Calculate total with 10% tax after discount"
   bug_description: "Tax calculation order wrong - applying tax before discount yields different amount"
@@ -30,6 +32,7 @@
 
 - id: CALC_003
   category: calculation
+  axis: spec_alignment
   name: inconsistent_rounding
   plan: "Calculate order total with consistent rounding"
   bug_description: "Inconsistent rounding - round per item then sum vs sum then round yields different results"
@@ -41,6 +44,7 @@
 
 - id: CALC_004
   category: calculation
+  axis: spec_alignment
   name: floating_point_currency
   plan: "Calculate price with decimal precision"
   bug_description: "Floating point precision error - 0.1 + 0.2 != 0.3 problem"
@@ -52,6 +56,7 @@
 
 - id: CALC_005
   category: calculation
+  axis: spec_alignment
   name: hardcoded_tax_rate
   plan: "Apply current tax rate (10%)"
   bug_description: "Hardcoded old tax rate - still using 8% instead of 10%"
@@ -63,6 +68,7 @@
 
 - id: CALC_006
   category: calculation
+  axis: spec_alignment
   name: free_shipping_boundary
   plan: "Free shipping for orders of 5000 yen or more"
   bug_description: "Boundary condition error - >= 5000 vs > 5000"
@@ -74,6 +80,7 @@
 
 - id: CALC_007
   category: calculation
+  axis: spec_alignment
   name: points_calculation_order
   plan: "Award points based on payment amount after discount"
   bug_description: "Points calculated on pre-discount amount instead of post-discount"
@@ -85,6 +92,7 @@
 
 - id: CALC_008
   category: calculation
+  axis: spec_alignment
   name: coupon_stacking_logic
   plan: "Apply single coupon per order"
   bug_description: "Coupon stacking allowed - multiple coupons can be applied"
@@ -96,6 +104,7 @@
 
 - id: CALC_009
   category: calculation
+  axis: spec_alignment
   name: minimum_order_amount
   plan: "Minimum order amount is 1000 yen after discounts"
   bug_description: "Minimum check on pre-discount amount instead of post-discount"
@@ -107,6 +116,7 @@
 
 - id: CALC_010
   category: calculation
+  axis: spec_alignment
   name: quantity_overflow
   plan: "Calculate total for bulk orders"
   bug_description: "Integer overflow on unit_price * quantity for large orders"
@@ -117,11 +127,12 @@
   tags: [calculation, overflow, bulk]
 
 # =============================================================================
-# Inventory & Quantity (8 patterns)
+# Inventory & Quantity (8 patterns) — Spec Alignment
 # =============================================================================
 
 - id: STOCK_001
   category: inventory
+  axis: spec_alignment
   name: stock_allocation_timing
   plan: "Reserve stock at checkout, not cart addition"
   bug_description: "Stock allocated at cart addition instead of payment confirmation"
@@ -133,6 +144,7 @@
 
 - id: STOCK_002
   category: inventory
+  axis: spec_alignment
   name: non_atomic_stock_update
   plan: "Atomically check and decrement stock"
   bug_description: "Race condition between stock check and update"
@@ -144,6 +156,7 @@
 
 - id: STOCK_003
   category: inventory
+  axis: spec_alignment
   name: cart_stock_divergence
   plan: "Validate stock availability at checkout"
   bug_description: "Cart quantity not revalidated - stock may deplete while cart abandoned"
@@ -155,6 +168,7 @@
 
 - id: STOCK_004
   category: inventory
+  axis: spec_alignment
   name: reserved_actual_confusion
   plan: "Track reserved and available stock separately"
   bug_description: "Reserved stock counted as available - double counting"
@@ -166,6 +180,7 @@
 
 - id: STOCK_005
   category: inventory
+  axis: spec_alignment
   name: zero_quantity_order
   plan: "Validate item quantity is positive"
   bug_description: "Zero quantity orders allowed through validation gap"
@@ -177,6 +192,7 @@
 
 - id: STOCK_006
   category: inventory
+  axis: spec_alignment
   name: negative_stock_allowed
   plan: "Prevent negative stock levels"
   bug_description: "Cancellation processing can drive stock negative"
@@ -188,6 +204,7 @@
 
 - id: STOCK_007
   category: inventory
+  axis: spec_alignment
   name: duplicate_stock_restoration
   plan: "Restore stock once per cancellation"
   bug_description: "Cancel spam increases stock - no idempotency check"
@@ -199,6 +216,7 @@
 
 - id: STOCK_008
   category: inventory
+  axis: spec_alignment
   name: bundle_stock_calculation
   plan: "Bundle availability is minimum of component stocks"
   bug_description: "Bundle stock not calculated as minimum of components"
@@ -209,11 +227,12 @@
   tags: [inventory, bundle, calculation]
 
 # =============================================================================
-# State Transitions (7 patterns)
+# State Transitions (7 patterns) — Spec Alignment
 # =============================================================================
 
 - id: STATE_001
   category: state
+  axis: spec_alignment
   name: invalid_state_transition
   plan: "Enforce valid order state transitions"
   bug_description: "Invalid transition allowed - shipped can go back to pending"
@@ -225,6 +244,7 @@
 
 - id: STATE_002
   category: state
+  axis: spec_alignment
   name: cancel_window_missing
   plan: "Allow cancellation only before shipment"
   bug_description: "Cancellation succeeds even after shipment"
@@ -236,6 +256,7 @@
 
 - id: STATE_003
   category: state
+  axis: spec_alignment
   name: payment_timeout
   plan: "Reject payment after order expiration"
   bug_description: "Payment accepted after order expiration time"
@@ -247,6 +268,7 @@
 
 - id: STATE_004
   category: state
+  axis: spec_alignment
   name: duplicate_payment
   plan: "Accept payment only once per order"
   bug_description: "Double-click charges twice - no duplicate check"
@@ -258,6 +280,7 @@
 
 - id: STATE_005
   category: state
+  axis: spec_alignment
   name: partial_cancel_integrity
   plan: "Update total correctly on partial cancellation"
   bug_description: "Total amount wrong after partial item cancellation"
@@ -269,6 +292,7 @@
 
 - id: STATE_006
   category: state
+  axis: spec_alignment
   name: refund_status_missing
   plan: "Update payment status after refund"
   bug_description: "Payment shows unpaid despite refund completion"
@@ -280,6 +304,7 @@
 
 - id: STATE_007
   category: state
+  axis: spec_alignment
   name: delivery_status_regression
   plan: "Delivery status can only move forward"
   bug_description: "Delivered can regress to shipping status"
@@ -290,11 +315,12 @@
   tags: [state, delivery, regression]
 
 # =============================================================================
-# User & Authorization (7 patterns)
+# User & Authorization (7 patterns) — Spec Alignment
 # =============================================================================
 
 - id: AUTH_001
   category: authorization
+  axis: spec_alignment
   name: access_other_user_order
   plan: "Users can only view their own orders"
   bug_description: "IDOR vulnerability - can access other user's order by changing ID"
@@ -306,6 +332,7 @@
 
 - id: AUTH_002
   category: authorization
+  axis: spec_alignment
   name: manipulate_other_cart
   plan: "Users can only modify their own cart"
   bug_description: "Can manipulate other user's cart by specifying cart_id"
@@ -317,6 +344,7 @@
 
 - id: AUTH_003
   category: authorization
+  axis: spec_alignment
   name: deleted_user_data
   plan: "Hide orders of deleted users"
   bug_description: "Deleted user's order data still accessible"
@@ -328,6 +356,7 @@
 
 - id: AUTH_004
   category: authorization
+  axis: spec_alignment
   name: admin_permission_missing
   plan: "Only admins can modify product prices"
   bug_description: "Regular users can change prices - admin check missing"
@@ -339,6 +368,7 @@
 
 - id: AUTH_005
   category: authorization
+  axis: spec_alignment
   name: guest_member_pricing
   plan: "Member pricing only for logged-in members"
   bug_description: "Guest users getting member pricing - membership check hole"
@@ -350,6 +380,7 @@
 
 - id: AUTH_006
   category: authorization
+  axis: spec_alignment
   name: access_other_points
   plan: "Users can only view their own points"
   bug_description: "Can access other user's points via API"
@@ -361,6 +392,7 @@
 
 - id: AUTH_007
   category: authorization
+  axis: spec_alignment
   name: coupon_owner_missing
   plan: "Users can only use their own coupons"
   bug_description: "Can use another user's coupon code"
@@ -371,11 +403,12 @@
   tags: [authorization, coupon, ownership]
 
 # =============================================================================
-# Time & Duration (8 patterns)
+# Time & Duration (8 patterns) — Spec Alignment
 # =============================================================================
 
 - id: TIME_001
   category: time
+  axis: spec_alignment
   name: timezone_not_considered
   plan: "Display times in user's timezone"
   bug_description: "Timezone not considered - UTC saved, displayed incorrectly as JST"
@@ -387,6 +420,7 @@
 
 - id: TIME_002
   category: time
+  axis: spec_alignment
   name: sale_period_boundary
   plan: "Sale starts at midnight on start date"
   bug_description: "Sale period boundary error - 0:00 start becomes previous day 23:59"
@@ -398,6 +432,7 @@
 
 - id: TIME_003
   category: time
+  axis: spec_alignment
   name: coupon_expiry_comparison
   plan: "Coupon valid until end of expiry date"
   bug_description: "Off-by-one on expiry - using < instead of <="
@@ -409,6 +444,7 @@
 
 - id: TIME_004
   category: time
+  axis: spec_alignment
   name: date_only_comparison
   plan: "Compare dates ignoring time component"
   bug_description: "Time truncation causes next-day treatment"
@@ -420,6 +456,7 @@
 
 - id: TIME_005
   category: time
+  axis: spec_alignment
   name: month_end_processing
   plan: "Handle month-end dates correctly"
   bug_description: "Invalid date error - February 30 doesn't exist"
@@ -431,6 +468,7 @@
 
 - id: TIME_006
   category: time
+  axis: spec_alignment
   name: year_crossing
   plan: "Handle year boundary correctly"
   bug_description: "Year crossing logic error - 12/31 to 1/1 fails"
@@ -442,6 +480,7 @@
 
 - id: TIME_007
   category: time
+  axis: spec_alignment
   name: business_day_calculation
   plan: "Calculate delivery in business days"
   bug_description: "Weekends and holidays not excluded from business days"
@@ -453,6 +492,7 @@
 
 - id: TIME_008
   category: time
+  axis: spec_alignment
   name: past_delivery_date
   plan: "Delivery date must be in the future"
   bug_description: "Past delivery dates accepted"
@@ -463,221 +503,12 @@
   tags: [time, validation, future]
 
 # =============================================================================
-# External Integration (6 patterns)
-# =============================================================================
-
-- id: EXT_001
-  category: external
-  name: payment_timeout_unhandled
-  plan: "Handle payment API timeout gracefully"
-  bug_description: "Payment timeout leaves order in unknown state"
-  correct: "rescue Timeout::Error => e; mark_pending_verification; notify_admin"
-  incorrect: "rescue Timeout::Error => e; raise"
-  severity: critical
-  difficulty: hard
-  tags: [external, payment, timeout]
-
-- id: EXT_002
-  category: external
-  name: webhook_not_idempotent
-  plan: "Process webhooks idempotently"
-  bug_description: "Same webhook processed multiple times"
-  correct: "return if WebhookLog.exists?(event_id: event_id); process"
-  incorrect: "process"
-  severity: critical
-  difficulty: medium
-  tags: [external, webhook, idempotency]
-
-- id: EXT_003
-  category: external
-  name: api_call_in_transaction
-  plan: "Make external API calls outside transaction"
-  bug_description: "Payment charged even if transaction rolls back"
-  correct: "order.save!; charge_payment"
-  incorrect: "transaction { order.save!; charge_payment }"
-  severity: critical
-  difficulty: hard
-  tags: [external, transaction, api]
-
-- id: EXT_004
-  category: external
-  name: retry_duplicate_order
-  plan: "Prevent duplicate orders on retry"
-  bug_description: "Network retry creates duplicate order records"
-  correct: "Order.find_or_create_by(idempotency_key: key)"
-  incorrect: "Order.create(params)"
-  severity: critical
-  difficulty: hard
-  tags: [external, retry, duplicate]
-
-- id: EXT_005
-  category: external
-  name: inventory_sync_delay
-  plan: "Account for warehouse sync delay"
-  bug_description: "External warehouse stock diff not considered"
-  correct: "available = local_stock - pending_sync"
-  incorrect: "available = local_stock"
-  severity: high
-  difficulty: hard
-  tags: [external, inventory, sync]
-
-- id: EXT_006
-  category: external
-  name: shipping_error_swallowed
-  plan: "Handle shipping API errors properly"
-  bug_description: "Shipping API error swallowed, treated as success"
-  correct: "raise ShippingError unless response.success?"
-  incorrect: "response rescue nil"
-  severity: high
-  difficulty: medium
-  tags: [external, shipping, error]
-
-# =============================================================================
-# Performance (6 patterns)
-# =============================================================================
-
-- id: PERF_001
-  category: performance
-  name: n_plus_one_query
-  plan: "Eager load order items with products"
-  bug_description: "N+1 query on order items accessing product names"
-  correct: "order.items.includes(:product).each { |i| i.product.name }"
-  incorrect: "order.items.each { |i| i.product.name }"
-  severity: high
-  difficulty: easy
-  tags: [performance, n_plus_one, eager_load]
-
-- id: PERF_002
-  category: performance
-  name: full_table_load
-  plan: "Process orders in batches"
-  bug_description: "Loading all orders into memory - Order.all on 1M records"
-  correct: "Order.find_each { |o| process(o) }"
-  incorrect: "Order.all.each { |o| process(o) }"
-  severity: critical
-  difficulty: easy
-  tags: [performance, memory, batch]
-
-- id: PERF_003
-  category: performance
-  name: unnecessary_eager_loading
-  plan: "Only load needed associations"
-  bug_description: "Eager loading unused associations wastes resources"
-  correct: "orders.includes(:items)"
-  incorrect: "orders.includes(:items, :payments, :shipments, :user)"
-  severity: medium
-  difficulty: medium
-  tags: [performance, eager_load, waste]
-
-- id: PERF_004
-  category: performance
-  name: inefficient_count
-  plan: "Use COUNT query for totals"
-  bug_description: "Loading all records just to count - items.length vs items.count"
-  correct: "order.items.count"
-  incorrect: "order.items.length"
-  severity: medium
-  difficulty: easy
-  tags: [performance, count, query]
-
-- id: PERF_005
-  category: performance
-  name: index_not_used
-  plan: "Query on indexed columns"
-  bug_description: "Search condition on non-indexed column causes full scan"
-  correct: "add_index :orders, :status"
-  incorrect: "query without index"
-  severity: high
-  difficulty: medium
-  tags: [performance, index, query]
-
-- id: PERF_006
-  category: performance
-  name: cache_key_design
-  plan: "Use user-specific cache keys"
-  bug_description: "Same cache key for all users - cache collision"
-  correct: "Rails.cache.fetch(['orders', current_user.id])"
-  incorrect: "Rails.cache.fetch('orders')"
-  severity: high
-  difficulty: medium
-  tags: [performance, cache, key]
-
-# =============================================================================
-# Data Integrity (6 patterns)
-# =============================================================================
-
-- id: DATA_001
-  category: data
-  name: no_foreign_key
-  plan: "Maintain referential integrity"
-  bug_description: "No foreign key constraint - orphan records on parent delete"
-  correct: "add_foreign_key :order_items, :orders"
-  incorrect: "belongs_to :order without FK"
-  severity: high
-  difficulty: medium
-  tags: [data, foreign_key, integrity]
-
-- id: DATA_002
-  category: data
-  name: unique_constraint_missing
-  plan: "Ensure unique email addresses"
-  bug_description: "Unique constraint missing - duplicate emails allowed"
-  correct: "add_index :users, :email, unique: true"
-  incorrect: "validates :email, uniqueness: true (without DB constraint)"
-  severity: critical
-  difficulty: easy
-  tags: [data, unique, constraint]
-
-- id: DATA_003
-  category: data
-  name: optimistic_lock_missing
-  plan: "Prevent concurrent edit overwrites"
-  bug_description: "No optimistic locking - last write wins silently"
-  correct: "add_column :orders, :lock_version, :integer"
-  incorrect: "update without version check"
-  severity: high
-  difficulty: medium
-  tags: [data, locking, concurrent]
-
-- id: DATA_004
-  category: data
-  name: soft_delete_in_query
-  plan: "Exclude soft-deleted records from queries"
-  bug_description: "Deleted records appear in search results"
-  correct: "default_scope { where(deleted_at: nil) }"
-  incorrect: "no deleted_at filter"
-  severity: high
-  difficulty: easy
-  tags: [data, soft_delete, query]
-
-- id: DATA_005
-  category: data
-  name: master_data_history
-  plan: "Preserve historical product data in orders"
-  bug_description: "Product name change affects past order display"
-  correct: "order_item.snapshot_product_name"
-  incorrect: "order_item.product.name"
-  severity: medium
-  difficulty: hard
-  tags: [data, history, snapshot]
-
-- id: DATA_006
-  category: data
-  name: column_default_null
-  plan: "Provide sensible column defaults"
-  bug_description: "New column defaults to NULL causing downstream errors"
-  correct: "add_column :orders, :priority, :integer, default: 0, null: false"
-  incorrect: "add_column :orders, :priority, :integer"
-  severity: medium
-  difficulty: medium
-  tags: [data, default, null]
-
-# =============================================================================
-# Notifications & Email (6 patterns)
+# Notifications & Email (6 patterns) — Spec Alignment
 # =============================================================================
 
 - id: NOTIFY_001
   category: notification
+  axis: spec_alignment
   name: duplicate_email
   plan: "Send order confirmation email once"
   bug_description: "Retry logic sends duplicate confirmation emails"
@@ -689,6 +520,7 @@
 
 - id: NOTIFY_002
   category: notification
+  axis: spec_alignment
   name: async_error_swallowed
   plan: "Handle background job failures"
   bug_description: "Background job fails silently - user not notified"
@@ -700,6 +532,7 @@
 
 - id: NOTIFY_003
   category: notification
+  axis: spec_alignment
   name: notification_timing
   plan: "Send confirmation after payment confirmed"
   bug_description: "Order complete email sent before payment confirmation"
@@ -711,6 +544,7 @@
 
 - id: NOTIFY_004
   category: notification
+  axis: spec_alignment
   name: template_variable_nil
   plan: "Handle nil values in email templates"
   bug_description: "Template variable user.name is nil causing error"
@@ -722,6 +556,7 @@
 
 - id: NOTIFY_005
   category: notification
+  axis: spec_alignment
   name: recipient_mixup
   plan: "Send email to correct recipient"
   bug_description: "Email sent to wrong user due to variable scope"
@@ -733,6 +568,7 @@
 
 - id: NOTIFY_006
   category: notification
+  axis: spec_alignment
   name: bulk_rate_limit
   plan: "Respect email provider rate limits"
   bug_description: "Mass email send gets blocked by rate limit"
@@ -743,11 +579,240 @@
   tags: [notification, bulk, rate_limit]
 
 # =============================================================================
-# Rails-Specific (11 patterns)
+# External Integration (6 patterns) — Implicit Knowledge
+# =============================================================================
+
+- id: EXT_001
+  category: external
+  axis: implicit_knowledge
+  name: payment_timeout_unhandled
+  plan: "Handle payment API timeout gracefully"
+  bug_description: "Payment timeout leaves order in unknown state"
+  correct: "rescue Timeout::Error => e; mark_pending_verification; notify_admin"
+  incorrect: "rescue Timeout::Error => e; raise"
+  severity: critical
+  difficulty: hard
+  tags: [external, payment, timeout]
+
+- id: EXT_002
+  category: external
+  axis: implicit_knowledge
+  name: webhook_not_idempotent
+  plan: "Process webhooks idempotently"
+  bug_description: "Same webhook processed multiple times"
+  correct: "return if WebhookLog.exists?(event_id: event_id); process"
+  incorrect: "process"
+  severity: critical
+  difficulty: medium
+  tags: [external, webhook, idempotency]
+
+- id: EXT_003
+  category: external
+  axis: implicit_knowledge
+  name: api_call_in_transaction
+  plan: "Make external API calls outside transaction"
+  bug_description: "Payment charged even if transaction rolls back"
+  correct: "order.save!; charge_payment"
+  incorrect: "transaction { order.save!; charge_payment }"
+  severity: critical
+  difficulty: hard
+  tags: [external, transaction, api]
+
+- id: EXT_004
+  category: external
+  axis: implicit_knowledge
+  name: retry_duplicate_order
+  plan: "Prevent duplicate orders on retry"
+  bug_description: "Network retry creates duplicate order records"
+  correct: "Order.find_or_create_by(idempotency_key: key)"
+  incorrect: "Order.create(params)"
+  severity: critical
+  difficulty: hard
+  tags: [external, retry, duplicate]
+
+- id: EXT_005
+  category: external
+  axis: implicit_knowledge
+  name: inventory_sync_delay
+  plan: "Account for warehouse sync delay"
+  bug_description: "External warehouse stock diff not considered"
+  correct: "available = local_stock - pending_sync"
+  incorrect: "available = local_stock"
+  severity: high
+  difficulty: hard
+  tags: [external, inventory, sync]
+
+- id: EXT_006
+  category: external
+  axis: implicit_knowledge
+  name: shipping_error_swallowed
+  plan: "Handle shipping API errors properly"
+  bug_description: "Shipping API error swallowed, treated as success"
+  correct: "raise ShippingError unless response.success?"
+  incorrect: "response rescue nil"
+  severity: high
+  difficulty: medium
+  tags: [external, shipping, error]
+
+# =============================================================================
+# Performance (6 patterns) — Implicit Knowledge
+# =============================================================================
+
+- id: PERF_001
+  category: performance
+  axis: implicit_knowledge
+  name: n_plus_one_query
+  plan: "Eager load order items with products"
+  bug_description: "N+1 query on order items accessing product names"
+  correct: "order.items.includes(:product).each { |i| i.product.name }"
+  incorrect: "order.items.each { |i| i.product.name }"
+  severity: high
+  difficulty: easy
+  tags: [performance, n_plus_one, eager_load]
+
+- id: PERF_002
+  category: performance
+  axis: implicit_knowledge
+  name: full_table_load
+  plan: "Process orders in batches"
+  bug_description: "Loading all orders into memory - Order.all on 1M records"
+  correct: "Order.find_each { |o| process(o) }"
+  incorrect: "Order.all.each { |o| process(o) }"
+  severity: critical
+  difficulty: easy
+  tags: [performance, memory, batch]
+
+- id: PERF_003
+  category: performance
+  axis: implicit_knowledge
+  name: unnecessary_eager_loading
+  plan: "Only load needed associations"
+  bug_description: "Eager loading unused associations wastes resources"
+  correct: "orders.includes(:items)"
+  incorrect: "orders.includes(:items, :payments, :shipments, :user)"
+  severity: medium
+  difficulty: medium
+  tags: [performance, eager_load, waste]
+
+- id: PERF_004
+  category: performance
+  axis: implicit_knowledge
+  name: inefficient_count
+  plan: "Use COUNT query for totals"
+  bug_description: "Loading all records just to count - items.length vs items.count"
+  correct: "order.items.count"
+  incorrect: "order.items.length"
+  severity: medium
+  difficulty: easy
+  tags: [performance, count, query]
+
+- id: PERF_005
+  category: performance
+  axis: implicit_knowledge
+  name: index_not_used
+  plan: "Query on indexed columns"
+  bug_description: "Search condition on non-indexed column causes full scan"
+  correct: "add_index :orders, :status"
+  incorrect: "query without index"
+  severity: high
+  difficulty: medium
+  tags: [performance, index, query]
+
+- id: PERF_006
+  category: performance
+  axis: implicit_knowledge
+  name: cache_key_design
+  plan: "Use user-specific cache keys"
+  bug_description: "Same cache key for all users - cache collision"
+  correct: "Rails.cache.fetch(['orders', current_user.id])"
+  incorrect: "Rails.cache.fetch('orders')"
+  severity: high
+  difficulty: medium
+  tags: [performance, cache, key]
+
+# =============================================================================
+# Data Integrity (6 patterns) — Implicit Knowledge
+# =============================================================================
+
+- id: DATA_001
+  category: data
+  axis: implicit_knowledge
+  name: no_foreign_key
+  plan: "Maintain referential integrity"
+  bug_description: "No foreign key constraint - orphan records on parent delete"
+  correct: "add_foreign_key :order_items, :orders"
+  incorrect: "belongs_to :order without FK"
+  severity: high
+  difficulty: medium
+  tags: [data, foreign_key, integrity]
+
+- id: DATA_002
+  category: data
+  axis: implicit_knowledge
+  name: unique_constraint_missing
+  plan: "Ensure unique email addresses"
+  bug_description: "Unique constraint missing - duplicate emails allowed"
+  correct: "add_index :users, :email, unique: true"
+  incorrect: "validates :email, uniqueness: true (without DB constraint)"
+  severity: critical
+  difficulty: easy
+  tags: [data, unique, constraint]
+
+- id: DATA_003
+  category: data
+  axis: implicit_knowledge
+  name: optimistic_lock_missing
+  plan: "Prevent concurrent edit overwrites"
+  bug_description: "No optimistic locking - last write wins silently"
+  correct: "add_column :orders, :lock_version, :integer"
+  incorrect: "update without version check"
+  severity: high
+  difficulty: medium
+  tags: [data, locking, concurrent]
+
+- id: DATA_004
+  category: data
+  axis: implicit_knowledge
+  name: soft_delete_in_query
+  plan: "Exclude soft-deleted records from queries"
+  bug_description: "Deleted records appear in search results"
+  correct: "default_scope { where(deleted_at: nil) }"
+  incorrect: "no deleted_at filter"
+  severity: high
+  difficulty: easy
+  tags: [data, soft_delete, query]
+
+- id: DATA_005
+  category: data
+  axis: implicit_knowledge
+  name: master_data_history
+  plan: "Preserve historical product data in orders"
+  bug_description: "Product name change affects past order display"
+  correct: "order_item.snapshot_product_name"
+  incorrect: "order_item.product.name"
+  severity: medium
+  difficulty: hard
+  tags: [data, history, snapshot]
+
+- id: DATA_006
+  category: data
+  axis: implicit_knowledge
+  name: column_default_null
+  plan: "Provide sensible column defaults"
+  bug_description: "New column defaults to NULL causing downstream errors"
+  correct: "add_column :orders, :priority, :integer, default: 0, null: false"
+  incorrect: "add_column :orders, :priority, :integer"
+  severity: medium
+  difficulty: medium
+  tags: [data, default, null]
+
+# =============================================================================
+# Rails-Specific (11 patterns) — Implicit Knowledge
 # =============================================================================
 
 - id: RAILS_001
   category: rails
+  axis: implicit_knowledge
   name: scope_not_used
   plan: "Use existing scope for active records"
   bug_description: "Scope not used - reimplementing where(status: 'active') everywhere"
@@ -759,6 +824,7 @@
 
 - id: RAILS_002
   category: rails
+  axis: implicit_knowledge
   name: enum_not_used
   plan: "Use enum for status field"
   bug_description: "String literal comparison instead of enum"
@@ -770,6 +836,7 @@
 
 - id: RAILS_003
   category: rails
+  axis: implicit_knowledge
   name: callback_order_dependency
   plan: "Ensure callback execution order"
   bug_description: "before_save callback order affects result"
@@ -781,6 +848,7 @@
 
 - id: RAILS_004
   category: rails
+  axis: implicit_knowledge
   name: dependent_destroy_missing
   plan: "Cascade delete child records"
   bug_description: "dependent: :destroy missing - children orphaned on parent delete"
@@ -792,6 +860,7 @@
 
 - id: RAILS_005
   category: rails
+  axis: implicit_knowledge
   name: job_outside_after_commit
   plan: "Enqueue jobs after transaction commits"
   bug_description: "Job enqueued in transaction - runs even if rollback"
@@ -803,6 +872,7 @@
 
 - id: RAILS_006
   category: rails
+  axis: implicit_knowledge
   name: strong_parameters_missing
   plan: "Whitelist permitted parameters"
   bug_description: "Strong Parameters missing - mass assignment vulnerability"
@@ -814,6 +884,7 @@
 
 - id: RAILS_007
   category: rails
+  axis: implicit_knowledge
   name: find_or_create_race
   plan: "Handle concurrent find_or_create"
   bug_description: "Race condition creates duplicate records"
@@ -825,6 +896,7 @@
 
 - id: RAILS_008
   category: rails
+  axis: implicit_knowledge
   name: update_all_skips_callbacks
   plan: "Use update when callbacks needed"
   bug_description: "update_all skips callbacks and validations"
@@ -836,6 +908,7 @@
 
 - id: RAILS_009
   category: rails
+  axis: implicit_knowledge
   name: pluck_vs_select
   plan: "Use pluck for attribute-only queries"
   bug_description: "select loads full objects when only attributes needed"
@@ -847,6 +920,7 @@
 
 - id: RAILS_010
   category: rails
+  axis: implicit_knowledge
   name: includes_preload_eager_load
   plan: "Choose correct eager loading strategy"
   bug_description: "Wrong eager loading method generates unexpected query"
@@ -858,6 +932,7 @@
 
 - id: RAILS_011
   category: rails
+  axis: implicit_knowledge
   name: transaction_nesting
   plan: "Handle nested transactions correctly"
   bug_description: "Nested transaction without requires_new rolls back parent"
