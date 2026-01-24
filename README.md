@@ -1,103 +1,103 @@
 # AI Code Review Benchmark: Rails × Context Engineering Edition
 
-**テーマ:** 仕様（Plan）と実装（Code）の整合性を検証する、Rails特化型AIレビューベンチマーク
+**Theme:** A Rails-specific AI review benchmark to verify alignment between specifications (Plan) and implementation (Code)
 
-## 概要
+## Overview
 
-このベンチマークは、LLMによるコードレビューの品質を定量的に評価するためのものです。
-単なるバグ検出ではなく、**「Plan（設計意図）通りに実装されているか」** という高度なレビュー能力を測定します。
+This benchmark quantitatively evaluates the quality of LLM-based code reviews.
+Beyond simple bug detection, it measures the advanced review capability of checking **"Is this implemented according to the Plan (design intent)?"**
 
 ### Primary Goal
 
-**DeepSeekはClaude Sonnetの代替になり得るか？**
+**Can DeepSeek replace Claude Sonnet?**
 
-APIコストが1/20のDeepSeek V3/R1が、実務レベルのコードレビュー品質を出せるかを定量的に検証します。
+Quantitatively verify whether DeepSeek V3/R1, at 1/20th the API cost, can deliver production-quality code review.
 
-### 比較対象モデル
+### Models Under Comparison
 
-| モデル | コスト ($/1M input) | 役割 |
-|--------|---------------------|------|
+| Model | Cost ($/1M input) | Role |
+|-------|-------------------|------|
 | Claude 3.5 Sonnet | $3.00 | Baseline |
 | DeepSeek V3 | $0.14 | Cost Killer |
 | DeepSeek R1 | $0.14 | Reasoner |
 | Gemini 1.5 Pro | $1.25 | Long Context |
 
-## ディレクトリ構成
+## Directory Structure
 
 ```
 ai-review-benchmark/
 ├── cases/
 │   └── rails/
-│       ├── plan_mismatch/     # Plan不整合（20ケース）
-│       ├── logic_bug/         # 論理バグ（20ケース）
-│       └── false_positive/    # 完璧なコード（20ケース）
-├── results/                   # 実行結果
+│       ├── plan_mismatch/     # Plan misalignment (20 cases)
+│       ├── logic_bug/         # Logic bugs (20 cases)
+│       └── false_positive/    # Perfect code (20 cases)
+├── results/                   # Execution results
 ├── scripts/
-│   ├── generator.py           # テストケース生成
-│   ├── runner.py              # ベンチマーク実行
-│   └── evaluator.py           # 採点（LLM-as-a-Judge）
-├── CLAUDE.md                  # Claude Code用設定
+│   ├── generator.py           # Test case generation
+│   ├── runner.py              # Benchmark execution
+│   └── evaluator.py           # Scoring (LLM-as-a-Judge)
+├── CLAUDE.md                  # Claude Code configuration
 └── README.md
 ```
 
-## テストケース
+## Test Cases
 
-### カテゴリ構成（計60ケース）
+### Category Composition (60 cases total)
 
-| カテゴリ | ケース数 | 検証ポイント |
-|----------|----------|--------------|
-| **Plan不整合** | 20 | 仕様通りに実装されていない（コードは動く） |
-| **論理バグ** | 20 | N+1、トランザクション、セキュリティ |
-| **False Positive** | 20 | 完璧なコード（過剰検知しないか） |
+| Category | Cases | Verification Points |
+|----------|-------|---------------------|
+| **Plan Mismatch** | 20 | Not implemented according to spec (code runs fine) |
+| **Logic Bug** | 20 | N+1, transactions, security |
+| **False Positive** | 20 | Perfect code (test for over-detection) |
 
-### ケースファイル構成
+### Case File Structure
 
-各ケースは以下の4ファイルで構成されます：
+Each case consists of 4 files:
 
-- `plan.md` - 仕様書（レビュー時に参照すべき要件）
-- `context.md` - 既存コードベースの情報
-- `impl.rb` - レビュー対象コード
-- `meta.json` - 正解データ・メタ情報
+- `plan.md` - Specification document (requirements to reference during review)
+- `context.md` - Existing codebase information
+- `impl.rb` - Code under review
+- `meta.json` - Ground truth and metadata
 
-## 使い方
+## Usage
 
-### 1. 環境構築（Docker推奨）
+### 1. Environment Setup (Docker recommended)
 
 ```bash
-# APIキーを設定
+# Set up API keys
 cp .env.example .env
-# .env を編集してAPIキーを入力
+# Edit .env and enter your API keys
 
-# Dockerイメージをビルド
+# Build Docker image
 docker compose build
 ```
 
-### 2. ベンチマーク実行
+### 2. Run Benchmark
 
 ```bash
-# dry-run（ケース一覧確認）
+# dry-run (list cases)
 docker compose run --rm benchmark --model claude-sonnet --dry-run
 
-# 単一モデルで実行
+# Run with single model
 docker compose run --rm benchmark --model claude-sonnet
 docker compose run --rm benchmark --model deepseek-v3
 docker compose run --rm benchmark --model deepseek-r1
 docker compose run --rm benchmark --model gemini-pro
 
-# 全モデルで実行
+# Run with all models
 docker compose run --rm benchmark --model all
 
-# 特定カテゴリのみ実行
+# Run specific category only
 docker compose run --rm benchmark --model claude-sonnet --cases cases/rails/plan_mismatch
 ```
 
-### 3. 採点・レポート生成
+### 3. Scoring & Report Generation
 
 ```bash
 docker compose run --rm benchmark python scripts/evaluator.py --run-dir results/{timestamp}_run
 ```
 
-### ローカル実行（Dockerなし）
+### Local Execution (without Docker)
 
 ```bash
 pip install -r requirements.txt
@@ -107,19 +107,19 @@ export GOOGLE_API_KEY=xxx
 python scripts/runner.py --model claude-sonnet
 ```
 
-## 評価指標
+## Evaluation Metrics
 
-| 指標 | 計算方法 | 目標値 |
-|------|----------|--------|
-| **Recall** | 検知数 / 総バグ数 | > 80% |
-| **Precision** | 正しい指摘 / 全指摘 | > 70% |
-| **False Positive Rate** | 誤検知数 / FPケース数 | < 20% |
-| **Cost per Review** | API費用 / ケース数 | 比較用 |
+| Metric | Calculation | Target |
+|--------|-------------|--------|
+| **Recall** | Detections / Total Bugs | > 80% |
+| **Precision** | Correct Findings / All Findings | > 70% |
+| **False Positive Rate** | False Detections / FP Cases | < 20% |
+| **Cost per Review** | API Cost / Case Count | For comparison |
 
-## ライセンス
+## License
 
 MIT License
 
-## 関連リンク
+## Related Links
 
 - [PlanStack](https://plan-stack.ai)

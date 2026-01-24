@@ -1,96 +1,100 @@
 # CLAUDE.md - AI Review Benchmark Project Guide
 
-> **詳細仕様書:** [docs/benchmark-spec-v2.md](docs/benchmark-spec-v2.md) を参照
+> **Full Specification:** See [docs/benchmark-spec-v2.md](docs/benchmark-spec-v2.md)
 
-## プロジェクト概要
+## Language
 
-RailsアプリケーションのAIコードレビュー品質を評価するベンチマークプロジェクト。
-「Plan（仕様）とCode（実装）の整合性」を検証することで、Context Engineeringの有効性を実証する。
+**Use English for all code, comments, commit messages, and documentation.**
+
+## Project Overview
+
+A benchmark project for evaluating AI code review quality on Rails applications.
+Demonstrates the effectiveness of Context Engineering by verifying alignment between Plan (specification) and Code (implementation).
 
 ### Primary Goal
 
-**DeepSeekはClaude Sonnetの代替になり得るか？**
-APIコストが1/20のDeepSeek V3/R1が、実務レベルのコードレビュー品質を出せるかを定量的に検証。
+**Can DeepSeek replace Claude Sonnet?**
+Quantitatively verify whether DeepSeek V3/R1, at 1/20th the API cost, can deliver production-quality code review.
 
-### 比較対象モデル
+### Models Under Comparison
 
-| モデル | コスト ($/1M input) | 役割 |
-|--------|---------------------|------|
+| Model | Cost ($/1M input) | Role |
+|-------|-------------------|------|
 | Claude 3.5 Sonnet | $3.00 | Baseline |
 | DeepSeek V3 | $0.14 | Cost Killer |
 | DeepSeek R1 | $0.14 | Reasoner |
 | Gemini 1.5 Pro | $1.25 | Long Context |
 
-## テストケース構成（v2: 95パターン → 100+ケース）
+## Test Case Structure (v2: 95 patterns → 100+ cases)
 
-| カテゴリ | パターン数 | 検証ポイント |
-|----------|------------|--------------|
-| Price Calculation | 10 | 割引、税金、丸め、通貨 |
-| Inventory & Quantity | 8 | 在庫割当、競合状態、数量バリデーション |
-| State Transitions | 7 | 注文状態、キャンセル、返金 |
-| User & Authorization | 7 | 権限チェック、他ユーザーリソースアクセス |
-| Time & Duration | 8 | タイムゾーン、期間検証、境界値 |
-| External Integration | 6 | 決済API、Webhook、冪等性 |
-| Performance | 6 | N+1、全件ロード、キャッシュ |
-| Data Integrity | 6 | 制約、ロック、論理削除 |
-| Notifications & Email | 6 | 重複送信、タイミング、宛先 |
-| Rails-Specific | 11 | Scope、enum、callback、transaction |
-| **False Positive** | 20 | バグなし（過剰検知テスト） |
+| Category | Patterns | Verification Points |
+|----------|----------|---------------------|
+| Price Calculation | 10 | Discounts, tax, rounding, currency |
+| Inventory & Quantity | 8 | Stock allocation, race conditions, quantity validation |
+| State Transitions | 7 | Order status, cancellation, refunds |
+| User & Authorization | 7 | Permission checks, accessing other users' resources |
+| Time & Duration | 8 | Timezone, period validation, boundary values |
+| External Integration | 6 | Payment API, Webhook, idempotency |
+| Performance | 6 | N+1, full table loads, caching |
+| Data Integrity | 6 | Constraints, locking, soft deletes |
+| Notifications & Email | 6 | Duplicate sends, timing, recipients |
+| Rails-Specific | 11 | Scope, enum, callbacks, transactions |
+| **False Positive** | 20 | No bugs (over-detection test) |
 
-## 評価指標
+## Evaluation Metrics
 
-| 指標 | 計算方法 | 目標値 |
-|------|----------|--------|
-| **Recall** | 検知数 / 総バグ数 | > 80% |
-| **Precision** | 正しい指摘 / 全指摘 | > 70% |
-| **False Positive Rate** | 誤検知数 / FPケース数 | < 20% |
-| **Cost per Review** | API費用 / ケース数 | 比較用 |
+| Metric | Calculation | Target |
+|--------|-------------|--------|
+| **Recall** | Detections / Total Bugs | > 80% |
+| **Precision** | Correct Findings / All Findings | > 70% |
+| **False Positive Rate** | False Detections / FP Cases | < 20% |
+| **Cost per Review** | API Cost / Case Count | For comparison |
 
-## コーディング規約
+## Coding Standards
 
-### Python（スクリプト）
+### Python (Scripts)
 
 - Python 3.11+
-- 型ヒント必須
-- フォーマッタ: black
-- リンター: ruff
-- docstring: Google style
+- Type hints required
+- Formatter: black
+- Linter: ruff
+- Docstrings: Google style
 
-### Ruby（テストケース）
+### Ruby (Test Cases)
 
 - Ruby 3.2+ / Rails 7.1+
-- 標準的なRails規約に従う
-- rubocop準拠
+- Follow standard Rails conventions
+- rubocop compliant
 
-## ディレクトリ構造
+## Directory Structure
 
 ```
 cases/rails/{category}/{case_id}/
-├── plan.md      # 仕様書
-├── context.md   # 既存コードベース情報
-├── impl.rb      # レビュー対象コード
-└── meta.json    # 正解データ
+├── plan.md      # Specification
+├── context.md   # Existing codebase info
+├── impl.rb      # Code under review
+└── meta.json    # Ground truth
 ```
 
-## テストケース作成ガイドライン
+## Test Case Creation Guidelines
 
 ### plan.md
 
-- 実装者が参照すべき要件を明記
-- 「使用すべき既存実装」セクションで既存メソッド/スコープを指定
-- 曖昧さを排除し、検証可能な形で記述
+- Clearly state requirements the implementer should follow
+- Specify existing methods/scopes to use in "Existing Implementation" section
+- Remove ambiguity, write in verifiable form
 
 ### context.md
 
-- 既存のモデル、メソッド、スコープの情報
-- レビュアー（AI）が参照できる「コードベースの知識」
-- 実際のRailsプロジェクトを想定した構成
+- Information about existing models, methods, scopes
+- "Codebase knowledge" that the reviewer (AI) can reference
+- Structured as if from a real Rails project
 
 ### impl.rb
 
-- レビュー対象のコード（Service, Controller, Model等）
-- plan.mdの要件に対する実装
-- バグありケースは1-2個の問題を含める
+- Code under review (Service, Controller, Model, etc.)
+- Implementation against plan.md requirements
+- Bug cases contain 1-2 issues
 
 ### meta.json
 
@@ -100,34 +104,34 @@ cases/rails/{category}/{case_id}/
   "category": "plan_mismatch | logic_bug | false_positive",
   "difficulty": "easy | medium | hard",
   "expected_detection": true | false,
-  "bug_description": "問題の説明",
-  "bug_location": "impl.rb:行番号",
-  "correct_implementation": "正しい実装例",
+  "bug_description": "Description of the issue",
+  "bug_location": "impl.rb:line_number",
+  "correct_implementation": "Correct implementation example",
   "tags": ["calculation", "discount"],
-  "notes": "補足情報"
+  "notes": "Additional notes"
 }
 ```
 
-## 実行コマンド
+## Commands
 
-### テストケース生成
+### Test Case Generation
 ```bash
 python scripts/generator.py --category plan_mismatch --count 20
 ```
 
-### ベンチマーク実行
+### Benchmark Execution
 ```bash
 python scripts/runner.py --model claude-sonnet --cases cases/rails/
 ```
 
-### 採点
+### Scoring
 ```bash
 python scripts/evaluator.py --run-dir results/2025xxxx_run/
 ```
 
-## API設定
+## API Configuration
 
-環境変数で各モデルのAPIキーを設定：
+Set API keys via environment variables:
 
 ```bash
 export ANTHROPIC_API_KEY=xxx
@@ -135,14 +139,14 @@ export DEEPSEEK_API_KEY=xxx
 export GOOGLE_API_KEY=xxx
 ```
 
-## 重要な設計判断
+## Key Design Decisions
 
-1. **Judgeモデル**: Claude 3.5 Sonnetを使用（+ GPT-4oでクロスバリデーション）
-2. **評価形式**: JSON出力による定量評価（自然言語の曖昧さを排除）
-3. **ケース独立性**: 各ケースは独立して評価可能な形で設計
+1. **Judge Model**: Uses Claude 3.5 Sonnet (+ GPT-4o for cross-validation)
+2. **Evaluation Format**: Quantitative evaluation via JSON output (eliminates natural language ambiguity)
+3. **Case Independence**: Each case is designed to be evaluated independently
 
-## 注意事項
+## Notes
 
-- テストケースは実在のRailsコードではなく、ベンチマーク用に作成したもの
-- バグは意図的に埋め込んだもので、実際のセキュリティ脆弱性ではない
-- 結果は各モデルの特定時点でのスナップショットであり、モデル更新により変動する可能性あり
+- Test cases are created for benchmarking, not from real Rails code
+- Bugs are intentionally injected, not actual security vulnerabilities
+- Results are point-in-time snapshots; may vary with model updates
