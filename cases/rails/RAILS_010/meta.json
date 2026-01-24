@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": true,
   "bug_description": "Wrong eager loading method generates unexpected query",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "orders.includes(:items).where(items: { ... })",
   "correct_implementation": "orders.preload(:items) for separate queries",
   "severity": "medium",
@@ -15,5 +14,5 @@
     "eager_load",
     "query"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

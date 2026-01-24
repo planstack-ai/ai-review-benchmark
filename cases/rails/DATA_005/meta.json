@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": true,
   "bug_description": "Product name change affects past order display",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "order_item.product.name",
   "correct_implementation": "order_item.snapshot_product_name",
   "severity": "medium",
@@ -15,5 +14,5 @@
     "history",
     "snapshot"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

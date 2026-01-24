@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "dependent: :destroy missing - children orphaned on parent delete",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "has_many :items",
   "correct_implementation": "has_many :items, dependent: :destroy",
   "severity": "high",
@@ -15,5 +14,5 @@
     "association",
     "dependent"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

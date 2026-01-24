@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "Unique constraint missing - duplicate emails allowed",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "validates :email, uniqueness: true (without DB constraint)",
   "correct_implementation": "add_index :users, :email, unique: true",
   "severity": "critical",
@@ -15,5 +14,5 @@
     "unique",
     "constraint"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

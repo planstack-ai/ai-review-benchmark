@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "Deleted records appear in search results",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "no deleted_at filter",
   "correct_implementation": "default_scope { where(deleted_at: nil) }",
   "severity": "high",
@@ -15,5 +14,5 @@
     "soft_delete",
     "query"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

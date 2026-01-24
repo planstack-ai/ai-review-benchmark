@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "Template variable user.name is nil causing error",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "user.name",
   "correct_implementation": "user&.name || 'Valued Customer'",
   "severity": "medium",
@@ -15,5 +14,5 @@
     "template",
     "nil"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

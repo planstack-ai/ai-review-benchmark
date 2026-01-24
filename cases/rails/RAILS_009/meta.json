@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "select loads full objects when only attributes needed",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "Order.select(:id, :total).map { |o| [o.id, o.total] }",
   "correct_implementation": "Order.pluck(:id, :total)",
   "severity": "medium",
@@ -15,5 +14,5 @@
     "pluck",
     "performance"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

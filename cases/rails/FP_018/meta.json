@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": false,
   "bug_description": null,
-  "bug_location": null,
   "bug_anchor": null,
   "correct_implementation": "Intentional full table load into cache",
   "severity": null,
@@ -15,5 +14,5 @@
     "optimization",
     "cache"
   ],
-  "notes": "Looks like full table load bug but intentional"
+  "bug_anchor_verified": true
 }

@@ -1,19 +1,29 @@
-# Duplicate Email
+# Order Confirmation Email Deduplication System
 
-## 概要
+## Overview
 
-ECサイトの注文処理における機能実装。
+The system must ensure that customers receive exactly one order confirmation email per order, regardless of how many times the order confirmation process is triggered. This prevents customer confusion and maintains professional communication standards while avoiding email spam issues.
 
-## 要件
+## Requirements
 
-1. Send order confirmation email once
+1. Each order must generate exactly one confirmation email to the customer
+2. The system must track when an order confirmation email has been sent
+3. Subsequent attempts to send confirmation emails for the same order must be prevented
+4. The email sending mechanism must be idempotent for order confirmations
+5. The system must handle concurrent order processing scenarios gracefully
+6. Email sending status must be persisted and queryable
+7. The system must provide clear logging when duplicate email attempts are blocked
+8. Order confirmation emails must include all necessary order details and customer information
 
-## 使用すべき既存実装
+## Constraints
 
-- 既存のモデルメソッド・スコープを活用すること
-- context.md に記載の実装を参照
+1. Email sending attempts must be atomic operations
+2. The system must handle database transaction failures gracefully
+3. Email delivery failures should not mark the email as "sent" 
+4. The deduplication mechanism must work across application restarts
+5. Performance impact of deduplication checks must be minimal
+6. The system must distinguish between different types of order-related emails (confirmation vs. shipping updates)
 
-## 注意事項
+## References
 
-- 正しい実装パターン: `return if email_sent?; send_email; mark_sent!`
-- 仕様通りに実装すること
+See context.md for existing email service implementations and order processing workflows.

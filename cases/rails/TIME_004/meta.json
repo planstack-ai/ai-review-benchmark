@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Time truncation causes next-day treatment",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "delivery_date == target_date",
   "correct_implementation": "delivery_date.to_date == target_date.to_date",
   "severity": "medium",
@@ -15,5 +14,5 @@
     "date",
     "comparison"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Same cache key for all users - cache collision",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "Rails.cache.fetch('orders')",
   "correct_implementation": "Rails.cache.fetch(['orders', current_user.id])",
   "severity": "high",
@@ -15,5 +14,5 @@
     "cache",
     "key"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Shipping API error swallowed, treated as success",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "response rescue nil",
   "correct_implementation": "raise ShippingError unless response.success?",
   "severity": "high",
@@ -15,5 +14,5 @@
     "shipping",
     "error"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

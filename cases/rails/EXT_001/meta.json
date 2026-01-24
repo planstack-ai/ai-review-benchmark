@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": true,
   "bug_description": "Payment timeout leaves order in unknown state",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "rescue Timeout::Error => e; raise",
   "correct_implementation": "rescue Timeout::Error => e; mark_pending_verification; notify_admin",
   "severity": "critical",
@@ -15,5 +14,5 @@
     "payment",
     "timeout"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

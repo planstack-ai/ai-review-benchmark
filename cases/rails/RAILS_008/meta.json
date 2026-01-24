@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "update_all skips callbacks and validations",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "orders.update_all(status: 'archived')",
   "correct_implementation": "orders.find_each { |o| o.update(status: 'archived') }",
   "severity": "high",
@@ -15,5 +14,5 @@
     "update_all",
     "callback"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

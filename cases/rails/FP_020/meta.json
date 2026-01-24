@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": false,
   "bug_description": null,
-  "bug_location": null,
   "bug_anchor": null,
   "correct_implementation": "Background job with eventual consistency",
   "severity": null,
@@ -15,5 +14,5 @@
     "optimization",
     "async"
   ],
-  "notes": "Eventual consistency looks like race condition"
+  "bug_anchor_verified": true
 }

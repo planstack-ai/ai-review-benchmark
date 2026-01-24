@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Same webhook processed multiple times",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "process",
   "correct_implementation": "return if WebhookLog.exists?(event_id: event_id); process",
   "severity": "critical",
@@ -15,5 +14,5 @@
     "webhook",
     "idempotency"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

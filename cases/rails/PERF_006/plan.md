@@ -1,19 +1,27 @@
-# Cache Key Design
+# User-Specific Cache Key Implementation
 
-## 概要
+## Overview
 
-ECサイトの注文処理における機能実装。
+The application needs to implement a caching mechanism that ensures data isolation between different users. This is critical for maintaining data privacy and security, as cached data should never be shared between users or accessed by unauthorized parties. The system must generate unique cache keys that incorporate user identification to prevent cache collisions and data leakage.
 
-## 要件
+## Requirements
 
-1. Use user-specific cache keys
+1. All cache keys must include the user identifier as part of the key structure
+2. Cache keys must be unique per user to prevent data sharing between different users
+3. The cache key format must be consistent across all caching operations
+4. Cache operations (read, write, delete) must use the same user-specific key generation logic
+5. The system must handle cases where user context is available for cache key generation
+6. Cache keys must be deterministic - the same user and operation should always generate the same key
+7. The implementation must prevent cache key collisions between different users accessing the same resource
 
-## 使用すべき既存実装
+## Constraints
 
-- 既存のモデルメソッド・スコープを活用すること
-- context.md に記載の実装を参照
+1. User identifier must be validated and present before generating cache keys
+2. Cache keys should not expose sensitive user information in plain text
+3. The system must gracefully handle missing or invalid user context
+4. Cache key length should remain within reasonable limits for the caching backend
+5. The implementation must be thread-safe for concurrent user operations
 
-## 注意事項
+## References
 
-- 正しい実装パターン: `Rails.cache.fetch(['orders', current_user.id])`
-- 仕様通りに実装すること
+See context.md for existing caching patterns and user authentication mechanisms in the codebase.

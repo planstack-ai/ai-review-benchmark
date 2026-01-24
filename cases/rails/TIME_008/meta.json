@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "Past delivery dates accepted",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "validates :delivery_date, presence: true",
   "correct_implementation": "validates :delivery_date, comparison: { greater_than: Date.current }",
   "severity": "medium",
@@ -15,5 +14,5 @@
     "validation",
     "future"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

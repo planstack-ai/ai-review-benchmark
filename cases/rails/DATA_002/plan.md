@@ -1,19 +1,27 @@
-# Unique Constraint Missing
+# User Email Uniqueness Enforcement
 
-## 概要
+## Overview
 
-ECサイトの注文処理における機能実装。
+The application manages user accounts where each user must have a unique email address across the entire system. This ensures proper user identification, prevents account conflicts, and maintains data integrity for authentication and communication purposes. The system should reject any attempts to create or update user records that would result in duplicate email addresses.
 
-## 要件
+## Requirements
 
-1. Ensure unique email addresses
+1. Email addresses must be unique across all user records in the database
+2. The system must prevent creation of new users with existing email addresses
+3. The system must prevent updating existing users to use email addresses that belong to other users
+4. Email uniqueness validation must be case-insensitive (user@example.com and USER@EXAMPLE.COM should be treated as the same)
+5. The system must handle concurrent user creation attempts gracefully without allowing duplicates
+6. Appropriate error messages must be returned when email uniqueness violations occur
+7. The uniqueness constraint must be enforced at both the application and database levels
 
-## 使用すべき既存実装
+## Constraints
 
-- 既存のモデルメソッド・スコープを活用すること
-- context.md に記載の実装を参照
+- Email addresses cannot be null or empty
+- Email format validation should be applied in addition to uniqueness checks
+- The system must handle edge cases such as leading/trailing whitespace in email addresses
+- Database-level constraints must prevent race conditions during concurrent operations
+- Error handling must be user-friendly and not expose internal system details
 
-## 注意事項
+## References
 
-- 正しい実装パターン: `add_index :users, :email, unique: true`
-- 仕様通りに実装すること
+See context.md for existing User model implementation and related database schema information.

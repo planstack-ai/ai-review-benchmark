@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": false,
   "bug_description": null,
-  "bug_location": null,
   "bug_anchor": null,
   "correct_implementation": "Materialized view pattern correctly implemented",
   "severity": null,
@@ -15,5 +14,5 @@
     "optimization",
     "denormalization"
   ],
-  "notes": "Duplication looks wrong but for performance"
+  "bug_anchor_verified": true
 }

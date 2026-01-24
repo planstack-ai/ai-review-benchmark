@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": false,
   "bug_description": null,
-  "bug_location": null,
   "bug_anchor": null,
   "correct_implementation": "insert_all with proper duplicate handling",
   "severity": null,
@@ -15,5 +14,5 @@
     "optimization",
     "batch"
   ],
-  "notes": "Bypassing validations but intentional for bulk"
+  "bug_anchor_verified": true
 }

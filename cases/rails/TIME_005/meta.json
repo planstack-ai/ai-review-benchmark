@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": true,
   "bug_description": "Invalid date error - February 30 doesn't exist",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "Date.new(year, month + 1, day)",
   "correct_implementation": "1.month.from_now.end_of_month",
   "severity": "high",
@@ -15,5 +14,5 @@
     "month_end",
     "validation"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

@@ -1,19 +1,32 @@
-# Intentional Raw Sql
+# Performance-Critical Analytics Query System
 
-## 概要
+## Overview
 
-ECサイトの注文処理における機能実装。
+The system needs to generate complex analytics reports for large datasets where ActiveRecord's query interface would be insufficient for performance requirements. The application processes millions of records and requires optimized SQL queries with custom aggregations, window functions, and complex joins that cannot be efficiently expressed through Rails' ORM layer.
 
-## 要件
+## Requirements
 
-1. Performance-critical raw SQL
+1. Implement a method that executes raw SQL queries for analytics report generation
+2. The method must accept dynamic parameters for date ranges and filtering criteria
+3. Query results must be returned as structured data suitable for report rendering
+4. The implementation must handle multiple complex aggregations in a single query
+5. Support for window functions and advanced SQL features not available in ActiveRecord
+6. Query execution time must be optimized for large dataset processing
+7. The method must properly sanitize and parameterize user inputs
+8. Results must include proper column naming and data type handling
+9. The implementation must support multiple database-specific optimizations
+10. Error handling must distinguish between SQL syntax errors and data issues
 
-## 使用すべき既存実装
+## Constraints
 
-- 既存のモデルメソッド・スコープを活用すること
-- context.md に記載の実装を参照
+1. Raw SQL usage is justified only for performance-critical operations
+2. All user inputs must be properly parameterized to prevent SQL injection
+3. Query complexity requires database-specific optimization features
+4. The operation processes datasets too large for ActiveRecord's memory footprint
+5. Response time requirements cannot be met with ORM-generated queries
+6. The query involves multiple tables with complex join conditions
+7. Custom aggregation functions are required that are not supported by ActiveRecord
 
-## 注意事項
+## References
 
-- 正しい実装パターン: `Optimized SQL with proper sanitization`
-- 仕様通りに実装すること
+See context.md for existing database schema, performance requirements, and related analytics infrastructure implementations.

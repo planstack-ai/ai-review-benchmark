@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": true,
   "bug_description": "Network retry creates duplicate order records",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "Order.create(params)",
   "correct_implementation": "Order.find_or_create_by(idempotency_key: key)",
   "severity": "critical",
@@ -15,5 +14,5 @@
     "retry",
     "duplicate"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

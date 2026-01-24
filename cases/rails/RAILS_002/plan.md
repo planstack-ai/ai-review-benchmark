@@ -1,19 +1,30 @@
-# Enum Not Used
+# Order Status Management System
 
-## 概要
+## Overview
 
-ECサイトの注文処理における機能実装。
+The system needs to manage order statuses in an e-commerce application. Orders progress through various states from creation to completion, and the system must track these status changes efficiently. The status field should provide type safety, database-level constraints, and convenient query methods to ensure data integrity and improve developer experience.
 
-## 要件
+## Requirements
 
-1. Use enum for status field
+1. The Order model must have a status field that tracks the current state of an order
+2. The status field must use Rails enum functionality to define allowed status values
+3. The enum must include the following status values: pending, processing, shipped, delivered, cancelled
+4. The status field must have a default value of "pending" for new orders
+5. The enum must provide automatic scope methods for querying orders by status
+6. The enum must provide automatic predicate methods for checking order status
+7. The status field must be properly indexed in the database for query performance
+8. The enum must prevent invalid status values from being assigned
+9. Status transitions must be trackable and the current status must always be accessible
+10. The implementation must follow Rails conventions for enum naming and structure
 
-## 使用すべき既存実装
+## Constraints
 
-- 既存のモデルメソッド・スコープを活用すること
-- context.md に記載の実装を参照
+1. Status values must be stored as integers in the database for performance
+2. The enum must not allow nil values for the status field
+3. Status changes must not break existing functionality or queries
+4. The implementation must be compatible with Rails 6+ enum features
+5. Database migration must handle existing data appropriately if any exists
 
-## 注意事項
+## References
 
-- 正しい実装パターン: `order.pending?`
-- 仕様通りに実装すること
+See context.md for existing Order model implementation and related database schema.

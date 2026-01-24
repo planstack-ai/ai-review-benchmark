@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "Loading all records just to count - items.length vs items.count",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "order.items.length",
   "correct_implementation": "order.items.count",
   "severity": "medium",
@@ -15,5 +14,5 @@
     "count",
     "query"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": true,
   "bug_description": "Payment charged even if transaction rolls back",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "transaction { order.save!; charge_payment }",
   "correct_implementation": "order.save!; charge_payment",
   "severity": "critical",
@@ -15,5 +14,5 @@
     "transaction",
     "api"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

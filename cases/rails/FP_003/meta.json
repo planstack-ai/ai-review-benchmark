@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": false,
   "bug_description": null,
-  "bug_location": null,
   "bug_anchor": null,
   "correct_implementation": "has_many, belongs_to with dependent",
   "severity": null,
@@ -15,5 +14,5 @@
     "association",
     "baseline"
   ],
-  "notes": "None - standard implementation"
+  "bug_anchor_verified": true
 }

@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": false,
   "bug_description": null,
-  "bug_location": null,
   "bug_anchor": null,
   "correct_implementation": "counter_cache: true properly configured",
   "severity": null,
@@ -15,5 +14,5 @@
     "optimization",
     "counter_cache"
   ],
-  "notes": "Looks like denormalization but correct pattern"
+  "bug_anchor_verified": true
 }

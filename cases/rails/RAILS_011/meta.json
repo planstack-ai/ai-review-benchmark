@@ -6,7 +6,6 @@
   "difficulty": "hard",
   "expected_detection": true,
   "bug_description": "Nested transaction without requires_new rolls back parent",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "transaction { transaction { ... } }",
   "correct_implementation": "transaction(requires_new: true) { ... }",
   "severity": "critical",
@@ -15,5 +14,5 @@
     "transaction",
     "nesting"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

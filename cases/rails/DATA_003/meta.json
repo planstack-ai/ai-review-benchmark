@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "No optimistic locking - last write wins silently",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "update without version check",
   "correct_implementation": "add_column :orders, :lock_version, :integer",
   "severity": "high",
@@ -15,5 +14,5 @@
     "locking",
     "concurrent"
   ],
-  "notes": ""
+  "bug_anchor_verified": false
 }

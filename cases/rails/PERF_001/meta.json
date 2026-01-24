@@ -6,7 +6,6 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "N+1 query on order items accessing product names",
-  "bug_location": "impl.rb:10",
   "bug_anchor": "order.items.each { |i| i.product.name }",
   "correct_implementation": "order.items.includes(:product).each { |i| i.product.name }",
   "severity": "high",
@@ -15,5 +14,5 @@
     "n_plus_one",
     "eager_load"
   ],
-  "notes": ""
+  "bug_anchor_verified": true
 }

@@ -6,7 +6,6 @@
   "difficulty": "medium",
   "expected_detection": false,
   "bug_description": null,
-  "bug_location": null,
   "bug_anchor": null,
   "correct_implementation": "Index would hurt more than help",
   "severity": null,
@@ -15,5 +14,5 @@
     "index",
     "intentional"
   ],
-  "notes": "Missing index is intentional decision"
+  "bug_anchor_verified": true
 }
