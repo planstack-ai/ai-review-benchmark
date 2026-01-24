@@ -1,0 +1,14 @@
+# AI Review Benchmark Dependencies
+
+# LLM APIs
+anthropic>=0.40.0
+openai>=1.0.0
+google-generativeai>=0.8.0
+
+# Development
+black
+ruff
+mypy
+
+# Utilities
+python-dotenv
