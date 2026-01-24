@@ -1,0 +1,1112 @@
+# AI Code Review Benchmark - Bug Pattern Definitions
+# 95 patterns (75 bugs + 20 false positives) for Rails e-commerce order processing
+# Version: 2.0
+
+# =============================================================================
+# Price Calculation (10 patterns)
+# =============================================================================
+
+- id: CALC_001
+  category: calculation
+  name: discount_rate_direction
+  plan: "Apply 10% discount for members"
+  bug_description: "Discount rate direction wrong, becomes 90% off"
+  correct: "total * 0.9"
+  incorrect: "total * 0.1"
+  severity: critical
+  difficulty: easy
+  tags: [calculation, discount, member]
+
+- id: CALC_002
+  category: calculation
+  name: tax_calculation_order
+  plan: "Calculate total with 10% tax after discount"
+  bug_description: "Tax calculation order wrong - applying tax before discount yields different amount"
+  correct: "(subtotal - discount) * 1.1"
+  incorrect: "(subtotal * 1.1) - discount"
+  severity: high
+  difficulty: medium
+  tags: [calculation, tax, discount]
+
+- id: CALC_003
+  category: calculation
+  name: inconsistent_rounding
+  plan: "Calculate order total with consistent rounding"
+  bug_description: "Inconsistent rounding - round per item then sum vs sum then round yields different results"
+  correct: "(items.sum(&:subtotal)).round"
+  incorrect: "items.sum { |i| i.subtotal.round }"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, rounding]
+
+- id: CALC_004
+  category: calculation
+  name: floating_point_currency
+  plan: "Calculate price with decimal precision"
+  bug_description: "Floating point precision error - 0.1 + 0.2 != 0.3 problem"
+  correct: "BigDecimal('0.1') + BigDecimal('0.2')"
+  incorrect: "0.1 + 0.2"
+  severity: high
+  difficulty: medium
+  tags: [calculation, currency, precision]
+
+- id: CALC_005
+  category: calculation
+  name: hardcoded_tax_rate
+  plan: "Apply current tax rate (10%)"
+  bug_description: "Hardcoded old tax rate - still using 8% instead of 10%"
+  correct: "subtotal * TaxRate.current"
+  incorrect: "subtotal * 0.08"
+  severity: high
+  difficulty: easy
+  tags: [calculation, tax, hardcode]
+
+- id: CALC_006
+  category: calculation
+  name: free_shipping_boundary
+  plan: "Free shipping for orders of 5000 yen or more"
+  bug_description: "Boundary condition error - >= 5000 vs > 5000"
+  correct: "total >= 5000 ? 0 : shipping_fee"
+  incorrect: "total > 5000 ? 0 : shipping_fee"
+  severity: medium
+  difficulty: easy
+  tags: [calculation, shipping, boundary]
+
+- id: CALC_007
+  category: calculation
+  name: points_calculation_order
+  plan: "Award points based on payment amount after discount"
+  bug_description: "Points calculated on pre-discount amount instead of post-discount"
+  correct: "(total - discount) * point_rate"
+  incorrect: "total * point_rate"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, points, discount]
+
+- id: CALC_008
+  category: calculation
+  name: coupon_stacking_logic
+  plan: "Apply single coupon per order"
+  bug_description: "Coupon stacking allowed - multiple coupons can be applied"
+  correct: "return if order.coupon_applied?; apply_coupon(coupon)"
+  incorrect: "apply_coupon(coupon)"
+  severity: high
+  difficulty: medium
+  tags: [calculation, coupon, validation]
+
+- id: CALC_009
+  category: calculation
+  name: minimum_order_amount
+  plan: "Minimum order amount is 1000 yen after discounts"
+  bug_description: "Minimum check on pre-discount amount instead of post-discount"
+  correct: "(subtotal - discount) >= 1000"
+  incorrect: "subtotal >= 1000"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, validation, minimum]
+
+- id: CALC_010
+  category: calculation
+  name: quantity_overflow
+  plan: "Calculate total for bulk orders"
+  bug_description: "Integer overflow on unit_price * quantity for large orders"
+  correct: "BigDecimal(unit_price) * quantity"
+  incorrect: "unit_price * quantity"
+  severity: critical
+  difficulty: hard
+  tags: [calculation, overflow, bulk]
+
+# =============================================================================
+# Inventory & Quantity (8 patterns)
+# =============================================================================
+
+- id: STOCK_001
+  category: inventory
+  name: stock_allocation_timing
+  plan: "Reserve stock at checkout, not cart addition"
+  bug_description: "Stock allocated at cart addition instead of payment confirmation"
+  correct: "reserve_stock on checkout"
+  incorrect: "reserve_stock on add_to_cart"
+  severity: high
+  difficulty: medium
+  tags: [inventory, timing, reservation]
+
+- id: STOCK_002
+  category: inventory
+  name: non_atomic_stock_update
+  plan: "Atomically check and decrement stock"
+  bug_description: "Race condition between stock check and update"
+  correct: "Product.where('stock > 0').update_all('stock = stock - 1')"
+  incorrect: "if product.stock > 0; product.update(stock: product.stock - 1); end"
+  severity: critical
+  difficulty: hard
+  tags: [inventory, race_condition, atomic]
+
+- id: STOCK_003
+  category: inventory
+  name: cart_stock_divergence
+  plan: "Validate stock availability at checkout"
+  bug_description: "Cart quantity not revalidated - stock may deplete while cart abandoned"
+  correct: "validate_stock_availability before checkout"
+  incorrect: "skip stock validation at checkout"
+  severity: high
+  difficulty: medium
+  tags: [inventory, cart, validation]
+
+- id: STOCK_004
+  category: inventory
+  name: reserved_actual_confusion
+  plan: "Track reserved and available stock separately"
+  bug_description: "Reserved stock counted as available - double counting"
+  correct: "available = total_stock - reserved_stock"
+  incorrect: "available = total_stock"
+  severity: critical
+  difficulty: medium
+  tags: [inventory, reservation, counting]
+
+- id: STOCK_005
+  category: inventory
+  name: zero_quantity_order
+  plan: "Validate item quantity is positive"
+  bug_description: "Zero quantity orders allowed through validation gap"
+  correct: "validates :quantity, numericality: { greater_than: 0 }"
+  incorrect: "validates :quantity, numericality: { greater_than_or_equal_to: 0 }"
+  severity: medium
+  difficulty: easy
+  tags: [inventory, validation, quantity]
+
+- id: STOCK_006
+  category: inventory
+  name: negative_stock_allowed
+  plan: "Prevent negative stock levels"
+  bug_description: "Cancellation processing can drive stock negative"
+  correct: "stock = [stock + cancelled_qty, max_stock].min"
+  incorrect: "stock += cancelled_qty"
+  severity: high
+  difficulty: medium
+  tags: [inventory, cancellation, negative]
+
+- id: STOCK_007
+  category: inventory
+  name: duplicate_stock_restoration
+  plan: "Restore stock once per cancellation"
+  bug_description: "Cancel spam increases stock - no idempotency check"
+  correct: "return if already_restored?; restore_stock"
+  incorrect: "restore_stock"
+  severity: critical
+  difficulty: medium
+  tags: [inventory, cancellation, idempotency]
+
+- id: STOCK_008
+  category: inventory
+  name: bundle_stock_calculation
+  plan: "Bundle availability is minimum of component stocks"
+  bug_description: "Bundle stock not calculated as minimum of components"
+  correct: "components.map(&:stock).min"
+  incorrect: "components.sum(&:stock)"
+  severity: high
+  difficulty: hard
+  tags: [inventory, bundle, calculation]
+
+# =============================================================================
+# State Transitions (7 patterns)
+# =============================================================================
+
+- id: STATE_001
+  category: state
+  name: invalid_state_transition
+  plan: "Enforce valid order state transitions"
+  bug_description: "Invalid transition allowed - shipped can go back to pending"
+  correct: "validate_transition(from: :shipped, to: [:delivered, :returned])"
+  incorrect: "update(status: new_status)"
+  severity: critical
+  difficulty: medium
+  tags: [state, transition, validation]
+
+- id: STATE_002
+  category: state
+  name: cancel_window_missing
+  plan: "Allow cancellation only before shipment"
+  bug_description: "Cancellation succeeds even after shipment"
+  correct: "raise CannotCancel if shipped?; cancel!"
+  incorrect: "cancel!"
+  severity: high
+  difficulty: easy
+  tags: [state, cancellation, validation]
+
+- id: STATE_003
+  category: state
+  name: payment_timeout
+  plan: "Reject payment after order expiration"
+  bug_description: "Payment accepted after order expiration time"
+  correct: "raise OrderExpired if expired?; process_payment"
+  incorrect: "process_payment"
+  severity: critical
+  difficulty: medium
+  tags: [state, payment, timeout]
+
+- id: STATE_004
+  category: state
+  name: duplicate_payment
+  plan: "Accept payment only once per order"
+  bug_description: "Double-click charges twice - no duplicate check"
+  correct: "return if paid?; with_lock { process_payment }"
+  incorrect: "process_payment"
+  severity: critical
+  difficulty: hard
+  tags: [state, payment, duplicate]
+
+- id: STATE_005
+  category: state
+  name: partial_cancel_integrity
+  plan: "Update total correctly on partial cancellation"
+  bug_description: "Total amount wrong after partial item cancellation"
+  correct: "recalculate_total after partial_cancel"
+  incorrect: "partial_cancel without recalculation"
+  severity: high
+  difficulty: medium
+  tags: [state, cancellation, calculation]
+
+- id: STATE_006
+  category: state
+  name: refund_status_missing
+  plan: "Update payment status after refund"
+  bug_description: "Payment shows unpaid despite refund completion"
+  correct: "update(payment_status: :refunded) after refund"
+  incorrect: "process_refund without status update"
+  severity: high
+  difficulty: easy
+  tags: [state, refund, status]
+
+- id: STATE_007
+  category: state
+  name: delivery_status_regression
+  plan: "Delivery status can only move forward"
+  bug_description: "Delivered can regress to shipping status"
+  correct: "raise InvalidTransition if delivered? && new_status == :shipping"
+  incorrect: "update(delivery_status: new_status)"
+  severity: medium
+  difficulty: medium
+  tags: [state, delivery, regression]
+
+# =============================================================================
+# User & Authorization (7 patterns)
+# =============================================================================
+
+- id: AUTH_001
+  category: authorization
+  name: access_other_user_order
+  plan: "Users can only view their own orders"
+  bug_description: "IDOR vulnerability - can access other user's order by changing ID"
+  correct: "current_user.orders.find(params[:id])"
+  incorrect: "Order.find(params[:id])"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, idor, security]
+
+- id: AUTH_002
+  category: authorization
+  name: manipulate_other_cart
+  plan: "Users can only modify their own cart"
+  bug_description: "Can manipulate other user's cart by specifying cart_id"
+  correct: "current_user.cart.add_item(item)"
+  incorrect: "Cart.find(params[:cart_id]).add_item(item)"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, cart, security]
+
+- id: AUTH_003
+  category: authorization
+  name: deleted_user_data
+  plan: "Hide orders of deleted users"
+  bug_description: "Deleted user's order data still accessible"
+  correct: "orders.joins(:user).where(users: { deleted_at: nil })"
+  incorrect: "orders"
+  severity: high
+  difficulty: medium
+  tags: [authorization, deleted, privacy]
+
+- id: AUTH_004
+  category: authorization
+  name: admin_permission_missing
+  plan: "Only admins can modify product prices"
+  bug_description: "Regular users can change prices - admin check missing"
+  correct: "authorize! :manage, Product; update_price"
+  incorrect: "update_price"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, admin, permission]
+
+- id: AUTH_005
+  category: authorization
+  name: guest_member_pricing
+  plan: "Member pricing only for logged-in members"
+  bug_description: "Guest users getting member pricing - membership check hole"
+  correct: "current_user&.member? ? member_price : regular_price"
+  incorrect: "member_price"
+  severity: high
+  difficulty: medium
+  tags: [authorization, membership, pricing]
+
+- id: AUTH_006
+  category: authorization
+  name: access_other_points
+  plan: "Users can only view their own points"
+  bug_description: "Can access other user's points via API"
+  correct: "current_user.points"
+  incorrect: "User.find(params[:user_id]).points"
+  severity: high
+  difficulty: easy
+  tags: [authorization, points, api]
+
+- id: AUTH_007
+  category: authorization
+  name: coupon_owner_missing
+  plan: "Users can only use their own coupons"
+  bug_description: "Can use another user's coupon code"
+  correct: "current_user.coupons.find_by(code: code)"
+  incorrect: "Coupon.find_by(code: code)"
+  severity: high
+  difficulty: medium
+  tags: [authorization, coupon, ownership]
+
+# =============================================================================
+# Time & Duration (8 patterns)
+# =============================================================================
+
+- id: TIME_001
+  category: time
+  name: timezone_not_considered
+  plan: "Display times in user's timezone"
+  bug_description: "Timezone not considered - UTC saved, displayed incorrectly as JST"
+  correct: "created_at.in_time_zone(user.timezone)"
+  incorrect: "created_at"
+  severity: medium
+  difficulty: medium
+  tags: [time, timezone, display]
+
+- id: TIME_002
+  category: time
+  name: sale_period_boundary
+  plan: "Sale starts at midnight on start date"
+  bug_description: "Sale period boundary error - 0:00 start becomes previous day 23:59"
+  correct: "start_date.beginning_of_day"
+  incorrect: "start_date"
+  severity: high
+  difficulty: medium
+  tags: [time, boundary, sale]
+
+- id: TIME_003
+  category: time
+  name: coupon_expiry_comparison
+  plan: "Coupon valid until end of expiry date"
+  bug_description: "Off-by-one on expiry - using < instead of <="
+  correct: "Time.current <= expires_at.end_of_day"
+  incorrect: "Time.current < expires_at"
+  severity: medium
+  difficulty: easy
+  tags: [time, expiry, comparison]
+
+- id: TIME_004
+  category: time
+  name: date_only_comparison
+  plan: "Compare dates ignoring time component"
+  bug_description: "Time truncation causes next-day treatment"
+  correct: "delivery_date.to_date == target_date.to_date"
+  incorrect: "delivery_date == target_date"
+  severity: medium
+  difficulty: medium
+  tags: [time, date, comparison]
+
+- id: TIME_005
+  category: time
+  name: month_end_processing
+  plan: "Handle month-end dates correctly"
+  bug_description: "Invalid date error - February 30 doesn't exist"
+  correct: "1.month.from_now.end_of_month"
+  incorrect: "Date.new(year, month + 1, day)"
+  severity: high
+  difficulty: hard
+  tags: [time, month_end, validation]
+
+- id: TIME_006
+  category: time
+  name: year_crossing
+  plan: "Handle year boundary correctly"
+  bug_description: "Year crossing logic error - 12/31 to 1/1 fails"
+  correct: "1.day.from_now"
+  incorrect: "Date.new(year, month, day + 1)"
+  severity: high
+  difficulty: hard
+  tags: [time, year_end, boundary]
+
+- id: TIME_007
+  category: time
+  name: business_day_calculation
+  plan: "Calculate delivery in business days"
+  bug_description: "Weekends and holidays not excluded from business days"
+  correct: "3.business_days.from_now"
+  incorrect: "3.days.from_now"
+  severity: medium
+  difficulty: medium
+  tags: [time, business_day, holiday]
+
+- id: TIME_008
+  category: time
+  name: past_delivery_date
+  plan: "Delivery date must be in the future"
+  bug_description: "Past delivery dates accepted"
+  correct: "validates :delivery_date, comparison: { greater_than: Date.current }"
+  incorrect: "validates :delivery_date, presence: true"
+  severity: medium
+  difficulty: easy
+  tags: [time, validation, future]
+
+# =============================================================================
+# External Integration (6 patterns)
+# =============================================================================
+
+- id: EXT_001
+  category: external
+  name: payment_timeout_unhandled
+  plan: "Handle payment API timeout gracefully"
+  bug_description: "Payment timeout leaves order in unknown state"
+  correct: "rescue Timeout::Error => e; mark_pending_verification; notify_admin"
+  incorrect: "rescue Timeout::Error => e; raise"
+  severity: critical
+  difficulty: hard
+  tags: [external, payment, timeout]
+
+- id: EXT_002
+  category: external
+  name: webhook_not_idempotent
+  plan: "Process webhooks idempotently"
+  bug_description: "Same webhook processed multiple times"
+  correct: "return if WebhookLog.exists?(event_id: event_id); process"
+  incorrect: "process"
+  severity: critical
+  difficulty: medium
+  tags: [external, webhook, idempotency]
+
+- id: EXT_003
+  category: external
+  name: api_call_in_transaction
+  plan: "Make external API calls outside transaction"
+  bug_description: "Payment charged even if transaction rolls back"
+  correct: "order.save!; charge_payment"
+  incorrect: "transaction { order.save!; charge_payment }"
+  severity: critical
+  difficulty: hard
+  tags: [external, transaction, api]
+
+- id: EXT_004
+  category: external
+  name: retry_duplicate_order
+  plan: "Prevent duplicate orders on retry"
+  bug_description: "Network retry creates duplicate order records"
+  correct: "Order.find_or_create_by(idempotency_key: key)"
+  incorrect: "Order.create(params)"
+  severity: critical
+  difficulty: hard
+  tags: [external, retry, duplicate]
+
+- id: EXT_005
+  category: external
+  name: inventory_sync_delay
+  plan: "Account for warehouse sync delay"
+  bug_description: "External warehouse stock diff not considered"
+  correct: "available = local_stock - pending_sync"
+  incorrect: "available = local_stock"
+  severity: high
+  difficulty: hard
+  tags: [external, inventory, sync]
+
+- id: EXT_006
+  category: external
+  name: shipping_error_swallowed
+  plan: "Handle shipping API errors properly"
+  bug_description: "Shipping API error swallowed, treated as success"
+  correct: "raise ShippingError unless response.success?"
+  incorrect: "response rescue nil"
+  severity: high
+  difficulty: medium
+  tags: [external, shipping, error]
+
+# =============================================================================
+# Performance (6 patterns)
+# =============================================================================
+
+- id: PERF_001
+  category: performance
+  name: n_plus_one_query
+  plan: "Eager load order items with products"
+  bug_description: "N+1 query on order items accessing product names"
+  correct: "order.items.includes(:product).each { |i| i.product.name }"
+  incorrect: "order.items.each { |i| i.product.name }"
+  severity: high
+  difficulty: easy
+  tags: [performance, n_plus_one, eager_load]
+
+- id: PERF_002
+  category: performance
+  name: full_table_load
+  plan: "Process orders in batches"
+  bug_description: "Loading all orders into memory - Order.all on 1M records"
+  correct: "Order.find_each { |o| process(o) }"
+  incorrect: "Order.all.each { |o| process(o) }"
+  severity: critical
+  difficulty: easy
+  tags: [performance, memory, batch]
+
+- id: PERF_003
+  category: performance
+  name: unnecessary_eager_loading
+  plan: "Only load needed associations"
+  bug_description: "Eager loading unused associations wastes resources"
+  correct: "orders.includes(:items)"
+  incorrect: "orders.includes(:items, :payments, :shipments, :user)"
+  severity: medium
+  difficulty: medium
+  tags: [performance, eager_load, waste]
+
+- id: PERF_004
+  category: performance
+  name: inefficient_count
+  plan: "Use COUNT query for totals"
+  bug_description: "Loading all records just to count - items.length vs items.count"
+  correct: "order.items.count"
+  incorrect: "order.items.length"
+  severity: medium
+  difficulty: easy
+  tags: [performance, count, query]
+
+- id: PERF_005
+  category: performance
+  name: index_not_used
+  plan: "Query on indexed columns"
+  bug_description: "Search condition on non-indexed column causes full scan"
+  correct: "add_index :orders, :status"
+  incorrect: "query without index"
+  severity: high
+  difficulty: medium
+  tags: [performance, index, query]
+
+- id: PERF_006
+  category: performance
+  name: cache_key_design
+  plan: "Use user-specific cache keys"
+  bug_description: "Same cache key for all users - cache collision"
+  correct: "Rails.cache.fetch(['orders', current_user.id])"
+  incorrect: "Rails.cache.fetch('orders')"
+  severity: high
+  difficulty: medium
+  tags: [performance, cache, key]
+
+# =============================================================================
+# Data Integrity (6 patterns)
+# =============================================================================
+
+- id: DATA_001
+  category: data
+  name: no_foreign_key
+  plan: "Maintain referential integrity"
+  bug_description: "No foreign key constraint - orphan records on parent delete"
+  correct: "add_foreign_key :order_items, :orders"
+  incorrect: "belongs_to :order without FK"
+  severity: high
+  difficulty: medium
+  tags: [data, foreign_key, integrity]
+
+- id: DATA_002
+  category: data
+  name: unique_constraint_missing
+  plan: "Ensure unique email addresses"
+  bug_description: "Unique constraint missing - duplicate emails allowed"
+  correct: "add_index :users, :email, unique: true"
+  incorrect: "validates :email, uniqueness: true (without DB constraint)"
+  severity: critical
+  difficulty: easy
+  tags: [data, unique, constraint]
+
+- id: DATA_003
+  category: data
+  name: optimistic_lock_missing
+  plan: "Prevent concurrent edit overwrites"
+  bug_description: "No optimistic locking - last write wins silently"
+  correct: "add_column :orders, :lock_version, :integer"
+  incorrect: "update without version check"
+  severity: high
+  difficulty: medium
+  tags: [data, locking, concurrent]
+
+- id: DATA_004
+  category: data
+  name: soft_delete_in_query
+  plan: "Exclude soft-deleted records from queries"
+  bug_description: "Deleted records appear in search results"
+  correct: "default_scope { where(deleted_at: nil) }"
+  incorrect: "no deleted_at filter"
+  severity: high
+  difficulty: easy
+  tags: [data, soft_delete, query]
+
+- id: DATA_005
+  category: data
+  name: master_data_history
+  plan: "Preserve historical product data in orders"
+  bug_description: "Product name change affects past order display"
+  correct: "order_item.snapshot_product_name"
+  incorrect: "order_item.product.name"
+  severity: medium
+  difficulty: hard
+  tags: [data, history, snapshot]
+
+- id: DATA_006
+  category: data
+  name: column_default_null
+  plan: "Provide sensible column defaults"
+  bug_description: "New column defaults to NULL causing downstream errors"
+  correct: "add_column :orders, :priority, :integer, default: 0, null: false"
+  incorrect: "add_column :orders, :priority, :integer"
+  severity: medium
+  difficulty: medium
+  tags: [data, default, null]
+
+# =============================================================================
+# Notifications & Email (6 patterns)
+# =============================================================================
+
+- id: NOTIFY_001
+  category: notification
+  name: duplicate_email
+  plan: "Send order confirmation email once"
+  bug_description: "Retry logic sends duplicate confirmation emails"
+  correct: "return if email_sent?; send_email; mark_sent!"
+  incorrect: "send_email"
+  severity: high
+  difficulty: medium
+  tags: [notification, email, duplicate]
+
+- id: NOTIFY_002
+  category: notification
+  name: async_error_swallowed
+  plan: "Handle background job failures"
+  bug_description: "Background job fails silently - user not notified"
+  correct: "rescue => e; notify_admin(e); raise"
+  incorrect: "rescue => e; logger.error(e)"
+  severity: high
+  difficulty: medium
+  tags: [notification, async, error]
+
+- id: NOTIFY_003
+  category: notification
+  name: notification_timing
+  plan: "Send confirmation after payment confirmed"
+  bug_description: "Order complete email sent before payment confirmation"
+  correct: "after payment_confirmed: send_confirmation"
+  incorrect: "send_confirmation on order_create"
+  severity: high
+  difficulty: medium
+  tags: [notification, timing, order]
+
+- id: NOTIFY_004
+  category: notification
+  name: template_variable_nil
+  plan: "Handle nil values in email templates"
+  bug_description: "Template variable user.name is nil causing error"
+  correct: "user&.name || 'Valued Customer'"
+  incorrect: "user.name"
+  severity: medium
+  difficulty: easy
+  tags: [notification, template, nil]
+
+- id: NOTIFY_005
+  category: notification
+  name: recipient_mixup
+  plan: "Send email to correct recipient"
+  bug_description: "Email sent to wrong user due to variable scope"
+  correct: "OrderMailer.confirmation(order.user).deliver_later"
+  incorrect: "OrderMailer.confirmation(user).deliver_later"
+  severity: critical
+  difficulty: medium
+  tags: [notification, recipient, privacy]
+
+- id: NOTIFY_006
+  category: notification
+  name: bulk_rate_limit
+  plan: "Respect email provider rate limits"
+  bug_description: "Mass email send gets blocked by rate limit"
+  correct: "users.find_each { |u| EmailJob.perform_later(u) }"
+  incorrect: "users.each { |u| send_email(u) }"
+  severity: medium
+  difficulty: medium
+  tags: [notification, bulk, rate_limit]
+
+# =============================================================================
+# Rails-Specific (11 patterns)
+# =============================================================================
+
+- id: RAILS_001
+  category: rails
+  name: scope_not_used
+  plan: "Use existing scope for active records"
+  bug_description: "Scope not used - reimplementing where(status: 'active') everywhere"
+  correct: "Product.active"
+  incorrect: "Product.where(status: 'active')"
+  severity: medium
+  difficulty: easy
+  tags: [rails, scope, dry]
+
+- id: RAILS_002
+  category: rails
+  name: enum_not_used
+  plan: "Use enum for status field"
+  bug_description: "String literal comparison instead of enum"
+  correct: "order.pending?"
+  incorrect: "order.status == 'pending'"
+  severity: medium
+  difficulty: easy
+  tags: [rails, enum, type_safety]
+
+- id: RAILS_003
+  category: rails
+  name: callback_order_dependency
+  plan: "Ensure callback execution order"
+  bug_description: "before_save callback order affects result"
+  correct: "prepend: true for critical callbacks"
+  incorrect: "assume callback order"
+  severity: high
+  difficulty: hard
+  tags: [rails, callback, order]
+
+- id: RAILS_004
+  category: rails
+  name: dependent_destroy_missing
+  plan: "Cascade delete child records"
+  bug_description: "dependent: :destroy missing - children orphaned on parent delete"
+  correct: "has_many :items, dependent: :destroy"
+  incorrect: "has_many :items"
+  severity: high
+  difficulty: easy
+  tags: [rails, association, dependent]
+
+- id: RAILS_005
+  category: rails
+  name: job_outside_after_commit
+  plan: "Enqueue jobs after transaction commits"
+  bug_description: "Job enqueued in transaction - runs even if rollback"
+  correct: "after_commit { NotifyJob.perform_later(id) }"
+  incorrect: "after_save { NotifyJob.perform_later(id) }"
+  severity: critical
+  difficulty: medium
+  tags: [rails, job, transaction]
+
+- id: RAILS_006
+  category: rails
+  name: strong_parameters_missing
+  plan: "Whitelist permitted parameters"
+  bug_description: "Strong Parameters missing - mass assignment vulnerability"
+  correct: "params.require(:order).permit(:quantity, :address)"
+  incorrect: "params[:order]"
+  severity: critical
+  difficulty: easy
+  tags: [rails, security, strong_params]
+
+- id: RAILS_007
+  category: rails
+  name: find_or_create_race
+  plan: "Handle concurrent find_or_create"
+  bug_description: "Race condition creates duplicate records"
+  correct: "find_or_create_by with unique constraint + rescue"
+  incorrect: "find_or_create_by without handling"
+  severity: high
+  difficulty: hard
+  tags: [rails, race_condition, create]
+
+- id: RAILS_008
+  category: rails
+  name: update_all_skips_callbacks
+  plan: "Use update when callbacks needed"
+  bug_description: "update_all skips callbacks and validations"
+  correct: "orders.find_each { |o| o.update(status: 'archived') }"
+  incorrect: "orders.update_all(status: 'archived')"
+  severity: high
+  difficulty: medium
+  tags: [rails, update_all, callback]
+
+- id: RAILS_009
+  category: rails
+  name: pluck_vs_select
+  plan: "Use pluck for attribute-only queries"
+  bug_description: "select loads full objects when only attributes needed"
+  correct: "Order.pluck(:id, :total)"
+  incorrect: "Order.select(:id, :total).map { |o| [o.id, o.total] }"
+  severity: medium
+  difficulty: easy
+  tags: [rails, pluck, performance]
+
+- id: RAILS_010
+  category: rails
+  name: includes_preload_eager_load
+  plan: "Choose correct eager loading strategy"
+  bug_description: "Wrong eager loading method generates unexpected query"
+  correct: "orders.preload(:items) for separate queries"
+  incorrect: "orders.includes(:items).where(items: { ... })"
+  severity: medium
+  difficulty: hard
+  tags: [rails, eager_load, query]
+
+- id: RAILS_011
+  category: rails
+  name: transaction_nesting
+  plan: "Handle nested transactions correctly"
+  bug_description: "Nested transaction without requires_new rolls back parent"
+  correct: "transaction(requires_new: true) { ... }"
+  incorrect: "transaction { transaction { ... } }"
+  severity: critical
+  difficulty: hard
+  tags: [rails, transaction, nesting]
+
+# =============================================================================
+# False Positive (20 patterns)
+# =============================================================================
+
+- id: FP_001
+  category: false_positive
+  name: standard_crud
+  plan: "Standard CRUD implementation"
+  bug_description: null
+  correct: "Standard RESTful controller"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, crud, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_002
+  category: false_positive
+  name: standard_validation
+  plan: "Standard model validations"
+  bug_description: null
+  correct: "validates presence, format, numericality"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, validation, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_003
+  category: false_positive
+  name: standard_association
+  plan: "Standard ActiveRecord associations"
+  bug_description: null
+  correct: "has_many, belongs_to with dependent"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, association, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_004
+  category: false_positive
+  name: standard_scope
+  plan: "Standard scope usage"
+  bug_description: null
+  correct: "scope :active, -> { where(active: true) }"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, scope, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_005
+  category: false_positive
+  name: standard_callback
+  plan: "Standard callback usage"
+  bug_description: null
+  correct: "after_create, before_save callbacks"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, callback, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_006
+  category: false_positive
+  name: complex_nested_transaction
+  plan: "Properly nested transactions"
+  bug_description: null
+  correct: "Nested transaction with requires_new: true"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, transaction, complex]
+  misleading_points: "Nested transactions look suspicious but are correct"
+
+- id: FP_007
+  category: false_positive
+  name: complex_callback_chain
+  plan: "Multiple callbacks in correct order"
+  bug_description: null
+  correct: "Ordered callbacks with dependencies handled"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, callback, complex]
+  misleading_points: "Many callbacks look fragile but order is correct"
+
+- id: FP_008
+  category: false_positive
+  name: complex_state_machine
+  plan: "Complete state machine implementation"
+  bug_description: null
+  correct: "All transitions validated and tested"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, state, complex]
+  misleading_points: "Complex state logic but all paths valid"
+
+- id: FP_009
+  category: false_positive
+  name: complex_calculation
+  plan: "Multi-step price calculation"
+  bug_description: null
+  correct: "Tax, discount, shipping correctly ordered"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, calculation, complex]
+  misleading_points: "Complex math but order is correct"
+
+- id: FP_010
+  category: false_positive
+  name: complex_authorization
+  plan: "Role-based access control"
+  bug_description: null
+  correct: "Proper authorization checks at all levels"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, authorization, complex]
+  misleading_points: "Complex permissions but all correct"
+
+- id: FP_011
+  category: false_positive
+  name: intentional_no_validation
+  plan: "Admin bypass for testing"
+  bug_description: null
+  correct: "Intentional skip_validation for admin"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, validation, intentional]
+  misleading_points: "Looks like missing validation but intentional"
+
+- id: FP_012
+  category: false_positive
+  name: intentional_raw_sql
+  plan: "Performance-critical raw SQL"
+  bug_description: null
+  correct: "Optimized SQL with proper sanitization"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, sql, intentional]
+  misleading_points: "Raw SQL looks dangerous but is sanitized"
+
+- id: FP_013
+  category: false_positive
+  name: intentional_update_all
+  plan: "Bulk update without callbacks"
+  bug_description: null
+  correct: "Intentional update_all for performance"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, update_all, intentional]
+  misleading_points: "update_all looks wrong but callbacks not needed"
+
+- id: FP_014
+  category: false_positive
+  name: intentional_no_index
+  plan: "Low cardinality column without index"
+  bug_description: null
+  correct: "Index would hurt more than help"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, index, intentional]
+  misleading_points: "Missing index is intentional decision"
+
+- id: FP_015
+  category: false_positive
+  name: intentional_eager_load
+  plan: "Preload for known N+1 prevention"
+  bug_description: null
+  correct: "Extra includes for downstream use"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, eager_load, intentional]
+  misleading_points: "Extra includes looks wasteful but used later"
+
+- id: FP_016
+  category: false_positive
+  name: optimized_counter_cache
+  plan: "Counter cache for count queries"
+  bug_description: null
+  correct: "counter_cache: true properly configured"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, counter_cache]
+  misleading_points: "Looks like denormalization but correct pattern"
+
+- id: FP_017
+  category: false_positive
+  name: optimized_batch_insert
+  plan: "Bulk insert for performance"
+  bug_description: null
+  correct: "insert_all with proper duplicate handling"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, batch]
+  misleading_points: "Bypassing validations but intentional for bulk"
+
+- id: FP_018
+  category: false_positive
+  name: optimized_cache_warming
+  plan: "Pre-warm cache on deploy"
+  bug_description: null
+  correct: "Intentional full table load into cache"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, cache]
+  misleading_points: "Looks like full table load bug but intentional"
+
+- id: FP_019
+  category: false_positive
+  name: optimized_denormalization
+  plan: "Denormalized for read performance"
+  bug_description: null
+  correct: "Materialized view pattern correctly implemented"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, denormalization]
+  misleading_points: "Duplication looks wrong but for performance"
+
+- id: FP_020
+  category: false_positive
+  name: optimized_async_write
+  plan: "Async write for throughput"
+  bug_description: null
+  correct: "Background job with eventual consistency"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, async]
+  misleading_points: "Eventual consistency looks like race condition"
