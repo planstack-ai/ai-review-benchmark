@@ -1,0 +1,39 @@
+{
+  "case_id": "CALC_006",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "free_shipping_boundary",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Boundary condition error - >= 5000 vs > 5000",
+  "bug_anchor": "total > 5000 ? 0 : shipping_fee",
+  "correct_implementation": "total >= 5000 ? 0 : shipping_fee",
+  "severity": "medium",
+  "tags": [
+    "calculation",
+    "shipping",
+    "boundary"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_006_main",
+      "category": "calculation_error",
+      "keywords": [
+        "total",
+        "5000",
+        "shipping_fee",
+        "Boundary",
+        "condition",
+        "error",
+        "vs",
+        ">="
+      ],
+      "severity_expected": "major",
+      "description": "Boundary condition error - >= 5000 vs > 5000",
+      "required": true
+    }
+  ]
+}

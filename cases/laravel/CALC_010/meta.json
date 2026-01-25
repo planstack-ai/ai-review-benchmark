@@ -1,0 +1,39 @@
+{
+  "case_id": "CALC_010",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "quantity_overflow",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Integer overflow on unit_price * quantity for large orders",
+  "bug_anchor": "unit_price * quantity",
+  "correct_implementation": "bcmul(unit_price, quantity, 2)",
+  "severity": "critical",
+  "tags": [
+    "calculation",
+    "overflow",
+    "bulk"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_010_main",
+      "category": "calculation_error",
+      "keywords": [
+        "unit_price",
+        "quantity",
+        "Integer",
+        "overflow",
+        "on",
+        "for",
+        "large",
+        "orders"
+      ],
+      "severity_expected": "critical",
+      "description": "Integer overflow on unit_price * quantity for large orders",
+      "required": true
+    }
+  ]
+}

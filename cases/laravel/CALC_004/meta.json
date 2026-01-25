@@ -1,0 +1,39 @@
+{
+  "case_id": "CALC_004",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "floating_point_currency",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Floating point precision error - 0.1 + 0.2 != 0.3 problem",
+  "bug_anchor": "0.1 + 0.2",
+  "correct_implementation": "bcadd('0.1', '0.2', 2) or use integers (cents)",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "currency",
+    "precision"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_004_main",
+      "category": "calculation_error",
+      "keywords": [
+        "0.1",
+        "0.2",
+        "Floating",
+        "point",
+        "precision",
+        "error",
+        "0.3",
+        "problem"
+      ],
+      "severity_expected": "major",
+      "description": "Floating point precision error - 0.1 + 0.2 != 0.3 problem",
+      "required": true
+    }
+  ]
+}

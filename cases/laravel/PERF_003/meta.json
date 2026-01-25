@@ -1,0 +1,27 @@
+{
+  "case_id": "PERF_003",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "index_defeating_queries",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Multiple queries defeat index usage - leading wildcards, functions on indexed columns",
+  "bug_anchor": "'LIKE', \"%{$query}%\"",
+  "correct_implementation": "Use full-text search or prefix matching; store email lowercase",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "indexing",
+    "query_optimization"
+  ],
+  "must_find": [
+    {
+      "type": "index_defeat",
+      "description": "Leading wildcard LIKE and LOWER() function prevent index usage"
+    }
+  ],
+  "decoy_issues": [],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

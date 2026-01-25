@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_010",
+  "category": "false_positive",
+  "axis": null,
+  "name": "payment_webhook_handler",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Secure webhook handling with signature verification and idempotency",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "webhook",
+    "payment",
+    "security"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

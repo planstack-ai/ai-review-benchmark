@@ -1,0 +1,32 @@
+{
+  "case_id": "NOTIFY_001",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "notification_preference_ignored",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "User notification preference is checked but notification is sent regardless",
+  "bug_anchor": "if (!$user->email_notifications)",
+  "correct_implementation": "Add 'return;' after logging when notifications disabled",
+  "severity": "medium",
+  "tags": [
+    "notification",
+    "preferences",
+    "email"
+  ],
+  "must_find": [
+    {
+      "type": "logic_bug",
+      "description": "Preference check doesn't prevent notification from being sent"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "sendBulkShippingNotification sends same order to all users"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

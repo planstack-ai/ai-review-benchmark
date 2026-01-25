@@ -1,0 +1,20 @@
+{
+  "case_id": "FP_007",
+  "category": "false_positive",
+  "axis": null,
+  "name": "rate_limit_service",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Standard sliding window rate limiter with fail-open behavior",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "rate_limiting",
+    "cache"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

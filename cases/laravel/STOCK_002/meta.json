@@ -1,0 +1,39 @@
+{
+  "case_id": "STOCK_002",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "non_atomic_stock_update",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Race condition between stock check and update",
+  "bug_anchor": "if ($product->stock >= $quantity) { $product->update(['stock' => $product->stock - $quantity]); }",
+  "correct_implementation": "Product::where('stock', '>=', $quantity)->decrement('stock', $quantity)",
+  "severity": "critical",
+  "tags": [
+    "inventory",
+    "race_condition",
+    "atomic"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "stock_002_main",
+      "category": "logic_error",
+      "keywords": [
+        "product->stock",
+        "product->update",
+        "Race",
+        "condition",
+        "between",
+        "stock",
+        "check",
+        "update"
+      ],
+      "severity_expected": "critical",
+      "description": "Race condition between stock check and update",
+      "required": true
+    }
+  ]
+}

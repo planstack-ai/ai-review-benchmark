@@ -1,0 +1,28 @@
+{
+  "case_id": "NOTIFY_003",
+  "category": "notification",
+  "axis": "implicit_knowledge",
+  "name": "password_reset_token_not_hashed",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Password reset token stored in plain text instead of hashed",
+  "bug_anchor": "'token' => $token,",
+  "correct_implementation": "'token' => Hash::make($token)",
+  "severity": "high",
+  "tags": [
+    "notification",
+    "security",
+    "password_reset",
+    "hashing"
+  ],
+  "must_find": [
+    {
+      "type": "security_bug",
+      "description": "Reset token stored unhashed - DB breach exposes valid tokens"
+    }
+  ],
+  "decoy_issues": [],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

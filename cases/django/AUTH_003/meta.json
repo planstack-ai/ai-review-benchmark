@@ -1,0 +1,21 @@
+{
+  "case_id": "AUTH_003",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "deleted_user_data",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Deleted user's order data still accessible",
+  "bug_anchor": "Order.objects.all()",
+  "correct_implementation": "Order.objects.filter(user__is_active=True)",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "deleted",
+    "privacy"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

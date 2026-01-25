@@ -1,0 +1,39 @@
+{
+  "case_id": "AUTH_003",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "deleted_user_data",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Deleted user's order data still accessible in reports",
+  "bug_anchor": "Order::with(['user'])",
+  "correct_implementation": "Order::whereHas('user', fn($q) => $q->whereNull('deleted_at'))",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "deleted",
+    "privacy"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "auth_003_main",
+      "category": "authorization",
+      "keywords": [
+        "Order::with",
+        "Deleted",
+        "user",
+        "order",
+        "data",
+        "still",
+        "accessible",
+        "reports"
+      ],
+      "severity_expected": "major",
+      "description": "Deleted user's order data still accessible in reports",
+      "required": true
+    }
+  ]
+}

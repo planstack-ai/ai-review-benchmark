@@ -1,0 +1,33 @@
+{
+  "case_id": "STATE_006",
+  "category": "state_machine",
+  "axis": "spec_alignment",
+  "name": "interview_stage_skip",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Recording interview result advances stage based on interview type, not current candidate status - allows skipping stages",
+  "bug_anchor": "$nextStage = $this->getNextStage($interview->type)",
+  "correct_implementation": "Verify candidate status matches interview type before advancing",
+  "severity": "high",
+  "tags": [
+    "state_machine",
+    "interview",
+    "workflow",
+    "hiring"
+  ],
+  "must_find": [
+    {
+      "type": "workflow_bug",
+      "description": "recordResult advances stage based on interview type without verifying candidate is at that stage"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "makeOffer doesn't verify onsite interview passed"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

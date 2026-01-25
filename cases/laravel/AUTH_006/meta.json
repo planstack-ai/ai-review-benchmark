@@ -1,0 +1,39 @@
+{
+  "case_id": "AUTH_006",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "access_other_points",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Can access other user's points via API",
+  "bug_anchor": "User::find($params['user_id'])->points()",
+  "correct_implementation": "$currentUser->points()",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "points",
+    "api"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "auth_006_main",
+      "category": "authorization",
+      "keywords": [
+        "User::find",
+        "params",
+        "user_id",
+        "points",
+        "Can",
+        "access",
+        "other",
+        "user"
+      ],
+      "severity_expected": "major",
+      "description": "Can access other user's points via API",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_009",
+  "category": "false_positive",
+  "axis": null,
+  "name": "audit_logging_service",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Proper audit logging with sensitive data redaction",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "audit",
+    "logging",
+    "security"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

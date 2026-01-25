@@ -1,0 +1,39 @@
+{
+  "case_id": "CALC_001",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "discount_rate_direction",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Discount rate direction wrong, becomes 90% off",
+  "bug_anchor": "subtotal * 0.1",
+  "correct_implementation": "subtotal * 0.9",
+  "severity": "critical",
+  "tags": [
+    "calculation",
+    "discount",
+    "member"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_001_main",
+      "category": "calculation_error",
+      "keywords": [
+        "subtotal",
+        "0.1",
+        "Discount",
+        "rate",
+        "direction",
+        "wrong",
+        "becomes",
+        "90"
+      ],
+      "severity_expected": "critical",
+      "description": "Discount rate direction wrong, becomes 90% off",
+      "required": true
+    }
+  ]
+}

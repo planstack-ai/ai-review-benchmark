@@ -591,6 +591,11 @@ def main() -> None:
         "--output",
         help="Output directory (default: cases/{framework})",
     )
+    parser.add_argument(
+        "--yes", "-y",
+        action="store_true",
+        help="Skip confirmation prompt",
+    )
     args = parser.parse_args()
 
     CONFIG["model"] = args.model
@@ -645,10 +650,11 @@ def main() -> None:
         return
 
     # Confirm before proceeding
-    response = input("Proceed with generation? [y/N]: ")
-    if response.lower() != "y":
-        print("Cancelled")
-        return
+    if not args.yes:
+        response = input("Proceed with generation? [y/N]: ")
+        if response.lower() != "y":
+            print("Cancelled")
+            return
 
     # Generate cases
     client = create_client()

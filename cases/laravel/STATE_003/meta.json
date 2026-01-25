@@ -1,0 +1,33 @@
+{
+  "case_id": "STATE_003",
+  "category": "state_machine",
+  "axis": "spec_alignment",
+  "name": "duplicate_refund_allowed",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Refund can be initiated multiple times - 'refunding' state doesn't block new refund attempts",
+  "bug_anchor": "if (!in_array($payment->status, ['completed', 'refunding']))",
+  "correct_implementation": "Only allow refund from 'completed' state, not 'refunding'",
+  "severity": "critical",
+  "tags": [
+    "state_machine",
+    "payment",
+    "refund",
+    "duplicate"
+  ],
+  "must_find": [
+    {
+      "type": "state_validation",
+      "description": "Allowing 'refunding' state to start another refund creates duplicate refund risk"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "Refund failure reverts to completed, losing state"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

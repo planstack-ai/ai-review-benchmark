@@ -1,0 +1,32 @@
+{
+  "case_id": "STATE_001",
+  "category": "state_machine",
+  "axis": "spec_alignment",
+  "name": "transition_validation_ignored",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "State transition validation is performed but result is ignored - any transition is allowed",
+  "bug_anchor": "$order->status = $toStatus",
+  "correct_implementation": "Return error if !$isValid instead of just logging",
+  "severity": "critical",
+  "tags": [
+    "state_machine",
+    "validation",
+    "workflow"
+  ],
+  "must_find": [
+    {
+      "type": "validation_bug",
+      "description": "Transition validation result not used to prevent invalid transitions"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "cancel() could transition from shipped which is not in valid transitions"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

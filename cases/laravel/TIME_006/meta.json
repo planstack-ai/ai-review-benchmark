@@ -1,0 +1,28 @@
+{
+  "case_id": "TIME_006",
+  "category": "time",
+  "axis": "implicit_knowledge",
+  "name": "dst_recurring_event_drift",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Recurring events add fixed 7 days instead of maintaining wall clock time across DST transitions",
+  "bug_anchor": "$currentStart->addDays(7)",
+  "correct_implementation": "Calculate next occurrence in user's timezone to maintain wall clock time",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "dst",
+    "recurring",
+    "timezone"
+  ],
+  "must_find": [
+    {
+      "type": "dst_bug",
+      "description": "addDays(7) doesn't account for DST, causing wall clock time to shift"
+    }
+  ],
+  "decoy_issues": [],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

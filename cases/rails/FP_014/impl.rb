@@ -11,13 +11,16 @@ class CodeReviewBenchmarkService
   end
 
   def execute
-    return failure_result('Repository not found') unless repository_exists?
+    @repository = Repository.find_by(id: @repository_id)
+    return failure_result('Repository not found') unless @repository
 
     process_code_files
     calculate_metrics
     store_benchmark_results
 
     success_result
+  rescue StandardError => e
+    failure_result("Benchmark failed: #{e.message}")
   end
 
   def generate_report
@@ -42,10 +45,6 @@ class CodeReviewBenchmarkService
     BENCHMARK_TYPES.first
   end
 
-  def repository_exists?
-    Repository.exists?(@repository_id)
-  end
-
   def process_code_files
     code_files = fetch_code_files
     
@@ -56,10 +55,9 @@ class CodeReviewBenchmarkService
   end
 
   def fetch_code_files
-    Repository.find(@repository_id)
-              .code_files
-              .where(active: true)
-              .where('file_size < ?', 1.megabyte)
+    @repository.code_files
+               .where(active: true)
+               .where('file_size < ?', 1.megabyte)
   end
 
   def analyze_file(file)
@@ -88,24 +86,24 @@ class CodeReviewBenchmarkService
   end
 
   def calculate_metrics
-    return if @results.empty?
-
     @total_score = @results.sum { |r| r[:score] }
-    @average_score = @total_score.to_f / @results.size
+    @average_score = @results.empty? ? 0.0 : @total_score.to_f / @results.size
     @issue_count = @results.sum { |r| r[:issues].size }
   end
 
   def store_benchmark_results
-    benchmark_record = create_benchmark_record
-    
-    @results.each do |result|
-      BenchmarkResult.create!(
-        benchmark_id: benchmark_record.id,
-        file_id: result[:file_id],
-        score: result[:score],
-        issues_data: result[:issues],
-        completed_at: result[:analyzed_at]
-      )
+    ActiveRecord::Base.transaction do
+      benchmark_record = create_benchmark_record
+
+      @results.each do |result|
+        BenchmarkResult.create!(
+          benchmark_id: benchmark_record.id,
+          file_id: result[:file_id],
+          score: result[:score],
+          issues_data: result[:issues],
+          completed_at: result[:analyzed_at]
+        )
+      end
     end
   end
 

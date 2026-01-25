@@ -3,108 +3,153 @@
 ## Schema
 
 ```ruby
-# db/schema.rb
+# == Schema Information
+#
+# Table name: repositories
+#
+#  id         :bigint           not null, primary key
+#  name       :string           not null
+#  url        :string
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#
+# Indexes
+#
+#  index_repositories_on_name  (name) UNIQUE
+#
 
-# create_table "users", force: :cascade do |t|
-#   t.string "email", null: false
-#   t.string "first_name"
-#   t.string "last_name"
-#   t.string "status", default: "active"
-#   t.datetime "created_at", null: false
-#   t.datetime "updated_at", null: false
-#   t.index ["email"], name: "index_users_on_email", unique: true
-# end
+# Table name: code_files
+#
+#  id            :bigint           not null, primary key
+#  repository_id :bigint           not null
+#  path          :string           not null
+#  file_size     :integer          default(0)
+#  active        :boolean          default(true)
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#
+# Indexes
+#
+#  index_code_files_on_repository_id  (repository_id)
+#  index_code_files_on_active         (active)
+#
 
-# create_table "orders", force: :cascade do |t|
-#   t.bigint "user_id", null: false
-#   t.decimal "total_amount", precision: 10, scale: 2
-#   t.string "currency", default: "USD"
-#   t.string "status", default: "pending"
-#   t.datetime "created_at", null: false
-#   t.datetime "updated_at", null: false
-#   t.index ["user_id"], name: "index_orders_on_user_id"
-#   t.index ["created_at"], name: "index_orders_on_created_at"
-# end
+# Table name: benchmarks
+#
+#  id             :bigint           not null, primary key
+#  repository_id  :bigint           not null
+#  benchmark_type :string           not null
+#  total_files    :integer          default(0)
+#  average_score  :decimal(5,2)
+#  total_issues   :integer          default(0)
+#  status         :string           default("pending")
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#
+# Indexes
+#
+#  index_benchmarks_on_repository_id  (repository_id)
+#  index_benchmarks_on_benchmark_type (benchmark_type)
+#
 
-# create_table "products", force: :cascade do |t|
-#   t.string "name", null: false
-#   t.text "description"
-#   t.decimal "price", precision: 10, scale: 2
-#   t.string "category"
-#   t.boolean "featured", default: false
-#   t.datetime "created_at", null: false
-#   t.datetime "updated_at", null: false
-#   t.index ["name"], name: "index_products_on_name"
-#   t.index ["featured"], name: "index_products_on_featured"
-# end
+# Table name: benchmark_results
+#
+#  id           :bigint           not null, primary key
+#  benchmark_id :bigint           not null
+#  file_id      :bigint           not null
+#  score        :decimal(5,2)
+#  issues_data  :jsonb            default([])
+#  completed_at :datetime
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#
+# Indexes
+#
+#  index_benchmark_results_on_benchmark_id  (benchmark_id)
+#  index_benchmark_results_on_file_id       (file_id)
+#
 ```
 
 ## Models
 
 ```ruby
-# app/models/user.rb
-class User < ApplicationRecord
-  VALID_STATUSES = %w[active inactive suspended].freeze
+class Repository < ApplicationRecord
+  has_many :code_files, dependent: :destroy
+  has_many :benchmarks, dependent: :destroy
 
-  has_many :orders, dependent: :destroy
+  validates :name, presence: true, uniqueness: true
+end
 
-  validates :email, presence: true, uniqueness: true
-  validates :status, inclusion: { in: VALID_STATUSES }
+class CodeFile < ApplicationRecord
+  belongs_to :repository
 
-  scope :active, -> { where(status: 'active') }
-  scope :inactive, -> { where(status: 'inactive') }
+  validates :path, presence: true
 
-  def full_name
-    "#{first_name} #{last_name}".strip
+  scope :active, -> { where(active: true) }
+  scope :small, -> { where('file_size < ?', 1.megabyte) }
+end
+
+class Benchmark < ApplicationRecord
+  TYPES = %w[performance security maintainability].freeze
+  STATUSES = %w[pending running completed failed].freeze
+
+  belongs_to :repository
+  has_many :benchmark_results, dependent: :destroy
+
+  validates :benchmark_type, inclusion: { in: TYPES }
+  validates :status, inclusion: { in: STATUSES }
+end
+
+class BenchmarkResult < ApplicationRecord
+  belongs_to :benchmark
+  belongs_to :file, class_name: 'CodeFile', foreign_key: :file_id
+
+  validates :score, presence: true, numericality: { greater_than_or_equal_to: 0 }
+end
+```
+
+## Analyzers
+
+```ruby
+class PerformanceAnalyzer
+  def initialize(file)
+    @file = file
   end
 
-  def active?
-    status == 'active'
+  def calculate_score
+    # Returns score 0-100 based on performance metrics
+  end
+
+  def detect_issues
+    # Returns array of performance issues found
   end
 end
 
-# app/models/order.rb
-class Order < ApplicationRecord
-  VALID_STATUSES = %w[pending processing shipped delivered cancelled].freeze
-  SUPPORTED_CURRENCIES = %w[USD EUR GBP].freeze
-
-  belongs_to :user
-
-  validates :total_amount, presence: true, numericality: { greater_than: 0 }
-  validates :status, inclusion: { in: VALID_STATUSES }
-  validates :currency, inclusion: { in: SUPPORTED_CURRENCIES }
-
-  scope :pending, -> { where(status: 'pending') }
-  scope :completed, -> { where(status: ['shipped', 'delivered']) }
-  scope :recent, -> { where('created_at > ?', 30.days.ago) }
-
-  def pending?
-    status == 'pending'
+class SecurityAnalyzer
+  def initialize(file)
+    @file = file
   end
 
-  def completed?
-    %w[shipped delivered].include?(status)
+  def calculate_score
+    # Returns score 0-100 based on security checks
+  end
+
+  def detect_issues
+    # Returns array of security vulnerabilities found
   end
 end
 
-# app/models/product.rb
-class Product < ApplicationRecord
-  CATEGORIES = %w[electronics clothing books home sports].freeze
-
-  validates :name, presence: true
-  validates :price, presence: true, numericality: { greater_than: 0 }
-  validates :category, inclusion: { in: CATEGORIES }
-
-  scope :featured, -> { where(featured: true) }
-  scope :by_category, ->(cat) { where(category: cat) }
-  scope :affordable, -> { where('price < ?', 50) }
-
-  def featured?
-    featured == true
+class MaintainabilityAnalyzer
+  def initialize(file)
+    @file = file
   end
 
-  def expensive?
-    price > 100
+  def calculate_score
+    # Returns score 0-100 based on code maintainability
+  end
+
+  def detect_issues
+    # Returns array of maintainability concerns found
   end
 end
 ```

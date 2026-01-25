@@ -1,0 +1,20 @@
+{
+  "case_id": "FP_002",
+  "category": "false_positive",
+  "axis": null,
+  "name": "order_processing",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Standard transactional order processing",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "order",
+    "transaction"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

@@ -1,0 +1,33 @@
+{
+  "case_id": "TIME_002",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "date_vs_datetime_comparison",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Comparing datetime (now()) with date columns - coupon expires at midnight instead of end of day",
+  "bug_anchor": "if ($today->gt($coupon->valid_until))",
+  "correct_implementation": "Use today()->startOfDay() or compare dates only: today()->toDateString()",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "date",
+    "coupon",
+    "comparison"
+  ],
+  "must_find": [
+    {
+      "type": "time_comparison_bug",
+      "description": "now() compared to date column causes premature expiration"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "redeemCoupon doesn't re-validate coupon"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

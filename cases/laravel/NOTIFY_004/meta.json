@@ -1,0 +1,32 @@
+{
+  "case_id": "NOTIFY_004",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "reminder_timezone_ignored",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Reminder sent immediately instead of scheduling for 9 AM in user's timezone",
+  "bug_anchor": "$user->notify($notification)",
+  "correct_implementation": "Use ->delay() to schedule for 9 AM in user timezone",
+  "severity": "medium",
+  "tags": [
+    "notification",
+    "timezone",
+    "scheduling"
+  ],
+  "must_find": [
+    {
+      "type": "requirement_violation",
+      "description": "Reminders sent immediately instead of at 9 AM user timezone"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "Date query might catch subscriptions at different times"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

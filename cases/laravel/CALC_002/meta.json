@@ -1,0 +1,39 @@
+{
+  "case_id": "CALC_002",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "tax_calculation_order",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Tax calculation order wrong - applying tax before discount yields different amount",
+  "bug_anchor": "(subtotal * 1.1) - discount",
+  "correct_implementation": "(subtotal - discount) * 1.1",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "tax",
+    "discount"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_002_main",
+      "category": "calculation_error",
+      "keywords": [
+        "subtotal",
+        "1.1",
+        "discount",
+        "Tax",
+        "calculation",
+        "order",
+        "wrong",
+        "applying"
+      ],
+      "severity_expected": "major",
+      "description": "Tax calculation order wrong - applying tax before discount yields different amount",
+      "required": true
+    }
+  ]
+}

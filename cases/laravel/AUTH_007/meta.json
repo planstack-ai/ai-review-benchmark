@@ -1,0 +1,39 @@
+{
+  "case_id": "AUTH_007",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "coupon_owner_missing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Can use another user's personal coupon code",
+  "bug_anchor": "Coupon::where('code', $couponCode)->first()",
+  "correct_implementation": "Validate coupon->isGlobal() || coupon->isOwnedBy($user)",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "coupon",
+    "ownership"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "auth_007_main",
+      "category": "authorization",
+      "keywords": [
+        "Coupon::where",
+        "code",
+        "Can",
+        "use",
+        "another",
+        "user",
+        "personal",
+        "coupon"
+      ],
+      "severity_expected": "major",
+      "description": "Can use another user's personal coupon code",
+      "required": true
+    }
+  ]
+}

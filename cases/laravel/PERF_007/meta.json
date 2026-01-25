@@ -1,0 +1,27 @@
+{
+  "case_id": "PERF_007",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "cart_nested_n_plus_one",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Multiple N+1 queries in cart: items, products, and categories all loaded separately",
+  "bug_anchor": "$product = Product::find($item->product_id)",
+  "correct_implementation": "CartItem::with(['product.category'])->where('cart_id', ...)",
+  "severity": "medium",
+  "tags": [
+    "performance",
+    "n+1",
+    "cart"
+  ],
+  "must_find": [
+    {
+      "type": "n_plus_one",
+      "description": "Product and category loaded separately for each cart item"
+    }
+  ],
+  "decoy_issues": [],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

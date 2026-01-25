@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_006",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "free_shipping_boundary",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Boundary condition error - >= 5000 vs > 5000",
+  "bug_anchor": "0 if total > 5000 else shipping_fee",
+  "correct_implementation": "0 if total >= 5000 else shipping_fee",
+  "severity": "medium",
+  "tags": [
+    "calculation",
+    "shipping",
+    "boundary"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": false
+}

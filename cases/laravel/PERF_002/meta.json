@@ -1,0 +1,32 @@
+{
+  "case_id": "PERF_002",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "nested_n_plus_one",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Nested N+1 queries - orders, items, and products all loaded separately in loops",
+  "bug_anchor": "$item->product->name",
+  "correct_implementation": "Use Order::with(['items.product']) for nested eager loading",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "n+1",
+    "nested_relations"
+  ],
+  "must_find": [
+    {
+      "type": "nested_n_plus_one",
+      "description": "Orders, items, and products each trigger separate queries in nested loops"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "getDailySummary could use groupBy aggregation"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

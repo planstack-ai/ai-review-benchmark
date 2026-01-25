@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_008",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "coupon_stacking_logic",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Coupon stacking allowed - multiple coupons can be applied",
+  "bug_anchor": "apply_coupon(coupon)",
+  "correct_implementation": "if order.coupon_applied: return; apply_coupon(coupon)",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "coupon",
+    "validation"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": false
+}

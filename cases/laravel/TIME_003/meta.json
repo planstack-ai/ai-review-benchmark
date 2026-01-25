@@ -1,0 +1,32 @@
+{
+  "case_id": "TIME_003",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "booking_timezone_mismatch",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Past slot filtering uses server timezone (UTC) instead of business timezone (Asia/Tokyo)",
+  "bug_anchor": "$slotDateTime = Carbon::parse($slot->date . ' ' . $slot->start_time)",
+  "correct_implementation": "Carbon::parse(..., self::BUSINESS_TIMEZONE)",
+  "severity": "high",
+  "tags": [
+    "time",
+    "timezone",
+    "booking"
+  ],
+  "must_find": [
+    {
+      "type": "timezone_bug",
+      "description": "Slot times parsed without business timezone, compared against UTC now()"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "checkBufferConflict has complex query that might have edge cases"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

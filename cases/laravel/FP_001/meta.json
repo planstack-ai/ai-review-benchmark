@@ -1,0 +1,20 @@
+{
+  "case_id": "FP_001",
+  "category": "false_positive",
+  "axis": null,
+  "name": "standard_crud",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Standard RESTful service pattern",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "crud",
+    "baseline"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

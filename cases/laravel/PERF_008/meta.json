@@ -1,0 +1,27 @@
+{
+  "case_id": "PERF_008",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "individual_updates_in_loop",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Individual SELECT/UPDATE/INSERT operations in loops instead of bulk operations",
+  "bug_anchor": "$product->update(['price' => $update['new_price']])",
+  "correct_implementation": "Use whereIn(), bulk insert, and single UPDATE queries",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "bulk_operations",
+    "database"
+  ],
+  "must_find": [
+    {
+      "type": "individual_operations",
+      "description": "Loop with individual DB operations instead of bulk queries"
+    }
+  ],
+  "decoy_issues": [],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

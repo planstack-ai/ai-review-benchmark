@@ -1,0 +1,39 @@
+{
+  "case_id": "CALC_005",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "hardcoded_tax_rate",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Hardcoded old tax rate - still using 8% instead of 10%",
+  "bug_anchor": "subtotal * 0.08",
+  "correct_implementation": "subtotal * TaxRate::current()",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "tax",
+    "hardcode"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_005_main",
+      "category": "calculation_error",
+      "keywords": [
+        "subtotal",
+        "0.08",
+        "Hardcoded",
+        "old",
+        "tax",
+        "rate",
+        "still",
+        "using"
+      ],
+      "severity_expected": "major",
+      "description": "Hardcoded old tax rate - still using 8% instead of 10%",
+      "required": true
+    }
+  ]
+}

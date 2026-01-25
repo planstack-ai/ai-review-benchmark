@@ -1,0 +1,39 @@
+{
+  "case_id": "AUTH_002",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "manipulate_other_cart",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Can manipulate other user's cart by specifying cart_id",
+  "bug_anchor": "Cart::find($cartId)",
+  "correct_implementation": "$user->cart",
+  "severity": "critical",
+  "tags": [
+    "authorization",
+    "cart",
+    "security"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "auth_002_main",
+      "category": "authorization",
+      "keywords": [
+        "Cart::find",
+        "cartId",
+        "Can",
+        "manipulate",
+        "other",
+        "user",
+        "cart",
+        "by"
+      ],
+      "severity_expected": "critical",
+      "description": "Can manipulate other user's cart by specifying cart_id",
+      "required": true
+    }
+  ]
+}

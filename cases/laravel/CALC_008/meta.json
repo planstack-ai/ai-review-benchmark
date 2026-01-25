@@ -1,0 +1,39 @@
+{
+  "case_id": "CALC_008",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "coupon_stacking_logic",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Coupon stacking allowed - multiple coupons can be applied",
+  "bug_anchor": "applyCouponDiscount()",
+  "correct_implementation": "if (order->hasCouponApplied()) return failure; applyCouponDiscount()",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "coupon",
+    "validation"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_008_main",
+      "category": "calculation_error",
+      "keywords": [
+        "applyCouponDiscount",
+        "Coupon",
+        "stacking",
+        "allowed",
+        "multiple",
+        "coupons",
+        "can",
+        "be"
+      ],
+      "severity_expected": "major",
+      "description": "Coupon stacking allowed - multiple coupons can be applied",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_005",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "hardcoded_tax_rate",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Hardcoded old tax rate - still using 8% instead of 10%",
+  "bug_anchor": "subtotal * Decimal('0.08')",
+  "correct_implementation": "subtotal * TaxRate.objects.current().rate",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "tax",
+    "hardcode"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

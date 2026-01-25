@@ -1,0 +1,28 @@
+{
+  "case_id": "STATE_004",
+  "category": "state_machine",
+  "axis": "spec_alignment",
+  "name": "publish_skips_approval",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Articles can be published directly from pending_review, bypassing approval",
+  "bug_anchor": "['approved', 'unpublished', 'pending_review']",
+  "correct_implementation": "Remove 'pending_review' from allowed publish states",
+  "severity": "high",
+  "tags": [
+    "state_machine",
+    "content",
+    "workflow",
+    "approval"
+  ],
+  "must_find": [
+    {
+      "type": "workflow_bypass",
+      "description": "publish() allows 'pending_review' status, skipping required approval"
+    }
+  ],
+  "decoy_issues": [],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

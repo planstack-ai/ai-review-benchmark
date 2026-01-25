@@ -1,0 +1,32 @@
+{
+  "case_id": "PERF_004",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "inefficient_aggregation",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Multiple separate queries instead of combined aggregation; loading all records for counting",
+  "bug_anchor": "$allOrders = Order::all()",
+  "correct_implementation": "Use single query with conditional aggregation or groupBy",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "aggregation",
+    "database"
+  ],
+  "must_find": [
+    {
+      "type": "inefficient_query",
+      "description": "Loads all orders into memory to calculate sum/avg instead of DB aggregation"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "N+1 in getRecentOrders"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

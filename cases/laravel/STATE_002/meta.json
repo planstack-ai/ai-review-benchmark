@@ -1,0 +1,32 @@
+{
+  "case_id": "STATE_002",
+  "category": "state_machine",
+  "axis": "spec_alignment",
+  "name": "subscription_invalid_activation",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Subscription can be activated from any state, including cancelled or expired",
+  "bug_anchor": "$subscription->update([\n            'status' => 'active'",
+  "correct_implementation": "Check that status is 'trial' or 'paused' before activating",
+  "severity": "high",
+  "tags": [
+    "state_machine",
+    "subscription",
+    "validation"
+  ],
+  "must_find": [
+    {
+      "type": "state_validation",
+      "description": "activate() allows transition from any state including cancelled/expired"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "cancel() also allows invalid transitions"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

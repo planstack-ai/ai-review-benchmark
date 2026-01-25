@@ -1,0 +1,39 @@
+{
+  "case_id": "CALC_007",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "points_calculation_order",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Points calculated on pre-discount amount instead of post-discount",
+  "bug_anchor": "subtotal * point_rate",
+  "correct_implementation": "total * point_rate",
+  "severity": "medium",
+  "tags": [
+    "calculation",
+    "points",
+    "discount"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_007_main",
+      "category": "calculation_error",
+      "keywords": [
+        "subtotal",
+        "point_rate",
+        "Points",
+        "calculated",
+        "on",
+        "pre",
+        "discount",
+        "amount"
+      ],
+      "severity_expected": "major",
+      "description": "Points calculated on pre-discount amount instead of post-discount",
+      "required": true
+    }
+  ]
+}

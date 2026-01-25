@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_001",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "discount_rate_direction",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Discount rate direction wrong, becomes 90% off",
+  "bug_anchor": "total * Decimal('0.1')",
+  "correct_implementation": "total * Decimal('0.9')",
+  "severity": "critical",
+  "tags": [
+    "calculation",
+    "discount",
+    "member"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

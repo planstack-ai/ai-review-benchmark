@@ -1,0 +1,33 @@
+{
+  "case_id": "TIME_005",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "report_date_boundary_wrong",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Daily report queries UTC day boundaries instead of business timezone day boundaries",
+  "bug_anchor": "$startOfDay = Carbon::parse($date)->startOfDay()",
+  "correct_implementation": "Carbon::parse($date, self::BUSINESS_TIMEZONE)->startOfDay()->utc()",
+  "severity": "high",
+  "tags": [
+    "time",
+    "timezone",
+    "reporting",
+    "aggregation"
+  ],
+  "must_find": [
+    {
+      "type": "timezone_bug",
+      "description": "Report date boundaries don't account for business timezone offset"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "generateYesterdayReport uses UTC yesterday"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

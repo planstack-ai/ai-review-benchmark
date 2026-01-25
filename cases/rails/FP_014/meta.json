@@ -2,17 +2,17 @@
   "case_id": "FP_014",
   "category": "false_positive",
   "axis": null,
-  "name": "intentional_no_index",
+  "name": "benchmark_service",
   "difficulty": "medium",
   "expected_detection": false,
   "bug_description": null,
   "bug_anchor": null,
-  "correct_implementation": "Index would hurt more than help",
+  "correct_implementation": "Proper service object pattern with batch processing and atomic writes",
   "severity": null,
   "tags": [
     "false_positive",
-    "index",
-    "intentional"
+    "service_object",
+    "batch_processing"
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",

@@ -1,0 +1,20 @@
+{
+  "case_id": "FP_008",
+  "category": "false_positive",
+  "axis": null,
+  "name": "file_upload_service",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Secure file upload with proper validation and path safety",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "file_upload",
+    "security"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

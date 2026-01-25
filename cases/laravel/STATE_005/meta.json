@@ -1,0 +1,32 @@
+{
+  "case_id": "STATE_005",
+  "category": "state_machine",
+  "axis": "spec_alignment",
+  "name": "ticket_assignment_no_state_check",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Agent can be assigned to resolved/closed tickets, changing status to in_progress",
+  "bug_anchor": "$ticket->update([\n            'assigned_agent_id' => $agent->id,\n            'status' => 'in_progress',\n        ])",
+  "correct_implementation": "Check ticket status before allowing assignment",
+  "severity": "medium",
+  "tags": [
+    "state_machine",
+    "support",
+    "workflow"
+  ],
+  "must_find": [
+    {
+      "type": "state_validation",
+      "description": "assignToAgent() doesn't check current ticket status before changing to in_progress"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "customerReply allows reopening closed tickets"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

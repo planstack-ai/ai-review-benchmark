@@ -1,0 +1,27 @@
+{
+  "case_id": "PERF_001",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "n_plus_one_category",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "N+1 query problem - category loaded separately for each product",
+  "bug_anchor": "$product->category->name",
+  "correct_implementation": "Use ->with('category') for eager loading",
+  "severity": "medium",
+  "tags": [
+    "performance",
+    "n+1",
+    "eager_loading"
+  ],
+  "must_find": [
+    {
+      "type": "n_plus_one",
+      "description": "Category relation accessed in loop without eager loading"
+    }
+  ],
+  "decoy_issues": [],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

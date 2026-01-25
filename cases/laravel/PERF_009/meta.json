@@ -1,0 +1,33 @@
+{
+  "case_id": "PERF_009",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "cache_stampede_and_n_plus_one",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Cache stampede vulnerability plus N+1 queries on cache miss",
+  "bug_anchor": "if (Cache::has($cacheKey))",
+  "correct_implementation": "Use Cache::remember() to prevent stampede; eager load relations",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "cache",
+    "stampede",
+    "n+1"
+  ],
+  "must_find": [
+    {
+      "type": "cache_stampede",
+      "description": "has() then get() allows multiple requests to miss cache simultaneously"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "No TTL on cache, sequential warm-up"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

@@ -1,0 +1,32 @@
+{
+  "case_id": "TIME_004",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "month_end_billing_overflow",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Setting day to 31 on a 30-day month causes date overflow",
+  "bug_anchor": "$nextBilling->day = $billingDay",
+  "correct_implementation": "Use min($billingDay, $nextBilling->daysInMonth)",
+  "severity": "high",
+  "tags": [
+    "time",
+    "billing",
+    "date_overflow"
+  ],
+  "must_find": [
+    {
+      "type": "date_handling_bug",
+      "description": "Setting day to 31 on February overflows to March"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "Proration diffInDays might be off-by-one"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

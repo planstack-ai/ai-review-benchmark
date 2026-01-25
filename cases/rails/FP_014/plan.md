@@ -1,28 +1,34 @@
-# Intentional No Index on Low Cardinality Status Column
+# Code Review Benchmark Service
 
 ## Overview
 
-The application needs to track user account status using a status column that will have very few distinct values (active, inactive, suspended). Due to the low cardinality nature of this column and the specific query patterns in the application, an index on this column would provide minimal performance benefit while consuming unnecessary storage space and maintenance overhead.
+The system needs a service to run automated code quality benchmarks on repository files. The service analyzes code files using different benchmark types (performance, security, maintainability) and stores the results for reporting purposes.
 
 ## Requirements
 
-1. Create a users table with a status column that stores account status information
-2. The status column must support exactly three possible values: 'active', 'inactive', and 'suspended'
-3. The status column must have a default value of 'active' for new user registrations
-4. The status column must not be null and must be validated at the application level
-5. The status column must be implemented as a string/varchar type to maintain readability
-6. No database index should be created on the status column due to its low cardinality
-7. The table must include standard user identification fields (id, email, name)
-8. The table must include timestamp fields for record tracking (created_at, updated_at)
+1. Accept a repository ID and benchmark type as input parameters
+2. Validate benchmark type against allowed values (performance, security, maintainability)
+3. Process all active code files in the repository that are under 1MB in size
+4. Use batch processing (find_each) to handle large numbers of files efficiently
+5. Analyze each file using the appropriate analyzer based on benchmark type
+6. Calculate aggregate metrics (total score, average score, issue count)
+7. Store benchmark results atomically in the database
+8. Generate reports from stored benchmark data
+9. Return success/failure results with appropriate messages
 
 ## Constraints
 
-1. The status column must reject any values other than the three specified options
-2. All users must have exactly one status at any given time
-3. The status field must be easily readable in database queries without requiring lookups
-4. The implementation must not include any database-level indexes on the status column
-5. Status changes must be tracked through the updated_at timestamp
+1. Only process files marked as active and under 1MB
+2. Benchmark results must be stored atomically (all or nothing)
+3. Use find_each for database cursor-based iteration to avoid loading all DB records at once
+4. Results may be accumulated in memory for aggregate metric calculation (acceptable for typical repository sizes)
+5. Validate repository existence before processing
+6. Default to 'performance' benchmark type if invalid type provided
+7. Report generation should only include data from the last 30 days
+8. Individual INSERT statements are acceptable for data integrity (callbacks, validations)
+9. Report aggregates cumulative metrics across all benchmark runs (intended for trend analysis)
+10. Report generation is admin-only; loading full result set is acceptable for accuracy
 
 ## References
 
-See context.md for examples of similar low cardinality column implementations and indexing decisions in the existing codebase.
+See context.md for Repository, CodeFile, Benchmark, and BenchmarkResult model definitions.

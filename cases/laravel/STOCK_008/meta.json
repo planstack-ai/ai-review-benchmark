@@ -1,0 +1,32 @@
+{
+  "case_id": "STOCK_008",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "reorder_ignores_reserved_stock",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Reorder check and calculation use stock_quantity instead of availableStock (excludes reserved)",
+  "bug_anchor": "whereRaw('stock_quantity <= reorder_point')",
+  "correct_implementation": "whereRaw('(stock_quantity - reserved_quantity) <= reorder_point')",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "reorder",
+    "reserved_stock"
+  ],
+  "must_find": [
+    {
+      "type": "calculation_bug",
+      "description": "Reorder trigger doesn't account for reserved stock"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "No locking when checking for existing PO"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

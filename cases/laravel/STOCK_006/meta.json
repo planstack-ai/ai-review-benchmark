@@ -1,0 +1,32 @@
+{
+  "case_id": "STOCK_006",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "preorder_slot_calculation",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Available preorder slots calculated wrong - uses expected_quantity instead of expected_quantity - preorder_count",
+  "bug_anchor": "$availableSlots = $product->expected_quantity",
+  "correct_implementation": "$availableSlots = $product->expected_quantity - $product->preorder_count",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "preorder",
+    "calculation"
+  ],
+  "must_find": [
+    {
+      "type": "calculation_bug",
+      "description": "Available preorder slots doesn't subtract existing preorder count"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "cancelPreorder doesn't check if user owns the preorder"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

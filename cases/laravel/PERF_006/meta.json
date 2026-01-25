@@ -1,0 +1,32 @@
+{
+  "case_id": "PERF_006",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "sync_bulk_notifications",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Synchronous notification sending in loop blocks for each send; individual INSERTs",
+  "bug_anchor": "$user->notify(new BulkNotification($type, $data))",
+  "correct_implementation": "Queue notifications and use bulk insert for logs",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "notifications",
+    "async"
+  ],
+  "must_find": [
+    {
+      "type": "synchronous_bulk",
+      "description": "Notifications sent synchronously in loop instead of queued"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "Individual log inserts instead of bulk"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

@@ -1,0 +1,32 @@
+{
+  "case_id": "STOCK_003",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "premature_stock_restoration",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Stock is restored when return is requested, not when approved/completed",
+  "bug_anchor": "$product->increment('stock_quantity', $quantity)",
+  "correct_implementation": "Restore stock only in completeReturn() after item is received",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "returns",
+    "workflow"
+  ],
+  "must_find": [
+    {
+      "type": "inventory_bug",
+      "description": "Stock restored prematurely at request time instead of completion"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "Missing partial return tracking"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

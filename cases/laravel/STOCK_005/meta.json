@@ -1,0 +1,37 @@
+{
+  "case_id": "STOCK_005",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "bundle_stock_race_condition",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Bundle stock reservation is not atomic - race condition and partial reservation possible",
+  "bug_anchor": "foreach ($bundle->bundleComponents as $bundleComponent)",
+  "correct_implementation": "Wrap entire reservation in DB::transaction with lockForUpdate",
+  "severity": "critical",
+  "tags": [
+    "inventory",
+    "bundle",
+    "race_condition",
+    "transaction"
+  ],
+  "must_find": [
+    {
+      "type": "race_condition",
+      "description": "Check-then-reserve pattern without locking allows race condition"
+    },
+    {
+      "type": "atomicity",
+      "description": "Component reservations not atomic, partial failures not handled"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "releaseBundleStock doesn't verify reservation exists"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

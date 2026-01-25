@@ -1,0 +1,20 @@
+{
+  "case_id": "FP_005",
+  "category": "false_positive",
+  "axis": null,
+  "name": "authentication_service",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Standard Laravel authentication patterns",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "authentication",
+    "security"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

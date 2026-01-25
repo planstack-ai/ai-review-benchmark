@@ -1,0 +1,39 @@
+{
+  "case_id": "AUTH_005",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "guest_member_pricing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Guest users getting member pricing - membership check hole",
+  "bug_anchor": "memberPricingApplicable()",
+  "correct_implementation": "$user && $user->isMember() && memberPricingApplicable()",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "membership",
+    "pricing"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "auth_005_main",
+      "category": "authorization",
+      "keywords": [
+        "memberPricingApplicable",
+        "Guest",
+        "users",
+        "getting",
+        "member",
+        "pricing",
+        "membership",
+        "check"
+      ],
+      "severity_expected": "major",
+      "description": "Guest users getting member pricing - membership check hole",
+      "required": true
+    }
+  ]
+}

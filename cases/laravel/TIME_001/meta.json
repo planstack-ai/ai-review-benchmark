@@ -1,0 +1,32 @@
+{
+  "case_id": "TIME_001",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "timezone_not_converted_to_utc",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Sale times parsed in local timezone but not converted to UTC before storing",
+  "bug_anchor": "$start = Carbon::parse($startsAt, $timezone)",
+  "correct_implementation": "$start = Carbon::parse($startsAt, $timezone)->utc()",
+  "severity": "high",
+  "tags": [
+    "time",
+    "timezone",
+    "flash_sale"
+  ],
+  "must_find": [
+    {
+      "type": "timezone_bug",
+      "description": "Times parsed with timezone but not converted to UTC before storage"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "No race condition protection on sold_count"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

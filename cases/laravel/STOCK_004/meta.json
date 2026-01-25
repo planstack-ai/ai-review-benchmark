@@ -1,0 +1,32 @@
+{
+  "case_id": "STOCK_004",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "negative_stock_allowed",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Negative stock check only logs warning but doesn't prevent the adjustment",
+  "bug_anchor": "\\Log::warning(\"Adjustment would result in negative stock",
+  "correct_implementation": "Return error when adjustment would result in negative stock",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "validation",
+    "negative_stock"
+  ],
+  "must_find": [
+    {
+      "type": "validation_bug",
+      "description": "Negative stock constraint not enforced, only logged"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "Stock might change between creation and approval"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

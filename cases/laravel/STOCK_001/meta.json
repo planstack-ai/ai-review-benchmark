@@ -1,0 +1,39 @@
+{
+  "case_id": "STOCK_001",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "stock_allocation_timing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Stock reserved at cart addition instead of checkout - causes stock lockup",
+  "bug_anchor": "reserveStockForItem in addItemToCart",
+  "correct_implementation": "reserveStockForItem in processCheckout",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "timing",
+    "reservation"
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "stock_001_main",
+      "category": "logic_error",
+      "keywords": [
+        "reserveStockForItem",
+        "addItemToCart",
+        "Stock",
+        "reserved",
+        "at",
+        "cart",
+        "addition",
+        "checkout"
+      ],
+      "severity_expected": "major",
+      "description": "Stock reserved at cart addition instead of checkout - causes stock lockup",
+      "required": true
+    }
+  ]
+}

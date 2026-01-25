@@ -1,0 +1,27 @@
+{
+  "case_id": "PERF_005",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "export_memory_exhaustion",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Loads all records into memory for export instead of chunking/streaming",
+  "bug_anchor": "$orders = Order::with('user')...->get()",
+  "correct_implementation": "Use cursor() or chunk() with streaming output",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "memory",
+    "export"
+  ],
+  "must_find": [
+    {
+      "type": "memory_issue",
+      "description": "Loading entire dataset into memory for CSV export"
+    }
+  ],
+  "decoy_issues": [],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}

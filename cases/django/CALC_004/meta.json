@@ -1,0 +1,20 @@
+{
+  "case_id": "CALC_004",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "inconsistent_rounding",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Inconsistent rounding - round per item then sum vs sum then round yields different results",
+  "bug_anchor": "sum(item.subtotal.quantize(Decimal('0.01')) for item in items)",
+  "correct_implementation": "sum(item.subtotal for item in items).quantize(Decimal('0.01'))",
+  "severity": "medium",
+  "tags": [
+    "calculation",
+    "rounding"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

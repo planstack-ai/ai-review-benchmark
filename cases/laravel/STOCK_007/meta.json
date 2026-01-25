@@ -1,0 +1,32 @@
+{
+  "case_id": "STOCK_007",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "transfer_ignores_reserved_stock",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Transfer stock check uses total quantity instead of available (non-reserved) quantity",
+  "bug_anchor": "if ($sourceStock->quantity < $quantity)",
+  "correct_implementation": "if ($sourceStock->availableQuantity() < $quantity)",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "warehouse",
+    "reserved_stock"
+  ],
+  "must_find": [
+    {
+      "type": "validation_bug",
+      "description": "Transfer allows transferring stock that is reserved for orders"
+    }
+  ],
+  "decoy_issues": [
+    {
+      "type": "minor",
+      "description": "shipTransfer doesn't re-verify stock availability"
+    }
+  ],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
+}
