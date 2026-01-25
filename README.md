@@ -17,7 +17,9 @@ Quantitatively verify whether DeepSeek V3/R1, at 1/20th the API cost, can delive
 
 | Model | Cost ($/1M input) | Role |
 |-------|-------------------|------|
+| Claude Opus 4.5 | $5.00 | Anthropic Flagship |
 | Claude Sonnet 4 | $3.00 | Baseline |
+| Claude Haiku 4.5 | $1.00 | Anthropic Fast |
 | GPT-4o | $2.50 | OpenAI Legacy |
 | GPT-5 | $1.25 | OpenAI Flagship |
 | DeepSeek V3 | $0.14 | Cost Killer |

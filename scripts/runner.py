@@ -27,8 +27,8 @@ import anthropic
 import google.generativeai as genai
 import openai
 
-ModelName = Literal["claude-sonnet", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
-ALL_MODELS: list[ModelName] = ["claude-sonnet", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
+ModelName = Literal["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
+ALL_MODELS: list[ModelName] = ["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
 
 RunMode = Literal["explicit", "implicit", "dual"]
 
@@ -37,10 +37,20 @@ RESULTS_DIR = Path(__file__).parent.parent / "results"
 
 # モデル設定
 MODEL_CONFIG = {
+    "claude-opus": {
+        "model_id": "claude-opus-4-5-20251101",
+        "input_cost_per_1m": 5.00,
+        "output_cost_per_1m": 25.00,
+    },
     "claude-sonnet": {
         "model_id": "claude-sonnet-4-20250514",
         "input_cost_per_1m": 3.00,
         "output_cost_per_1m": 15.00,
+    },
+    "claude-haiku": {
+        "model_id": "claude-haiku-4-5-20251001",
+        "input_cost_per_1m": 1.00,
+        "output_cost_per_1m": 5.00,
     },
     "gpt-4o": {
         "model_id": "gpt-4o",
@@ -251,10 +261,10 @@ def extract_json(text: str) -> dict[str, Any] | None:
     return None
 
 
-def call_claude_sonnet(prompt: str) -> dict[str, Any]:
-    """Claude Sonnet APIを呼び出し"""
+def call_claude(prompt: str, model_name: Literal["claude-opus", "claude-sonnet", "claude-haiku"]) -> dict[str, Any]:
+    """Claude APIを呼び出し"""
     client = anthropic.Anthropic()
-    config = MODEL_CONFIG["claude-sonnet"]
+    config = MODEL_CONFIG[model_name]
 
     start_time = time.time()
     message = client.messages.create(
@@ -396,8 +406,8 @@ def run_review(model: ModelName, case: dict[str, Any]) -> dict[str, Any]:
     """モデルでレビューを実行"""
     prompt = build_prompt(case)
 
-    if model == "claude-sonnet":
-        return call_claude_sonnet(prompt)
+    if model in ("claude-opus", "claude-sonnet", "claude-haiku"):
+        return call_claude(prompt, model)
     elif model in ("gpt-4o", "gpt-5"):
         return call_openai(prompt, model)
     elif model == "deepseek-v3":
@@ -567,7 +577,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="AIコードレビューベンチマーク実行")
     parser.add_argument(
         "--model",
-        choices=["claude-sonnet", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash", "all"],
+        choices=["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash", "all"],
         required=True,
         help="使用するモデル（'all'で全モデル実行）",
     )
