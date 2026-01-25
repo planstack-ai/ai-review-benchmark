@@ -9,24 +9,52 @@ Beyond simple bug detection, it measures the advanced review capability of check
 
 ### Primary Goal
 
-**Can DeepSeek replace Claude Sonnet?**
+How reliable is AI as a code reviewer for real-world Rails applications?
 
-Quantitatively verify whether DeepSeek V3/R1, at 1/20th the API cost, can deliver production-quality code review.
+This benchmark evaluates whether AI can:
+- detect design and specification violations,
+- avoid false positives,
+- and provide actionable review feedback
+  on production-like code.
+
+### Secondary Goal
+
+Evaluate whether lower-cost models (e.g. DeepSeek V3/R1) can achieve
+review quality comparable to state-of-the-art models
+at a fraction of the API cost.
+
+### Replacement Criteria
+
+For a lower-cost model to be considered a viable replacement for Claude Sonnet:
+
+| Metric | Threshold | Rationale |
+|--------|-----------|-----------|
+| Recall | >= 80% | Must catch critical bugs |
+| Case-FPR | <= 20% | Acceptable false alarm rate |
+| Weighted Recall Gap | <= 10pp vs Sonnet | Similar severity assessment |
+| Cost | <= 1/5 of Sonnet | Cost advantage requirement |
+
+**Decision Matrix**:
+- **Replace**: All thresholds met at 1/5th cost
+- **Supplement**: Recall >= 70%, usable for first-pass review
+- **Not Ready**: Any metric significantly below threshold
 
 ### Models Under Comparison
 
-| Model | Cost ($/1M input) | Role |
-|-------|-------------------|------|
-| Claude Opus 4.5 | $5.00 | Anthropic Flagship |
-| Claude Sonnet 4 | $3.00 | Baseline |
-| Claude Haiku 4.5 | $1.00 | Anthropic Fast |
-| GPT-4o | $2.50 | OpenAI Legacy |
-| GPT-5 | $1.25 | OpenAI Flagship |
-| DeepSeek V3 | $0.14 | Cost Killer |
-| DeepSeek R1 | $0.55 | Reasoner |
-| Gemini 2.5 Pro | $1.25 | Long Context |
-| Gemini 3 Pro | $1.25 | Latest Gemini |
-| Gemini 3 Flash | $0.10 | Fast & Cheap |
+| Model | CLI Name | Input ($/1M) | Output ($/1M) | Role |
+|-------|----------|--------------|---------------|------|
+| Claude Opus 4.5 | `claude-opus` | $5.00 | $25.00 | Anthropic Flagship |
+| Claude Sonnet 4 | `claude-sonnet` | $3.00 | $15.00 | Baseline |
+| Claude Haiku 4.5 | `claude-haiku` | $1.00 | $5.00 | Anthropic Fast |
+| GPT-4o | `gpt-4o` | $2.50 | $10.00 | OpenAI Legacy |
+| GPT-5 | `gpt-5` | $1.25 | $10.00 | OpenAI Flagship |
+| DeepSeek V3 | `deepseek-v3` | $0.14 | $0.28 | Cost Killer |
+| DeepSeek R1 | `deepseek-r1` | $0.55 | $2.19 | Reasoner |
+| Gemini 2.5 Pro | `gemini-pro` | $1.25 | $5.00 | Long Context |
+| Gemini 3 Pro | `gemini-3-pro` | $1.25 | $5.00 | Latest Gemini |
+| Gemini 3 Flash | `gemini-3-flash` | $0.10 | $0.40 | Fast & Cheap |
+
+*Pricing as of January 2025. Check provider docs for current rates.*
 
 ## Background: Context Engineering
 
@@ -58,12 +86,16 @@ ai-review-benchmark/
 │       ├── DATA_001/          # Data integrity cases
 │       ├── RAILS_001/         # Rails-specific cases
 │       ├── FP_001/            # False positive cases
-│       └── ...                # 95 cases total
+│       └── ...                # 99 cases total
 ├── results/                   # Execution results
 ├── scripts/
+│   ├── config.py              # Model configurations
 │   ├── generator.py           # Test case generation
 │   ├── runner.py              # Benchmark execution
-│   └── evaluator.py           # Scoring (LLM-as-a-Judge)
+│   ├── evaluator.py           # Scoring (LLM-as-a-Judge)
+│   ├── judges/                # Judge implementations (Claude, Gemini, Ensemble)
+│   ├── metrics/               # Evaluation metrics
+│   └── extractors/            # Response extractors
 ├── docs/
 │   └── benchmark-spec-v3.md   # Full specification
 ├── patterns.yaml              # Bug pattern definitions
@@ -77,13 +109,25 @@ ai-review-benchmark/
 
 Results are analyzed along two dimensions:
 
+```
+Bug Cases (79)                    Clean Cases (20)
+┌──────────────────────┐         ┌─────────────┐
+│ Spec Alignment (46)  │         │    FP (20)  │
+│ CALC,STOCK,STATE,... │         │             │
+├──────────────────────┤         │ Tests       │
+│ Implicit Know. (33)  │         │ over-       │
+│ EXT,PERF,DATA,RAILS  │         │ detection   │
+└──────────────────────┘         └─────────────┘
+    ↓ DETECTION                      ↓ RESTRAINT
+```
+
 | Axis | Categories | Cases | What it measures |
 |------|------------|-------|------------------|
 | **Spec Alignment** | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 46 | Can the model detect Plan vs Code mismatches? |
-| **Implicit Knowledge** | EXT, PERF, DATA, RAILS | 29 | Can the model detect issues not written in Plan? |
+| **Implicit Knowledge** | EXT, PERF, DATA, RAILS | 33 | Can the model detect issues not written in Plan? |
 | **False Positive** | FP | 20 | Over-detection test |
 
-### Category Composition (95 cases total)
+### Category Composition (99 cases total)
 
 | Category | Cases | Axis | Verification Points |
 |----------|-------|------|---------------------|
@@ -96,17 +140,18 @@ Results are analyzed along two dimensions:
 | **EXT** (External Integration) | 6 | Implicit Knowledge | Payment API, Webhook, idempotency |
 | **PERF** (Performance) | 6 | Implicit Knowledge | N+1, full table loads, caching |
 | **DATA** (Data Integrity) | 6 | Implicit Knowledge | Constraints, locking, soft deletes |
-| **RAILS** (Rails-Specific) | 11 | Implicit Knowledge | Scope, enum, callbacks, transactions |
+| **RAILS** (Rails-Specific) | 15 | Implicit Knowledge | Scope, enum, callbacks, transactions |
 | **FP** (False Positive) | 20 | - | Perfect code (test for over-detection) |
 
 ### Case File Structure
 
-Each case consists of 4 files:
+Each case consists of 5 files:
 
 - `plan.md` - Specification document (requirements to reference during review)
 - `context.md` - Existing codebase information
 - `impl.rb` - Code under review
 - `meta.json` - Ground truth and metadata
+- `expected_critique.md` - Expected review findings for semantic evaluation
 
 ## Dual-Mode Evaluation
 
@@ -160,6 +205,18 @@ The evaluation mode is specified in each case's `meta.json`:
 - `"evaluation_mode": "rubric"`
 - `"evaluation_mode": "semantic"`
 
+### Judge Bias Mitigation
+
+To address "Claude judging Claude" bias concerns:
+
+1. **Ensemble Mode**: Uses both Claude + Gemini as judges
+   - Score: Mean of semantic scores
+   - Detection: Majority vote
+
+2. **Human Validation**: 20 cases validated against human judgment
+
+3. **Transparency**: Judge prompts and model versions published in repository
+
 ## Usage
 
 ### 1. Environment Setup (Docker recommended)
@@ -184,6 +241,8 @@ docker compose run --rm benchmark --model claude-sonnet
 docker compose run --rm benchmark --model deepseek-v3
 docker compose run --rm benchmark --model deepseek-r1
 docker compose run --rm benchmark --model gemini-pro
+docker compose run --rm benchmark --model gemini-3-pro
+docker compose run --rm benchmark --model gemini-3-flash
 
 # Run with all models
 docker compose run --rm benchmark --model all
@@ -209,13 +268,29 @@ export GOOGLE_API_KEY=xxx
 python scripts/runner.py --model claude-sonnet
 ```
 
+## Execution Settings
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| Temperature | Model default | Not explicitly set; uses provider defaults |
+| max_tokens | 4096 | All models |
+| Retry | None | Single attempt per case |
+| Timeout | Provider default | SDK-dependent |
+
+**Reproducibility Notes**:
+- Results may vary slightly between runs due to non-zero temperature
+- For deterministic results, modify `runner.py` to set `temperature=0`
+
 ## Example Results
+
+> **Note**: Sample data for illustration. Run `python scripts/evaluator.py` for actual results.
 
 ### Sample Report Output
 
-| Model | Recall | Weighted Recall | FPR | Cost |
-|-------|--------|-----------------|-----|------|
-| claude-sonnet | 89.3% | 66.1% | 100.0% | $2.21 |
+| Model | Recall | Weighted Recall | Case-FPR | Cost |
+|-------|--------|-----------------|----------|------|
+| claude-sonnet | 85.2% | 72.4% | 15.0% | $2.85 |
+| deepseek-v3 | 79.8% | 65.3% | 22.5% | $0.14 |
 
 ### By Category Performance
 
@@ -233,15 +308,55 @@ python scripts/runner.py --model claude-sonnet
 - Strong performance on Rails-specific patterns
 - Room for improvement in fix suggestion quality
 
+### What Good Looks Like
+
+Example of successful detection (CALC_001 - Discount calculation bug):
+
+**Bug Code:**
+```ruby
+def apply_member_discount
+  @subtotal * MEMBER_DISCOUNT_RATE  # Bug: 0.10 = 90% off!
+end
+```
+
+**Expected AI Response:**
+```json
+{
+  "bugs_found": true,
+  "issues": [{
+    "severity": "critical",
+    "description": "Discount calculation is inverted - multiplying by 0.10 gives 90% discount instead of 10%",
+    "suggestion": "Use @subtotal * (1 - MEMBER_DISCOUNT_RATE) or @subtotal * 0.90"
+  }]
+}
+```
+
+**Scoring**: Detected = TP, Severity match = +1.0 weighted score
+
 ## Evaluation Metrics
 
-| Metric | Calculation | Target |
-|--------|-------------|--------|
-| **Recall** | TP / (TP + FN) | > 80% |
-| **Precision** | TP / (TP + FP) | > 70% |
-| **False Positive Rate** | FP cases flagged / 20 FP cases | < 20% |
-| **Noise Rate** | Extra findings / Total findings | Reference |
-| **Cost per Review** | API Cost / 95 cases | For comparison |
+### Detection Classifications
+
+| Outcome | Definition |
+|---------|------------|
+| **True Positive (TP)** | Bug case where AI detected the bug |
+| **False Negative (FN)** | Bug case where AI missed the bug |
+| **True Negative (TN)** | FP case where AI correctly said LGTM |
+| **False Positive (FP)** | FP case where AI incorrectly flagged critical bug |
+
+### Metrics
+
+| Metric | Formula | Target |
+|--------|---------|--------|
+| **Recall** | TP / (TP + FN) | >= 80% |
+| **Weighted Recall** | Sum(detection_score) / bug_cases | >= 70% |
+| **Case-FPR** | FP / 20 FP cases | <= 20% |
+| **Finding-FPR** | findings in FP cases / 20 | Reference |
+| **Cost per Review** | API Cost / 99 cases | For comparison |
+
+**Detection Score by Severity**: critical=1.0, major=0.5, minor=0.2
+
+> **Note**: All metrics are **macro averages** (averaged across cases).
 
 ## Documentation
 

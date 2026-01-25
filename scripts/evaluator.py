@@ -5,6 +5,7 @@
 Usage:
     python scripts/evaluator.py --run-dir results/20250124_run/
     python scripts/evaluator.py --run-dir results/20250124_run/ --skip-judge  # Judgeなしで集計のみ
+    python scripts/evaluator.py --run-dir results/xxx/ --judge-mode=ensemble --judges=claude,gemini
 """
 
 import argparse
@@ -24,12 +25,26 @@ try:
 except ImportError:
     pass
 
-import anthropic
+# Import anthropic with graceful handling
+try:
+    import anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    anthropic = None
+    ANTHROPIC_AVAILABLE = False
+
+# Import judges module for ensemble support
+try:
+    from judges import EnsembleJudge, ClaudeJudge
+    from metrics import calculate_fp_metrics, calculate_tp_noise_metrics
+    JUDGES_AVAILABLE = True
+except ImportError:
+    JUDGES_AVAILABLE = False
 
 
 CASES_DIR = Path(__file__).parent.parent / "cases" / "rails"
 
-# Judge モデル設定
+# Judge モデル設定 (legacy, used when judge-mode=single)
 JUDGE_MODEL = "claude-sonnet-4-20250514"
 JUDGE_INPUT_COST_PER_1M = 3.00
 JUDGE_OUTPUT_COST_PER_1M = 15.00
@@ -491,7 +506,7 @@ def evaluate_with_semantic_judge(
     review_result: dict[str, Any],
     expected_critique: str,
     expected_detection: bool,
-    client: anthropic.Anthropic,
+    client: Any,
 ) -> dict[str, Any]:
     """Perform semantic comparison using LLM judge.
 
@@ -549,17 +564,34 @@ def evaluate_with_semantic_judge(
         # 5 -> 1.0, 4 -> 0.8, 3 -> 0.6, 2 -> 0.4, 1 -> 0.2
         detection_score = score / 5.0
 
+        # Extract severity counts from AI reviewer's parsed_response
+        parsed_response = review_result.get("parsed_response", {})
+        issues = parsed_response.get("issues", []) if parsed_response else []
+        critical_count = sum(1 for i in issues if i.get("severity", "").lower() == "critical")
+        major_count = sum(1 for i in issues if i.get("severity", "").lower() in ("major", "high"))
+        minor_count = sum(1 for i in issues if i.get("severity", "").lower() in ("minor", "low"))
+
+        # Set highest_severity based on counts
+        if critical_count > 0:
+            highest_severity = "critical"
+        elif major_count > 0:
+            highest_severity = "major"
+        elif minor_count > 0:
+            highest_severity = "minor"
+        else:
+            highest_severity = None
+
         return {
             "detected": detected,
             "detection_score": detection_score,
-            "highest_severity": None,  # Not used in semantic evaluation
+            "highest_severity": highest_severity,
             "accuracy": score * 20,  # Convert 1-5 to 20-100
             "noise_count": parsed.get("noise_issues_count", 0),
             "correct_location": False,  # Not evaluated in semantic mode
             "reasoning": parsed.get("reasoning", ""),
-            "critical_count": 0,
-            "major_count": 0,
-            "minor_count": 0,
+            "critical_count": critical_count,
+            "major_count": major_count,
+            "minor_count": minor_count,
             "judge_cost": cost,
             "judge_time": elapsed_time,
             # Semantic-specific fields
@@ -598,7 +630,7 @@ def evaluate_with_semantic_judge(
 def judge_review(
     review_result: dict[str, Any],
     meta: dict[str, Any],
-    client: anthropic.Anthropic,
+    client: Any,
 ) -> dict[str, Any]:
     """レビュー結果をJudgeモデルで評価"""
     # パース済みレスポンスを使用
@@ -712,7 +744,10 @@ def evaluate_without_judge(
             highest_severity = None
             accuracy = 0
 
-        noise_count = 0  # ノイズは無視（人間が判断するため）
+        # Calculate noise count: extra findings beyond expected bug count
+        expected_bug_count = meta.get("expected_bug_count", 1)
+        total_issues = len(issues)
+        noise_count = max(0, total_issues - expected_bug_count)
     else:
         # バグなしケース（FP）: criticalがあれば過検知
         if critical_count > 0:
@@ -1076,6 +1111,31 @@ def main() -> None:
         action="store_true",
         help="詳細出力",
     )
+    # Ensemble judge arguments
+    parser.add_argument(
+        "--judge-mode",
+        type=str,
+        choices=["single", "ensemble"],
+        default="single",
+        help="Judge mode: 'single' (default Claude) or 'ensemble' (multiple judges)",
+    )
+    parser.add_argument(
+        "--judges",
+        type=str,
+        default="claude,gemini",
+        help="Comma-separated list of judges for ensemble mode (default: claude,gemini)",
+    )
+    parser.add_argument(
+        "--dry-run-cost",
+        action="store_true",
+        help="Estimate cost without running evaluation",
+    )
+    parser.add_argument(
+        "--budget",
+        type=float,
+        default=None,
+        help="Maximum budget in dollars. Stop if exceeded.",
+    )
 
     args = parser.parse_args()
 
@@ -1083,20 +1143,74 @@ def main() -> None:
         print(f"Error: Directory not found: {args.run_dir}", file=sys.stderr)
         sys.exit(1)
 
+    # Parse judge list for ensemble mode
+    judge_names = [j.strip() for j in args.judges.split(",")]
+
     # summary.json 読み込み（あれば）
     summary_file = args.run_dir / "summary.json"
     run_summary = None
     if summary_file.exists():
         run_summary = json.loads(summary_file.read_text())
 
-    # Anthropic クライアント初期化
+    # Count cases for cost estimation
+    result_files = [f for f in args.run_dir.glob("*.json")
+                    if f.name not in ("summary.json", "evaluations.json", "report.json", "metrics.json")]
+    if result_files:
+        sample_results = json.loads(result_files[0].read_text())
+        case_count = len(sample_results)
+    else:
+        case_count = 0
+
+    # Dry run cost estimation
+    if args.dry_run_cost:
+        if args.judge_mode == "ensemble" and JUDGES_AVAILABLE:
+            ensemble = EnsembleJudge(judge_names)
+            cost_estimate = ensemble.estimate_cost(case_count)
+            print(f"Cost Estimate for Ensemble ({', '.join(judge_names)}):")
+            print(f"  Cases: {case_count}")
+            print(f"  Breakdown:")
+            for judge, breakdown in cost_estimate["breakdown"].items():
+                print(f"    {judge}: ${breakdown['total']:.4f}")
+            print(f"  Total: ${cost_estimate['total']:.4f}")
+        else:
+            # Single judge estimate
+            from config import estimate_ensemble_cost
+            cost_estimate = estimate_ensemble_cost(["claude"], case_count)
+            print(f"Cost Estimate for Single Judge (claude):")
+            print(f"  Cases: {case_count}")
+            print(f"  Total: ${cost_estimate['total']:.4f}")
+        sys.exit(0)
+
+    # Initialize judge(s)
     client = None
+    ensemble_judge = None
+    use_ensemble = args.judge_mode == "ensemble" and JUDGES_AVAILABLE
+
     if not args.skip_judge:
-        client = anthropic.Anthropic()
+        if use_ensemble:
+            print(f"Initializing ensemble judges: {', '.join(judge_names)}")
+            try:
+                ensemble_judge = EnsembleJudge(judge_names)
+            except Exception as e:
+                print(f"Warning: Failed to initialize ensemble: {e}")
+                print("Falling back to single judge mode")
+                use_ensemble = False
+                if ANTHROPIC_AVAILABLE:
+                    client = anthropic.Anthropic()
+                else:
+                    print("Error: anthropic package not available for fallback", file=sys.stderr)
+                    sys.exit(1)
+        else:
+            if ANTHROPIC_AVAILABLE:
+                client = anthropic.Anthropic()
+            else:
+                print("Error: anthropic package not available. Install with: pip install anthropic", file=sys.stderr)
+                sys.exit(1)
 
     # 結果ファイル読み込み
     results_by_model: dict[str, list[EvaluationResult]] = {}
     total_judge_cost = 0.0
+    ensemble_results_by_model: dict[str, list[dict[str, Any]]] = {}  # For storing ensemble details
 
     result_files = [f for f in args.run_dir.glob("*.json")
                     if f.name not in ("summary.json", "evaluations.json", "report.json", "metrics.json")]
@@ -1135,11 +1249,33 @@ def main() -> None:
             rubric = load_rubric(case_id)
             evaluation_mode = result.get("evaluation_mode", meta.get("evaluation_mode", "severity"))
 
+            # Track ensemble details for this case
+            ensemble_detail = None
+
             if expected_critique and evaluation_mode == "semantic":
                 # Semantic evaluation requires judge model
                 if args.skip_judge:
                     print(f"(semantic requires judge)", end=" ")
                     judge_result = evaluate_without_judge(result, meta)
+                elif use_ensemble and ensemble_judge:
+                    # Ensemble mode
+                    ensemble_result = ensemble_judge.evaluate_semantic(
+                        result,
+                        expected_critique,
+                        meta.get("expected_detection", True),
+                    )
+                    judge_result = ensemble_result.to_judge_result_dict()
+                    ensemble_detail = ensemble_result.to_dict()
+                    total_judge_cost += judge_result.get("judge_cost", 0)
+
+                    # Check budget
+                    if args.budget and total_judge_cost > args.budget:
+                        print(f"\nBudget exceeded: ${total_judge_cost:.4f} > ${args.budget:.2f}")
+                        print("Stopping evaluation.")
+                        break
+
+                    consensus_str = "consensus" if ensemble_result.consensus else "split"
+                    print(f"(ensemble: mean={ensemble_result.mean_score:.1f}, {consensus_str})", end=" ")
                 else:
                     judge_result = evaluate_with_semantic_judge(
                         result,
@@ -1218,6 +1354,15 @@ def main() -> None:
             )
             evaluations.append(evaluation)
 
+            # Store ensemble details if available
+            if ensemble_detail:
+                if model not in ensemble_results_by_model:
+                    ensemble_results_by_model[model] = []
+                ensemble_results_by_model[model].append({
+                    "case_id": case_id,
+                    **ensemble_detail,
+                })
+
             severity_str = evaluation.highest_severity or "None"
             status = "✓" if evaluation.detected else "✗"
             print(f"{status} [{severity_str}] (score={evaluation.detection_score:.1f})")
@@ -1253,19 +1398,61 @@ def main() -> None:
     evaluations_path.write_text(json.dumps(evaluations_data, indent=2, ensure_ascii=False))
     print(f"\nEvaluations saved to: {evaluations_path}")
 
+    # Calculate FP metrics for each model
+    fp_metrics_by_model: dict[str, dict[str, Any]] = {}
+    if JUDGES_AVAILABLE:
+        for model, evals in results_by_model.items():
+            eval_dicts = [asdict(e) for e in evals]
+            fp_metrics = calculate_fp_metrics(eval_dicts)
+            tp_noise = calculate_tp_noise_metrics(eval_dicts)
+            fp_metrics_by_model[model] = {
+                "fp_metrics": fp_metrics.to_dict(),
+                "tp_noise_metrics": tp_noise.to_dict(),
+            }
+            # Print FP metrics summary
+            print(f"\n{model} FP/Noise Metrics:")
+            print(f"  Case-FPR: {fp_metrics.case_fpr:.1%} ({fp_metrics.fp_cases_with_critical}/{fp_metrics.total_fp_cases})")
+            print(f"  Finding-FPR: {fp_metrics.finding_fpr:.2f} findings/case")
+            print(f"  TP Noise Rate: {tp_noise.noise_rate_in_tp:.1%}")
+
     # メトリクスJSON保存
     metrics_data = {
         model: asdict(m)
         for model, m in metrics_by_model.items()
     }
+
+    # Add FP metrics to each model's metrics
+    for model in metrics_data:
+        if model in fp_metrics_by_model:
+            metrics_data[model]["fp_noise_metrics"] = fp_metrics_by_model[model]
+
+    # Metadata
+    judge_info: dict[str, Any] = {}
+    if args.skip_judge:
+        judge_info["judge_model"] = None
+        judge_info["judge_mode"] = "skipped"
+    elif use_ensemble:
+        judge_info["judge_model"] = None
+        judge_info["judge_mode"] = "ensemble"
+        judge_info["ensemble_judges"] = judge_names
+    else:
+        judge_info["judge_model"] = JUDGE_MODEL
+        judge_info["judge_mode"] = "single"
+
     metrics_data["_meta"] = {
         "timestamp": datetime.now().isoformat(),
-        "judge_model": JUDGE_MODEL if not args.skip_judge else None,
+        **judge_info,
         "total_judge_cost": total_judge_cost,
     }
     metrics_path = args.run_dir / "metrics.json"
     metrics_path.write_text(json.dumps(metrics_data, indent=2, ensure_ascii=False))
     print(f"Metrics saved to: {metrics_path}")
+
+    # Save ensemble details if available
+    if ensemble_results_by_model:
+        ensemble_path = args.run_dir / "ensemble_details.json"
+        ensemble_path.write_text(json.dumps(ensemble_results_by_model, indent=2, ensure_ascii=False))
+        print(f"Ensemble details saved to: {ensemble_path}")
 
     if not args.skip_judge:
         print(f"\nTotal Judge cost: ${total_judge_cost:.4f}")
