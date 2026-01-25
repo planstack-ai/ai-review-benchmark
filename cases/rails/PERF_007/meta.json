@@ -1,0 +1,38 @@
+{
+  "case_id": "PERF_007",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "in_memory_aggregation",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "In-memory aggregation and sorting on potentially large datasets",
+  "bug_anchor": "projects_with_associations.flat_map(&:comments).sort_by(&:created_at)",
+  "correct_implementation": "Use database-side aggregation (GROUP BY, COUNT, ORDER BY with LIMIT)",
+  "severity": "high",
+  "tags": ["performance", "memory", "aggregation", "scalability"],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "dual",
+  "has_expected_critique": true,
+  "fix_required": true,
+  "must_find": [
+    {
+      "id": "in_memory_sort",
+      "category": "performance",
+      "keywords": ["flat_map", "sort_by", "memory", "comments"],
+      "severity_expected": "major",
+      "required": true
+    },
+    {
+      "id": "ruby_side_filter",
+      "category": "performance",
+      "keywords": ["select", "count", "completed", "active", "memory"],
+      "severity_expected": "major",
+      "required": false
+    }
+  ],
+  "dual_config": {
+    "explicit_includes_guidelines": false,
+    "implicit_requires_inference": true,
+    "guidelines_generated": true
+  }
+}

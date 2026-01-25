@@ -55,8 +55,8 @@ cases/rails/{CASE_ID}/
 | Axis | Categories | Cases |
 |------|------------|-------|
 | Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 46 |
-| Implicit Knowledge | EXT, PERF, DATA, RAILS | 33 |
-| False Positive | FP | 20 |
+| Implicit Knowledge | EXT, PERF, DATA, RAILS | 34 |
+| False Positive | FP | 19 |
 
 ## Evaluation Targets
 
