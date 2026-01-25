@@ -55,25 +55,44 @@ class UserManagementService
   def activate
     return false unless @user
 
-    @user.update(active: true, activated_at: Time.current)
+    attributes = { active: true }
+    attributes[:activated_at] = Time.current if @user.has_attribute?(:activated_at)
+    @user.update(attributes)
   end
 
   def deactivate
     return false unless @user
 
-    @user.update(active: false, deactivated_at: Time.current)
+    attributes = { active: false }
+    attributes[:deactivated_at] = Time.current if @user.has_attribute?(:deactivated_at)
+    @user.update(attributes)
   end
 
   private
 
   def sanitized_params(params)
-    params.permit(:first_name, :last_name, :email, :phone, :role)
+    return {} unless params
+
+    allowed = [:name, :email, :role]
+    allowed << :phone if User.attribute_names.include?("phone")
+    params.permit(*allowed)
   end
 
   def validate_user_data
-    return false if @user.email.blank?
-    return false unless valid_email_format?
-    return false if duplicate_email_exists?
+    if @user.email.blank?
+      @user.errors.add(:email, "can't be blank")
+      return false
+    end
+
+    unless valid_email_format?
+      @user.errors.add(:email, "is invalid")
+      return false
+    end
+
+    if duplicate_email_exists?
+      @user.errors.add(:email, "has already been taken")
+      return false
+    end
     
     true
   end
@@ -101,7 +120,7 @@ class UserManagementService
 
   def cleanup_user_data
     @user.posts.destroy_all
-    @user.comments.destroy_all
+    @user.comments.destroy_all if @user.respond_to?(:comments)
   end
 
   def log_user_creation
