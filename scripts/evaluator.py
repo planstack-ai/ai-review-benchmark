@@ -78,12 +78,17 @@ class EvaluationResult:
     model: str
     expected_detection: bool
     detected: bool
+    detection_score: float  # critical=1.0, major=0.5, minor=0.2, 未検出=0.0
+    highest_severity: str | None  # 意図したバグの検出レベル (critical/major/minor/None)
     accuracy: int
     noise_count: int
     correct_location: bool
     reasoning: str
     review_has_issues: bool | None  # AIの判定結果
     review_issue_count: int  # AIが指摘した問題数
+    critical_count: int  # critical指摘の数
+    major_count: int  # major指摘の数
+    minor_count: int  # minor指摘の数
 
 
 @dataclass
@@ -98,14 +103,20 @@ class ModelMetrics:
     # バグなしケース（false_positive）
     clean_cases: int
     true_negatives: int  # 正しくクリーンと判定
-    false_positives: int  # クリーンなコードにバグ報告
+    false_positives: int  # クリーンなコードにバグ報告（MUSTで誤検知）
     # 派生指標
     recall: float  # TP / (TP + FN)
+    weighted_recall: float  # 重み付きRecall（critical=1.0, major=0.5, minor=0.2）
     precision: float  # TP / (TP + FP)
     false_positive_rate: float  # FP / clean_cases
     f1_score: float
     average_accuracy: float
+    average_detection_score: float  # 平均検出スコア
     total_noise: int
+    # Severity別集計
+    critical_detections: int  # criticalで検出した数
+    major_detections: int  # majorで検出した数
+    minor_detections: int  # minorで検出した数
     # カテゴリ別
     by_category: dict[str, dict[str, Any]]
     by_difficulty: dict[str, dict[str, Any]]
@@ -153,6 +164,144 @@ def load_meta(case_id: str) -> dict[str, Any]:
         if meta["case_id"] == case_id:
             return meta
     raise ValueError(f"Case not found: {case_id}")
+
+
+def load_rubric(case_id: str) -> dict[str, Any] | None:
+    """ケースのルーブリックを読み込み（存在する場合）"""
+    for meta_file in CASES_DIR.rglob("meta.json"):
+        meta = json.loads(meta_file.read_text())
+        if meta["case_id"] == case_id:
+            rubric_file = meta_file.parent / "rubric.json"
+            if rubric_file.exists():
+                return json.loads(rubric_file.read_text())
+    return None
+
+
+def matches_keywords(text: str, rule: dict[str, Any]) -> bool:
+    """ルーブリックルールに対するキーワードマッチング
+
+    Args:
+        text: 検索対象テキスト（小文字化済み）
+        rule: ルーブリックルール（keywords_all, keywords_any, keywords_ja_any）
+
+    Returns:
+        マッチした場合 True
+    """
+    # keywords_all: 全て含む必要がある
+    if "keywords_all" in rule:
+        if not all(kw.lower() in text for kw in rule["keywords_all"]):
+            return False
+
+    # keywords_any または keywords_ja_any: いずれか含む必要がある
+    any_keywords = rule.get("keywords_any", []) + rule.get("keywords_ja_any", [])
+    if any_keywords:
+        if not any(kw.lower() in text for kw in any_keywords):
+            return False
+
+    # 特殊ロジック: lgtm_on_bug_case
+    if rule.get("detection_logic") == "lgtm_on_bug_case":
+        # has_issues: false または issues が空 = LGTM判定
+        # この判定は呼び出し元で行う
+        return False  # デフォルトでは適用しない
+
+    return True
+
+
+def evaluate_with_rubric(
+    review_result: dict[str, Any],
+    rubric: dict[str, Any],
+    expected_detection: bool,
+) -> dict[str, Any]:
+    """ルーブリックベースの評価
+
+    Args:
+        review_result: AIレビュー結果
+        rubric: 評価ルーブリック
+        expected_detection: バグケースかどうか
+
+    Returns:
+        評価結果辞書
+    """
+    raw_response = review_result.get("raw_response", "")
+    parsed = review_result.get("parsed_response", {})
+
+    # 検索対象テキストを構築（raw_response + issues の description/suggestion）
+    search_texts = [raw_response.lower()]
+    if parsed:
+        for issue in parsed.get("issues", []):
+            search_texts.append(issue.get("description", "").lower())
+            search_texts.append(issue.get("suggestion", "").lower())
+    all_text = " ".join(search_texts)
+
+    score = 0
+    matched_must: list[str] = []
+    matched_nice: list[str] = []
+    failed_conditions: list[str] = []
+
+    # must_have チェック
+    for item in rubric.get("must_have", []):
+        if matches_keywords(all_text, item):
+            score += item.get("weight", 5)
+            matched_must.append(item["id"])
+
+    # nice_to_have チェック
+    for item in rubric.get("nice_to_have", []):
+        if matches_keywords(all_text, item):
+            score += item.get("weight", 2)
+            matched_nice.append(item["id"])
+
+    # fail_conditions チェック
+    for item in rubric.get("fail_conditions", []):
+        # 特殊ロジック: lgtm_on_bug_case
+        if item.get("detection_logic") == "lgtm_on_bug_case":
+            if expected_detection and parsed:
+                has_issues = parsed.get("has_issues", False)
+                issues = parsed.get("issues", [])
+                if not has_issues or len(issues) == 0:
+                    score += item.get("penalty", -5)
+                    failed_conditions.append(item["id"])
+        elif matches_keywords(all_text, item):
+            score += item.get("penalty", -10)
+            failed_conditions.append(item["id"])
+
+    # 閾値判定
+    scoring = rubric.get("scoring", {})
+    threshold = scoring.get("pass_threshold", 10)
+    max_score = scoring.get("max_score", 15)
+    detected = score >= threshold
+
+    # グレード判定
+    grade = "poor"
+    grade_boundaries = scoring.get("grade_boundaries", {})
+    if score >= grade_boundaries.get("excellent", 13):
+        grade = "excellent"
+    elif score >= grade_boundaries.get("good", 10):
+        grade = "good"
+    elif score >= grade_boundaries.get("acceptable", 8):
+        grade = "acceptable"
+
+    # detection_score を正規化 (0.0 - 1.0)
+    detection_score = max(0.0, min(1.0, score / max_score)) if max_score > 0 else 0.0
+
+    return {
+        "detected": detected,
+        "detection_score": detection_score,
+        "highest_severity": None,  # rubric 評価では使用しない
+        "accuracy": int(score / max_score * 100) if max_score > 0 else 0,
+        "noise_count": 0,
+        "correct_location": False,
+        "reasoning": f"Rubric score: {score}/{max_score} (grade: {grade})",
+        "critical_count": 0,
+        "major_count": 0,
+        "minor_count": 0,
+        # rubric 固有フィールド
+        "rubric_score": score,
+        "rubric_max_score": max_score,
+        "rubric_grade": grade,
+        "matched_must": matched_must,
+        "matched_nice": matched_nice,
+        "failed_conditions": failed_conditions,
+    }
 
 
 def judge_review(
@@ -218,39 +367,87 @@ def evaluate_without_judge(
     review_result: dict[str, Any],
     meta: dict[str, Any],
 ) -> dict[str, Any]:
-    """Judgeなしでの簡易評価（パース結果から判定）"""
+    """Judgeなしでの簡易評価（パース結果から判定）
+
+    評価ロジック:
+    - バグケース: critical=1.0, major=0.5, minor=0.2, 未検出=0.0
+    - FPケース: criticalなし=TN, criticalあり=FP
+    """
     parsed = review_result.get("parsed_response")
     expected = meta.get("expected_detection", True)
 
     if parsed is None:
         return {
             "detected": False,
+            "detection_score": 0.0,
+            "highest_severity": None,
             "accuracy": 0,
             "noise_count": 0,
             "correct_location": False,
             "reasoning": "Failed to parse AI response",
+            "critical_count": 0,
+            "major_count": 0,
+            "minor_count": 0,
         }
 
     has_issues = parsed.get("has_issues", False)
     issues = parsed.get("issues", [])
 
+    # Severity別カウント (critical/major/minor)
+    critical_count = sum(1 for i in issues if i.get("severity", "").lower() == "critical")
+    major_count = sum(1 for i in issues if i.get("severity", "").lower() in ("major", "high"))
+    minor_count = sum(1 for i in issues if i.get("severity", "").lower() in ("minor", "low"))
+
     if expected:
-        # バグありケース: has_issues=True で検知成功
-        detected = has_issues and len(issues) > 0
-        accuracy = 50 if detected else 0  # Judge なしでは暫定値
-        noise_count = max(0, len(issues) - 1) if detected else len(issues)
+        # バグありケース: 最も高いseverityで検出スコアを決定
+        if critical_count > 0:
+            detected = True
+            detection_score = 1.0
+            highest_severity = "critical"
+            accuracy = 100
+        elif major_count > 0:
+            detected = True
+            detection_score = 0.5
+            highest_severity = "major"
+            accuracy = 70
+        elif minor_count > 0:
+            detected = True
+            detection_score = 0.2
+            highest_severity = "minor"
+            accuracy = 40
+        else:
+            detected = False
+            detection_score = 0.0
+            highest_severity = None
+            accuracy = 0
+
+        noise_count = 0  # ノイズは無視（人間が判断するため）
     else:
-        # バグなしケース: has_issues=False で正解
-        detected = not has_issues or len(issues) == 0
-        accuracy = 100 if detected else 0
-        noise_count = len(issues)
+        # バグなしケース（FP）: criticalがあれば過検知
+        if critical_count > 0:
+            detected = False  # 過検知 = 正しく判定できなかった
+            detection_score = 0.0
+            highest_severity = "critical"
+            accuracy = 0
+        else:
+            detected = True  # major/minorのみ、または指摘なし = 許容
+            detection_score = 1.0
+            highest_severity = None
+            accuracy = 100
+
+        noise_count = critical_count  # criticalのみを過検知としてカウント
 
     return {
         "detected": detected,
+        "detection_score": detection_score,
+        "highest_severity": highest_severity,
         "accuracy": accuracy,
         "noise_count": noise_count,
         "correct_location": False,  # Judge なしでは判定不可
-        "reasoning": "Evaluated without Judge (--skip-judge)",
+        "reasoning": f"Severity counts: critical={critical_count}, major={major_count}, minor={minor_count}",
+        "critical_count": critical_count,
+        "major_count": major_count,
+        "minor_count": minor_count,
     }
 
 
@@ -267,11 +464,16 @@ def calculate_metrics(evaluations: list[EvaluationResult]) -> ModelMetrics:
             true_negatives=0,
             false_positives=0,
             recall=0.0,
+            weighted_recall=0.0,
             precision=0.0,
             false_positive_rate=0.0,
             f1_score=0.0,
             average_accuracy=0.0,
+            average_detection_score=0.0,
             total_noise=0,
+            critical_detections=0,
+            major_detections=0,
+            minor_detections=0,
             by_category={},
             by_difficulty={},
         )
@@ -282,6 +484,15 @@ def calculate_metrics(evaluations: list[EvaluationResult]) -> ModelMetrics:
     bug_evals = [e for e in evaluations if e.expected_detection]
     true_positives = sum(1 for e in bug_evals if e.detected)
     false_negatives = len(bug_evals) - true_positives
+
+    # Severity別検出カウント（バグケースのみ）
+    critical_detections = sum(1 for e in bug_evals if e.highest_severity == "critical")
+    major_detections = sum(1 for e in bug_evals if e.highest_severity == "major")
+    minor_detections = sum(1 for e in bug_evals if e.highest_severity == "minor")
+
+    # 重み付きRecall計算
+    total_detection_score = sum(e.detection_score for e in bug_evals)
+    weighted_recall = total_detection_score / len(bug_evals) if bug_evals else 0.0
 
     # バグなしケース（expected_detection=False）
     clean_evals = [e for e in evaluations if not e.expected_detection]
@@ -294,14 +505,19 @@ def calculate_metrics(evaluations: list[EvaluationResult]) -> ModelMetrics:
     fpr = false_positives / len(clean_evals) if clean_evals else 0.0
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
+    # 平均検出スコア（全ケース）
+    avg_detection_score = sum(e.detection_score for e in evaluations) / len(evaluations)
+
     # カテゴリ別集計
     by_category: dict[str, dict[str, Any]] = {}
-    for cat in ["plan_mismatch", "logic_bug", "false_positive"]:
+    categories = set(e.category for e in evaluations)
+    for cat in categories:
         cat_evals = [e for e in evaluations if e.category == cat]
         if cat_evals:
             by_category[cat] = {
                 "total": len(cat_evals),
                 "detected": sum(1 for e in cat_evals if e.detected),
+                "detection_score_avg": sum(e.detection_score for e in cat_evals) / len(cat_evals),
                 "accuracy_avg": sum(e.accuracy for e in cat_evals) / len(cat_evals),
             }
 
@@ -313,6 +529,7 @@ def calculate_metrics(evaluations: list[EvaluationResult]) -> ModelMetrics:
             by_difficulty[diff] = {
                 "total": len(diff_evals),
                 "detected": sum(1 for e in diff_evals if e.detected),
+                "detection_score_avg": sum(e.detection_score for e in diff_evals) / len(diff_evals),
                 "accuracy_avg": sum(e.accuracy for e in diff_evals) / len(diff_evals),
             }
 
@@ -326,11 +543,16 @@ def calculate_metrics(evaluations: list[EvaluationResult]) -> ModelMetrics:
         true_negatives=true_negatives,
         false_positives=false_positives,
         recall=recall,
+        weighted_recall=weighted_recall,
         precision=precision,
         false_positive_rate=fpr,
         f1_score=f1,
         average_accuracy=sum(e.accuracy for e in evaluations) / len(evaluations),
+        average_detection_score=avg_detection_score,
         total_noise=sum(e.noise_count for e in evaluations),
+        critical_detections=critical_detections,
+        major_detections=major_detections,
+        minor_detections=minor_detections,
         by_category=by_category,
         by_difficulty=by_difficulty,
     )
@@ -353,8 +575,8 @@ def generate_report(
     lines.extend([
         "## Summary",
         "",
-        "| Model | Recall | Precision | F1 | FPR | Avg Accuracy | Cost |",
-        "|-------|--------|-----------|-----|-----|--------------|------|",
+        "| Model | Recall | Weighted Recall | FPR | Critical | Major | Minor | Cost |",
+        "|-------|--------|-----------------|-----|----------|-------|-------|------|",
     ])
 
     for model, metrics in metrics_by_model.items():
@@ -366,9 +588,9 @@ def generate_report(
                     break
 
         lines.append(
-            f"| {model} | {metrics.recall:.1%} | {metrics.precision:.1%} | "
-            f"{metrics.f1_score:.2f} | {metrics.false_positive_rate:.1%} | "
-            f"{metrics.average_accuracy:.1f} | {cost} |"
+            f"| {model} | {metrics.recall:.1%} | {metrics.weighted_recall:.1%} | "
+            f"{metrics.false_positive_rate:.1%} | "
+            f"{metrics.critical_detections} | {metrics.major_detections} | {metrics.minor_detections} | {cost} |"
         )
 
     lines.append("")
@@ -462,7 +684,7 @@ def main() -> None:
     total_judge_cost = 0.0
 
     result_files = [f for f in args.run_dir.glob("*.json")
-                    if f.name not in ("summary.json", "evaluations.json", "report.json")]
+                    if f.name not in ("summary.json", "evaluations.json", "report.json", "metrics.json")]
 
     if not result_files:
         print(f"Error: No result files found in {args.run_dir}", file=sys.stderr)
@@ -493,7 +715,18 @@ def main() -> None:
                 continue
 
             # 評価実行
-            if args.skip_judge:
+            # rubric があれば rubric 評価を優先
+            rubric = load_rubric(case_id)
+            evaluation_mode = result.get("evaluation_mode", meta.get("evaluation_mode", "severity"))
+
+            if rubric and evaluation_mode == "rubric":
+                judge_result = evaluate_with_rubric(
+                    result,
+                    rubric,
+                    meta.get("expected_detection", True),
+                )
+                print(f"(rubric)", end=" ")
+            elif args.skip_judge:
                 judge_result = evaluate_without_judge(result, meta)
             else:
                 judge_result = judge_review(result, meta, client)
@@ -511,17 +744,23 @@ def main() -> None:
                 model=model,
                 expected_detection=meta.get("expected_detection", True),
                 detected=judge_result.get("detected", False),
+                detection_score=judge_result.get("detection_score", 0.0),
+                highest_severity=judge_result.get("highest_severity"),
                 accuracy=judge_result.get("accuracy", 0),
                 noise_count=judge_result.get("noise_count", 0),
                 correct_location=judge_result.get("correct_location", False),
                 reasoning=judge_result.get("reasoning", ""),
                 review_has_issues=review_has_issues,
                 review_issue_count=review_issue_count,
+                critical_count=judge_result.get("critical_count", 0),
+                major_count=judge_result.get("major_count", 0),
+                minor_count=judge_result.get("minor_count", 0),
             )
             evaluations.append(evaluation)
 
+            severity_str = evaluation.highest_severity or "None"
             status = "✓" if evaluation.detected else "✗"
-            print(f"{status} (acc={evaluation.accuracy}, noise={evaluation.noise_count})")
+            print(f"{status} [{severity_str}] (score={evaluation.detection_score:.1f})")
 
             if args.verbose and evaluation.reasoning:
                 print(f"       Reason: {evaluation.reasoning[:100]}...")
@@ -532,8 +771,9 @@ def main() -> None:
         metrics = calculate_metrics(evaluations)
         print(f"\n{model} Results:")
         print(f"  Recall: {metrics.recall:.1%} ({metrics.true_positives}/{metrics.bug_cases})")
+        print(f"  Weighted Recall: {metrics.weighted_recall:.1%}")
+        print(f"  Detection by severity: critical={metrics.critical_detections}, major={metrics.major_detections}, minor={metrics.minor_detections}")
         print(f"  FPR: {metrics.false_positive_rate:.1%} ({metrics.false_positives}/{metrics.clean_cases})")
-        print(f"  Avg Accuracy: {metrics.average_accuracy:.1f}")
 
     # 全体メトリクス計算
     metrics_by_model = {

@@ -39,6 +39,14 @@
 #  action     :string           not null
 #  details    :text
 #  created_at :datetime         not null
+#
+# Table name: notification_logs
+#
+#  id         :bigint           not null, primary key
+#  order_id   :bigint           not null
+#  event_type :string           not null
+#  message    :text             not null
+#  created_at :datetime         not null
 ```
 
 ## Models
@@ -110,6 +118,21 @@ class AuditLog < ApplicationRecord
   def self.log_action(action, details = nil)
     create!(action: action, details: details)
   end
+end
+
+class NotificationLog < ApplicationRecord
+  belongs_to :order
+
+  validates :event_type, presence: true
+  validates :message, presence: true
+
+  enum event_type: {
+    order_created: 'order_created',
+    order_confirmed: 'order_confirmed',
+    order_shipped: 'order_shipped',
+    order_delivered: 'order_delivered',
+    order_cancelled: 'order_cancelled'
+  }
 end
 
 class InsufficientStockError < StandardError; end

@@ -18,6 +18,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
+from dotenv import load_dotenv
+
+# Load .env file from project root
+load_dotenv(Path(__file__).parent.parent / ".env")
+
 import anthropic
 import google.generativeai as genai
 import openai
@@ -89,19 +94,75 @@ REVIEW_PROMPT_TEMPLATE = """あなたはシニアRailsエンジニアです。
 問題がない場合は has_issues を false にし、issues を空配列にしてください。
 """
 
+REVIEW_PROMPT_DIFF_TEMPLATE = """あなたはシニアRailsエンジニアです。
+以下のPull Requestをレビューしてください。
+
+## 仕様書（Plan）
+{plan}
+
+## 既存コードベース情報
+{context}
+
+## PR差分
+```diff
+{diff}
+```
+
+## 出力形式
+以下のJSON形式で回答してください。JSON以外の文章は含めないでください：
+```json
+{{
+  "has_issues": true/false,
+  "issues": [
+    {{
+      "severity": "critical/major/minor",
+      "type": "plan_mismatch/logic_bug/security/performance",
+      "location": "ファイル名:行番号または該当箇所",
+      "description": "問題の説明",
+      "suggestion": "修正提案"
+    }}
+  ],
+  "summary": "全体的な所見"
+}}
+```
+
+問題がない場合は has_issues を false にし、issues を空配列にしてください。
+"""
+
 
 def load_case(case_dir: Path) -> dict[str, Any]:
     """ケースファイルを読み込み"""
-    return {
+    case_data = {
         "plan": (case_dir / "plan.md").read_text(),
         "context": (case_dir / "context.md").read_text(),
         "impl": (case_dir / "impl.rb").read_text(),
         "meta": json.loads((case_dir / "meta.json").read_text()),
     }
 
+    # オプション: diff があれば読み込み
+    diff_file = case_dir / "pr.diff"
+    if diff_file.exists():
+        case_data["diff"] = diff_file.read_text()
+
+    # オプション: rubric があれば読み込み
+    rubric_file = case_dir / "rubric.json"
+    if rubric_file.exists():
+        case_data["rubric"] = json.loads(rubric_file.read_text())
+
+    return case_data
+
 
 def build_prompt(case: dict[str, Any]) -> str:
     """レビュープロンプトを構築"""
+    # diff があれば diff 用テンプレートを使用
+    if "diff" in case:
+        return REVIEW_PROMPT_DIFF_TEMPLATE.format(
+            plan=case["plan"],
+            context=case["context"],
+            diff=case["diff"],
+        )
+
+    # なければ従来通り impl を使用
     return REVIEW_PROMPT_TEMPLATE.format(
         plan=case["plan"],
         context=case["context"],
@@ -303,6 +364,9 @@ def run_benchmark(
             result["expected_detection"] = case["meta"]["expected_detection"]
             result["difficulty"] = case["meta"]["difficulty"]
             result["success"] = True
+            result["has_diff"] = "diff" in case
+            result["has_rubric"] = "rubric" in case
+            result["evaluation_mode"] = case["meta"].get("evaluation_mode", "severity")
 
             total_cost += result.get("cost", 0)
             total_time += result.get("elapsed_time", 0)

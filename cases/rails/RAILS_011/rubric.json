@@ -1,0 +1,74 @@
+{
+  "version": "1.0",
+  "evaluation_mode": "rubric",
+  "description": "Nested transaction without requires_new evaluation rubric",
+  "must_have": [
+    {
+      "id": "must_1",
+      "weight": 5,
+      "description": "ネストしたtransactionがrequires_new無しでは、内側のRollbackが外側のトランザクションにも影響し得る点を指摘している",
+      "keywords_any": ["nested", "nesting", "inner", "outer", "parent", "savepoint"],
+      "keywords_ja_any": ["ネスト", "入れ子", "内側", "外側", "親", "セーブポイント"]
+    },
+    {
+      "id": "must_2",
+      "weight": 5,
+      "description": "修正案としてtransaction(requires_new: true)を提案している",
+      "keywords_all": ["requires_new"]
+    }
+  ],
+  "nice_to_have": [
+    {
+      "id": "plus_1",
+      "weight": 2,
+      "description": "具体的な影響（注文確定がコミットされない可能性、statusが反映されない等）に言及している",
+      "keywords_any": ["commit", "lost", "not saved", "not persisted", "rolled back together"],
+      "keywords_ja_any": ["コミット", "確定されない", "反映されない", "保存されない", "一緒にロールバック", "巻き戻"]
+    },
+    {
+      "id": "plus_2",
+      "weight": 2,
+      "description": "テスト追加を提案している（内側失敗時に外側が保持されることを検証）",
+      "keywords_any": ["test", "spec", "rspec", "minitest", "assert", "expect"],
+      "keywords_ja_any": ["テスト", "検証", "確認"]
+    },
+    {
+      "id": "plus_3",
+      "weight": 1,
+      "description": "例外の握りつぶしやログ出力の改善に言及している",
+      "keywords_any": ["swallow", "silent", "logging", "monitoring", "alert"],
+      "keywords_ja_any": ["握りつぶ", "無視", "ログ", "監視", "通知"]
+    }
+  ],
+  "fail_conditions": [
+    {
+      "id": "fail_1",
+      "penalty": -10,
+      "description": "ネストtransactionは内側だけロールバックされると誤って説明している",
+      "keywords_ja_any": ["内側だけロールバック", "内側のみロールバック", "外側は影響しない", "外側には影響ない"]
+    },
+    {
+      "id": "fail_2",
+      "penalty": -5,
+      "description": "このコードは問題ないとLGTM判定している",
+      "detection_logic": "lgtm_on_bug_case"
+    }
+  ],
+  "scoring": {
+    "pass_threshold": 8,
+    "max_score": 15,
+    "grade_boundaries": {
+      "excellent": 13,
+      "good": 10,
+      "acceptable": 8,
+      "poor": 0
+    }
+  },
+  "notes": {
+    "rails_version_note": "Rails 7.1+ではtransactionのデフォルト挙動が変わる可能性あり",
+    "context_hints": [
+      "Order has enum status: pending/confirmed/shipped",
+      "NotificationLog model exists in context.md"
+    ]
+  }
+}

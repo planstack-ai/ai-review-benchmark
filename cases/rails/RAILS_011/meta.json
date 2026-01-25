@@ -5,14 +5,19 @@
   "name": "transaction_nesting",
   "difficulty": "hard",
   "expected_detection": true,
-  "bug_description": "Nested transaction without requires_new rolls back parent",
-  "bug_anchor": "transaction { transaction { ... } }",
-  "correct_implementation": "transaction(requires_new: true) { ... }",
+  "bug_description": "Nested transaction without requires_new: true causes inner Rollback to affect outer transaction, potentially losing the order confirmation",
+  "bug_anchor": "ActiveRecord::Base.transaction do\n        create_notification_log!",
+  "correct_implementation": "ActiveRecord::Base.transaction(requires_new: true) do",
   "severity": "critical",
   "tags": [
     "rails",
     "transaction",
-    "nesting"
+    "nesting",
+    "savepoint",
+    "rollback"
   ],
-  "bug_anchor_verified": false
+  "bug_anchor_verified": true,
+  "has_diff": true,
+  "has_rubric": true,
+  "evaluation_mode": "rubric"
 }
