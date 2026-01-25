@@ -1,0 +1,33 @@
+{
+  "case_id": "AUTH_008",
+  "category": "authorization",
+  "axis": "implicit_knowledge",
+  "name": "privilege_escalation",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Role hierarchy bypass allows managers to access ALL resources regardless of action permissions; owner check bypasses permission matrix entirely",
+  "bug_anchor": "resource_class.constantize.all",
+  "correct_implementation": "accessible_resources should respect action-specific permissions; owner check should not bypass role requirements",
+  "severity": "critical",
+  "tags": ["authorization", "security", "privilege_escalation", "rbac"],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "dual",
+  "has_expected_critique": true,
+  "fix_required": true,
+  "must_find": [
+    {
+      "id": "privilege_escalation",
+      "category": "authorization",
+      "keywords": ["accessible_resources", "all", "manager", "bypass", "permission"],
+      "severity_expected": "critical",
+      "required": true
+    },
+    {
+      "id": "owner_bypass",
+      "category": "authorization",
+      "keywords": ["owner", "owns_resource", "bypass", "permission"],
+      "severity_expected": "major",
+      "required": false
+    }
+  ]
+}

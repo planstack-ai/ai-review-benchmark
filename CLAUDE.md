@@ -70,9 +70,9 @@ cases/{framework}/{CASE_ID}/
 
 | Axis | Categories | Cases |
 |------|------------|-------|
-| Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 46 |
-| Implicit Knowledge | EXT, PERF, DATA, RAILS | 34 |
-| False Positive | FP | 19 |
+| Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 47 |
+| Implicit Knowledge | EXT, PERF, DATA, RAILS | 39 |
+| False Positive | FP | 13 |
 
 ### Django (30 MVP)
 

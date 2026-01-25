@@ -1,0 +1,33 @@
+{
+  "case_id": "DATA_007",
+  "category": "data_integrity",
+  "axis": "implicit_knowledge",
+  "name": "inaccurate_batch_counting",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Batch import reports incorrect counts; insert_all with unique_by silently skips duplicates but count increments by full batch size",
+  "bug_anchor": "@imported_count += current_batch.size",
+  "correct_implementation": "Check insert_all return value or use insert_all! with error handling; track actual inserted count",
+  "severity": "high",
+  "tags": ["data_integrity", "batch", "counting", "import"],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "dual",
+  "has_expected_critique": true,
+  "fix_required": true,
+  "must_find": [
+    {
+      "id": "inaccurate_count",
+      "category": "data_integrity",
+      "keywords": ["imported_count", "batch.size", "insert_all", "duplicate", "count"],
+      "severity_expected": "major",
+      "required": true
+    },
+    {
+      "id": "silent_duplicate_skip",
+      "category": "data_integrity",
+      "keywords": ["unique_by", "silent", "skip", "duplicate"],
+      "severity_expected": "minor",
+      "required": false
+    }
+  ]
+}

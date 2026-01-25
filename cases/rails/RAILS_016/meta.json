@@ -1,0 +1,33 @@
+{
+  "case_id": "RAILS_016",
+  "category": "rails_convention",
+  "axis": "implicit_knowledge",
+  "name": "callback_antipattern",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Callbacks declared and manually executed causing duplicate execution; missing transaction atomicity for payment and inventory operations",
+  "bug_anchor": "execute_before_save_callbacks",
+  "correct_implementation": "Use callbacks exclusively OR manual calls, not both; wrap payment and inventory in transaction",
+  "severity": "high",
+  "tags": ["rails", "callback", "atomicity", "duplicate_execution"],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "dual",
+  "has_expected_critique": true,
+  "fix_required": true,
+  "must_find": [
+    {
+      "id": "duplicate_callback_execution",
+      "category": "rails_convention",
+      "keywords": ["callback", "before_save", "manual", "duplicate", "execute"],
+      "severity_expected": "major",
+      "required": true
+    },
+    {
+      "id": "missing_transaction",
+      "category": "rails_convention",
+      "keywords": ["transaction", "payment", "inventory", "atomicity"],
+      "severity_expected": "major",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "case_id": "EXT_007",
+  "category": "security",
+  "axis": "implicit_knowledge",
+  "name": "injection_vulnerabilities",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Multiple injection vulnerabilities: path traversal in output path, XML injection in record output, CSV injection in data export",
+  "bug_anchor": "file.puts \"  <record id=\\\"#{record['id']}\\\">\"",
+  "correct_implementation": "Sanitize file paths; escape XML/CSV special characters; validate input data",
+  "severity": "critical",
+  "tags": ["security", "injection", "path_traversal", "xml", "csv"],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "dual",
+  "has_expected_critique": true,
+  "fix_required": true,
+  "must_find": [
+    {
+      "id": "xml_injection",
+      "category": "security",
+      "keywords": ["xml", "injection", "escape", "interpolation"],
+      "severity_expected": "critical",
+      "required": true
+    },
+    {
+      "id": "path_traversal",
+      "category": "security",
+      "keywords": ["path", "traversal", "file", "sanitize"],
+      "severity_expected": "critical",
+      "required": false
+    },
+    {
+      "id": "csv_injection",
+      "category": "security",
+      "keywords": ["csv", "injection", "formula", "escape"],
+      "severity_expected": "major",
+      "required": false
+    }
+  ]
+}

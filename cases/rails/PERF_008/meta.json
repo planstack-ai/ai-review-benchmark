@@ -1,0 +1,33 @@
+{
+  "case_id": "PERF_008",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "n_plus_one_bulk_metrics",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "N+1 queries in bulk_update_metrics creates new service instance per user; broken average calculation; missing nil check on .to_f",
+  "bug_anchor": "self.class.new(user)",
+  "correct_implementation": "Use batch queries for metrics calculation; handle nil values from average",
+  "severity": "high",
+  "tags": ["performance", "n_plus_one", "bulk", "metrics"],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "dual",
+  "has_expected_critique": true,
+  "fix_required": true,
+  "must_find": [
+    {
+      "id": "n_plus_one_bulk",
+      "category": "performance",
+      "keywords": ["find_each", "new", "service", "bulk", "N+1"],
+      "severity_expected": "major",
+      "required": true
+    },
+    {
+      "id": "broken_average",
+      "category": "calculation",
+      "keywords": ["average", "nil", "to_f", "crash"],
+      "severity_expected": "major",
+      "required": false
+    }
+  ]
+}

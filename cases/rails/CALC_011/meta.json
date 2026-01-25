@@ -1,0 +1,33 @@
+{
+  "case_id": "CALC_011",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "calculation_order_mismatch",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Calculation order differs from specification; customer type adjustment applied before tax causes premium customers to pay more tax; promotional discount missing entirely",
+  "bug_anchor": "apply_customer_type_adjustment(discounted_subtotal)",
+  "correct_implementation": "Apply discounts, then tax on discounted amount; implement promotional discount per spec",
+  "severity": "critical",
+  "tags": ["calculation", "spec_violation", "pricing", "tax"],
+  "bug_anchor_verified": true,
+  "evaluation_mode": "dual",
+  "has_expected_critique": true,
+  "fix_required": true,
+  "must_find": [
+    {
+      "id": "calculation_order",
+      "category": "calculation",
+      "keywords": ["order", "tax", "customer", "adjustment", "multiplier"],
+      "severity_expected": "major",
+      "required": true
+    },
+    {
+      "id": "missing_promo_discount",
+      "category": "calculation",
+      "keywords": ["promotional", "discount", "missing"],
+      "severity_expected": "major",
+      "required": false
+    }
+  ]
+}
