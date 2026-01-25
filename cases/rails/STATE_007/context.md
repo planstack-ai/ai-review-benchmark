@@ -5,116 +5,84 @@
 ```ruby
 # == Schema Information
 #
-# Table name: deliveries
+# Table name: orders
 #
-#  id                :bigint           not null, primary key
-#  tracking_number   :string           not null
-#  status           :integer          default("pending"), not null
-#  shipped_at       :datetime
-#  delivered_at     :datetime
-#  created_at       :datetime         not null
-#  updated_at       :datetime         not null
-#  order_id         :bigint           not null
-#
-# Indexes
-#
-#  index_deliveries_on_order_id         (order_id)
-#  index_deliveries_on_tracking_number  (tracking_number) UNIQUE
-#  index_deliveries_on_status          (status)
-#
-
-# Table name: delivery_status_transitions
-#
-#  id           :bigint           not null, primary key
-#  delivery_id  :bigint           not null
-#  from_status  :string
-#  to_status    :string           not null
-#  transitioned_at :datetime      not null
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
+#  id              :bigint           not null, primary key
+#  user_id         :bigint           not null
+#  status          :string           not null
+#  delivery_status :string           default("pending"), not null
+#  shipped_at      :datetime
+#  delivered_at    :datetime
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
 #
 # Indexes
 #
-#  index_delivery_status_transitions_on_delivery_id  (delivery_id)
+#  index_orders_on_user_id          (user_id)
+#  index_orders_on_delivery_status  (delivery_status)
 #
 ```
 
 ## Models
 
 ```ruby
-class Delivery < ApplicationRecord
-  belongs_to :order
-  has_many :status_transitions, class_name: 'DeliveryStatusTransition', dependent: :destroy
+class Order < ApplicationRecord
+  belongs_to :user
 
-  validates :tracking_number, presence: true, uniqueness: true
+  DELIVERY_STATUSES = %w[pending processing shipped delivered cancelled].freeze
+
   validates :status, presence: true
+  validates :delivery_status, inclusion: { in: DELIVERY_STATUSES }
 
-  enum status: {
-    pending: 0,
-    processing: 1,
-    shipped: 2,
-    out_for_delivery: 3,
-    delivered: 4,
-    failed: 5,
-    returned: 6
-  }
+  scope :pending_delivery, -> { where(delivery_status: 'pending') }
+  scope :shipped, -> { where(delivery_status: 'shipped') }
+  scope :delivered, -> { where(delivery_status: 'delivered') }
 
-  scope :active, -> { where.not(status: [:delivered, :failed, :returned]) }
-  scope :completed, -> { where(status: [:delivered, :failed, :returned]) }
-
-  STATUS_PROGRESSION = {
-    'pending' => ['processing', 'failed'],
-    'processing' => ['shipped', 'failed'],
-    'shipped' => ['out_for_delivery', 'failed', 'returned'],
-    'out_for_delivery' => ['delivered', 'failed', 'returned'],
+  # Status progression rules (forward only)
+  DELIVERY_PROGRESSION = {
+    'pending' => %w[processing cancelled],
+    'processing' => %w[shipped cancelled],
+    'shipped' => %w[delivered],
     'delivered' => [],
-    'failed' => [],
-    'returned' => []
+    'cancelled' => []
   }.freeze
 
   def can_transition_to?(new_status)
-    STATUS_PROGRESSION[status]&.include?(new_status.to_s)
+    DELIVERY_PROGRESSION[delivery_status]&.include?(new_status.to_s)
   end
 
-  def terminal_status?
-    %w[delivered failed returned].include?(status)
-  end
-
-  private
-
-  def record_status_transition(from_status, to_status)
-    status_transitions.create!(
-      from_status: from_status,
-      to_status: to_status,
-      transitioned_at: Time.current
-    )
-  end
-
-  def update_timestamps_for_status
-    case status
-    when 'shipped'
-      update_column(:shipped_at, Time.current) if shipped_at.nil?
-    when 'delivered'
-      update_column(:delivered_at, Time.current) if delivered_at.nil?
-    end
-  end
-end
-
-class DeliveryStatusTransition < ApplicationRecord
-  belongs_to :delivery
-
-  validates :to_status, presence: true
-  validates :transitioned_at, presence: true
-
-  scope :recent, -> { order(transitioned_at: :desc) }
-  scope :for_status, ->(status) { where(to_status: status) }
-end
-
-class Order < ApplicationRecord
-  has_many :deliveries, dependent: :destroy
-
-  def primary_delivery
-    deliveries.first
+  def terminal_delivery_status?
+    %w[delivered cancelled].include?(delivery_status)
   end
 end
 ```
+
+## Jobs
+
+```ruby
+class DeliveryNotificationJob < ApplicationJob
+  queue_as :notifications
+
+  def perform(order_id, new_status)
+    order = Order.find(order_id)
+    # Send notification based on status
+    case new_status.to_sym
+    when :shipped
+      OrderMailer.shipped(order).deliver_now
+    when :delivered
+      OrderMailer.delivered(order).deliver_now
+    when :cancelled
+      OrderMailer.cancelled(order).deliver_now
+    end
+  end
+end
+```
+
+## State Machine Business Rules
+
+Delivery status transitions must follow these rules:
+1. **Forward-only progression**: Statuses can only move forward in the workflow (pending → processing → shipped → delivered)
+2. **Terminal states**: Once "delivered" or "cancelled", no further transitions are allowed
+3. **Cancellation exception**: "cancelled" can be reached from "pending" or "processing" only
+4. **No backward transitions**: A delivered package cannot return to "shipped" or earlier states
+5. **Status regression prevention**: The system must explicitly prevent transitions to earlier states in the workflow
