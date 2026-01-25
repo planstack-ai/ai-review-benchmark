@@ -22,6 +22,19 @@ Quantitatively verify whether DeepSeek V3/R1, at 1/20th the API cost, can delive
 | DeepSeek R1 | $0.14 | Reasoner |
 | Gemini 1.5 Pro | $1.25 | Long Context |
 
+## Background: Context Engineering
+
+Traditional code review tools focus on syntax, style, and known bug patterns.
+However, **real-world bugs often stem from misunderstanding requirements** -
+the code works but doesn't match what was intended.
+
+**Context Engineering** addresses this by providing AI with:
+- **Plan (Specification)**: What the code should do
+- **Context (Codebase)**: Existing patterns, models, and conventions
+- **Implementation**: The code to review
+
+This benchmark measures whether AI can detect the gap between Plan and Code.
+
 ## Directory Structure
 
 ```
@@ -89,6 +102,58 @@ Each case consists of 4 files:
 - `impl.rb` - Code under review
 - `meta.json` - Ground truth and metadata
 
+## Dual-Mode Evaluation
+
+For **Implicit Knowledge** cases (EXT, PERF, DATA, RAILS), the benchmark supports
+comparing AI performance with and without explicit guidelines:
+
+| Mode | Context File | What it tests |
+|------|--------------|---------------|
+| **Explicit** | `context.md` (with guidelines) | Can AI follow explicit rules? |
+| **Implicit** | `context_base.md` (code only) | Can AI infer best practices from code? |
+
+### Running Dual-Mode
+
+```bash
+# Explicit mode (default)
+python scripts/runner.py --model claude-sonnet --mode explicit
+
+# Implicit mode
+python scripts/runner.py --model claude-sonnet --mode implicit
+
+# Dual mode (runs both)
+python scripts/runner.py --model claude-sonnet --mode dual
+```
+
+### Metrics
+
+- **Inference Gap**: `Explicit Recall - Implicit Recall`
+  - Smaller gap = AI can infer best practices (senior engineer level)
+- **Fix Accuracy**: Percentage of correct fix suggestions
+
+## Evaluation System
+
+This benchmark uses a **3-layer LLM-as-a-Judge** evaluation system:
+
+### Layer 1: Severity-based (Default)
+- Keyword matching for bug detection
+- Severity scoring: critical=1.0, major=0.5, minor=0.2
+
+### Layer 2: Rubric-based
+- Rule-based evaluation using `rubric.json`
+- Structured scoring with predefined criteria
+
+### Layer 3: Semantic Evaluation
+- Uses Claude as a judge model
+- Compares AI response against `expected_critique.md`
+- Evaluates: essential finding captured, severity alignment, suggestion quality
+- Scores: 1-5 scale
+
+The evaluation mode is specified in each case's `meta.json`:
+- `"evaluation_mode": "severity"` (default)
+- `"evaluation_mode": "rubric"`
+- `"evaluation_mode": "semantic"`
+
 ## Usage
 
 ### 1. Environment Setup (Docker recommended)
@@ -136,6 +201,30 @@ export DEEPSEEK_API_KEY=xxx
 export GOOGLE_API_KEY=xxx
 python scripts/runner.py --model claude-sonnet
 ```
+
+## Example Results
+
+### Sample Report Output
+
+| Model | Recall | Weighted Recall | FPR | Cost |
+|-------|--------|-----------------|-----|------|
+| claude-sonnet | 89.3% | 66.1% | 100.0% | $2.21 |
+
+### By Category Performance
+
+| Category | Detected/Total | Accuracy |
+|----------|----------------|----------|
+| CALC (Price) | 9/10 | 90.0% |
+| RAILS | 11/11 | 85.0% |
+| EXT (External) | 6/6 | 93.3% |
+| TIME | 8/8 | 92.5% |
+| AUTH | 6/7 | 91.4% |
+
+### Key Findings
+
+- High recall (89%) on bug cases
+- Strong performance on Rails-specific patterns
+- Room for improvement in fix suggestion quality
 
 ## Evaluation Metrics
 
