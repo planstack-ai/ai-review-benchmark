@@ -10,6 +10,12 @@ Benchmark for evaluating AI code review quality on Rails applications.
 - Python: 3.11+, type hints, black, ruff, Google-style docstrings
 - Ruby: 3.2+ / Rails 7.1+, rubocop compliant
 
+### Planning Workflow
+
+1. **Always write plans in `docs/plans/`** before implementing any feature or change
+2. **Do NOT start writing code** until the plan is approved by the user
+3. **After plan approval**, save the final plan in `docs/plans/` with a descriptive filename (e.g., `docs/plans/feature-xyz.md`)
+
 ## Quick Reference
 
 ### Commands
