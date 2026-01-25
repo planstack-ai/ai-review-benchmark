@@ -47,8 +47,8 @@ class OrderProcessingService
   def execute_transition(new_state)
     ActiveRecord::Base.transaction do
       perform_state_actions(new_state)
-      update_order_state(new_state)
       log_state_change(new_state)
+      update_order_state(new_state)
     end
     
     true
@@ -80,8 +80,7 @@ class OrderProcessingService
   def update_order_state(new_state)
     @order.update!(
       status: new_state,
-      status_changed_at: Time.current,
-      previous_status: @current_state
+      status_changed_at: Time.current
     )
     @current_state = new_state
   end
@@ -96,7 +95,7 @@ class OrderProcessingService
   end
 
   def reserve_inventory
-    @order.line_items.each { |item| InventoryService.reserve(item) }
+    raise "Inventory reservation failed" unless InventoryService.reserve_items(@order.order_items)
   end
 
   def send_confirmation_email
