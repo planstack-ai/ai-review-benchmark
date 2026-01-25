@@ -44,12 +44,12 @@ cases/rails/{CASE_ID}/
 └── meta.json    # Ground truth
 ```
 
-## Test Cases (95 total)
+## Test Cases (99 total)
 
 | Axis | Categories | Cases |
 |------|------------|-------|
 | Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 46 |
-| Implicit Knowledge | EXT, PERF, DATA, RAILS | 29 |
+| Implicit Knowledge | EXT, PERF, DATA, RAILS | 33 |
 | False Positive | FP | 20 |
 
 ## Evaluation Targets
