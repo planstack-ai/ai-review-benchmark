@@ -1,0 +1,379 @@
+# AI Code Review Benchmark - Django Bug Pattern Definitions
+# 30 MVP patterns (25 bugs + 5 false positives) for Django e-commerce order processing
+# Version: 1.0
+
+# =============================================================================
+# Price Calculation (10 patterns) - Spec Alignment
+# =============================================================================
+
+- id: CALC_001
+  category: calculation
+  axis: spec_alignment
+  name: discount_rate_direction
+  plan: "Apply 10% discount for members"
+  bug_description: "Discount rate direction wrong, becomes 90% off"
+  correct: "total * Decimal('0.9')"
+  incorrect: "total * Decimal('0.1')"
+  severity: critical
+  difficulty: easy
+  tags: [calculation, discount, member]
+
+- id: CALC_002
+  category: calculation
+  axis: spec_alignment
+  name: tax_calculation_order
+  plan: "Calculate total with 10% tax after discount"
+  bug_description: "Tax calculation order wrong - applying tax before discount yields different amount"
+  correct: "(subtotal - discount) * Decimal('1.1')"
+  incorrect: "(subtotal * Decimal('1.1')) - discount"
+  severity: high
+  difficulty: medium
+  tags: [calculation, tax, discount]
+
+- id: CALC_003
+  category: calculation
+  axis: spec_alignment
+  name: floating_point_currency
+  plan: "Calculate price with decimal precision"
+  bug_description: "Floating point precision error - 0.1 + 0.2 != 0.3 problem"
+  correct: "Decimal('0.1') + Decimal('0.2')"
+  incorrect: "0.1 + 0.2"
+  severity: high
+  difficulty: medium
+  tags: [calculation, currency, precision]
+
+- id: CALC_004
+  category: calculation
+  axis: spec_alignment
+  name: inconsistent_rounding
+  plan: "Calculate order total with consistent rounding"
+  bug_description: "Inconsistent rounding - round per item then sum vs sum then round yields different results"
+  correct: "sum(item.subtotal for item in items).quantize(Decimal('0.01'))"
+  incorrect: "sum(item.subtotal.quantize(Decimal('0.01')) for item in items)"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, rounding]
+
+- id: CALC_005
+  category: calculation
+  axis: spec_alignment
+  name: hardcoded_tax_rate
+  plan: "Apply current tax rate (10%)"
+  bug_description: "Hardcoded old tax rate - still using 8% instead of 10%"
+  correct: "subtotal * TaxRate.objects.current().rate"
+  incorrect: "subtotal * Decimal('0.08')"
+  severity: high
+  difficulty: easy
+  tags: [calculation, tax, hardcode]
+
+- id: CALC_006
+  category: calculation
+  axis: spec_alignment
+  name: free_shipping_boundary
+  plan: "Free shipping for orders of 5000 yen or more"
+  bug_description: "Boundary condition error - >= 5000 vs > 5000"
+  correct: "0 if total >= 5000 else shipping_fee"
+  incorrect: "0 if total > 5000 else shipping_fee"
+  severity: medium
+  difficulty: easy
+  tags: [calculation, shipping, boundary]
+
+- id: CALC_007
+  category: calculation
+  axis: spec_alignment
+  name: points_calculation_order
+  plan: "Award points based on payment amount after discount"
+  bug_description: "Points calculated on pre-discount amount instead of post-discount"
+  correct: "int((total - discount) * point_rate)"
+  incorrect: "int(total * point_rate)"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, points, discount]
+
+- id: CALC_008
+  category: calculation
+  axis: spec_alignment
+  name: coupon_stacking_logic
+  plan: "Apply single coupon per order"
+  bug_description: "Coupon stacking allowed - multiple coupons can be applied"
+  correct: "if order.coupon_applied: return; apply_coupon(coupon)"
+  incorrect: "apply_coupon(coupon)"
+  severity: high
+  difficulty: medium
+  tags: [calculation, coupon, validation]
+
+- id: CALC_009
+  category: calculation
+  axis: spec_alignment
+  name: minimum_order_amount
+  plan: "Minimum order amount is 1000 yen after discounts"
+  bug_description: "Minimum check on pre-discount amount instead of post-discount"
+  correct: "(subtotal - discount) >= 1000"
+  incorrect: "subtotal >= 1000"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, validation, minimum]
+
+- id: CALC_010
+  category: calculation
+  axis: spec_alignment
+  name: quantity_overflow
+  plan: "Calculate total for bulk orders"
+  bug_description: "Integer overflow on unit_price * quantity for large orders"
+  correct: "Decimal(str(unit_price)) * quantity"
+  incorrect: "unit_price * quantity"
+  severity: critical
+  difficulty: hard
+  tags: [calculation, overflow, bulk]
+
+# =============================================================================
+# User & Authorization (7 patterns) - Spec Alignment
+# =============================================================================
+
+- id: AUTH_001
+  category: authorization
+  axis: spec_alignment
+  name: access_other_user_order
+  plan: "Users can only view their own orders"
+  bug_description: "IDOR vulnerability - can access other user's order by changing ID"
+  correct: "request.user.orders.get(pk=order_id)"
+  incorrect: "Order.objects.get(pk=order_id)"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, idor, security]
+
+- id: AUTH_002
+  category: authorization
+  axis: spec_alignment
+  name: manipulate_other_cart
+  plan: "Users can only modify their own cart"
+  bug_description: "Can manipulate other user's cart by specifying cart_id"
+  correct: "request.user.cart.add_item(item)"
+  incorrect: "Cart.objects.get(pk=cart_id).add_item(item)"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, cart, security]
+
+- id: AUTH_003
+  category: authorization
+  axis: spec_alignment
+  name: deleted_user_data
+  plan: "Hide orders of deleted users"
+  bug_description: "Deleted user's order data still accessible"
+  correct: "Order.objects.filter(user__is_active=True)"
+  incorrect: "Order.objects.all()"
+  severity: high
+  difficulty: medium
+  tags: [authorization, deleted, privacy]
+
+- id: AUTH_004
+  category: authorization
+  axis: spec_alignment
+  name: admin_permission_missing
+  plan: "Only admins can modify product prices"
+  bug_description: "Regular users can change prices - admin check missing"
+  correct: "@permission_required('products.change_price')"
+  incorrect: "# no permission check"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, admin, permission]
+
+- id: AUTH_005
+  category: authorization
+  axis: spec_alignment
+  name: guest_member_pricing
+  plan: "Member pricing only for logged-in members"
+  bug_description: "Guest users getting member pricing - membership check hole"
+  correct: "member_price if request.user.is_authenticated and request.user.is_member else regular_price"
+  incorrect: "member_price"
+  severity: high
+  difficulty: medium
+  tags: [authorization, membership, pricing]
+
+- id: AUTH_006
+  category: authorization
+  axis: spec_alignment
+  name: access_other_points
+  plan: "Users can only view their own points"
+  bug_description: "Can access other user's points via API"
+  correct: "request.user.points"
+  incorrect: "User.objects.get(pk=user_id).points"
+  severity: high
+  difficulty: easy
+  tags: [authorization, points, api]
+
+- id: AUTH_007
+  category: authorization
+  axis: spec_alignment
+  name: coupon_owner_missing
+  plan: "Users can only use their own coupons"
+  bug_description: "Can use another user's coupon code"
+  correct: "request.user.coupons.filter(code=code).first()"
+  incorrect: "Coupon.objects.filter(code=code).first()"
+  severity: high
+  difficulty: medium
+  tags: [authorization, coupon, ownership]
+
+# =============================================================================
+# Django-Specific (8 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: DJANGO_001
+  category: django
+  axis: implicit_knowledge
+  name: queryset_method_not_used
+  plan: "Use existing QuerySet method for filtering"
+  bug_description: "QuerySet method not used - reimplementing filter logic everywhere"
+  correct: "Product.objects.active()"
+  incorrect: "Product.objects.filter(is_active=True, deleted_at__isnull=True)"
+  severity: medium
+  difficulty: easy
+  tags: [django, orm, dry]
+
+- id: DJANGO_002
+  category: django
+  axis: implicit_knowledge
+  name: select_related_vs_prefetch
+  plan: "Eager load related objects efficiently"
+  bug_description: "Wrong eager loading method - select_related for reverse FK or M2M"
+  correct: "Order.objects.prefetch_related('items')"
+  incorrect: "Order.objects.select_related('items')"
+  severity: high
+  difficulty: medium
+  tags: [django, orm, performance]
+
+- id: DJANGO_003
+  category: django
+  axis: implicit_knowledge
+  name: update_skips_save_hooks
+  plan: "Ensure model hooks run on updates"
+  bug_description: "QuerySet.update() skips save() hooks and signals"
+  correct: "for order in orders: order.status = 'archived'; order.save()"
+  incorrect: "orders.update(status='archived')"
+  severity: high
+  difficulty: medium
+  tags: [django, orm, hooks]
+
+- id: DJANGO_004
+  category: django
+  axis: implicit_knowledge
+  name: signal_fires_unconditionally
+  plan: "Only send welcome email on user creation"
+  bug_description: "post_save signal fires on update - missing created check"
+  correct: "if created: send_welcome_email(instance)"
+  incorrect: "send_welcome_email(instance)"
+  severity: high
+  difficulty: medium
+  tags: [django, signal, conditional]
+
+- id: DJANGO_005
+  category: django
+  axis: implicit_knowledge
+  name: task_outside_on_commit
+  plan: "Queue background task after transaction commits"
+  bug_description: "Task queued inside transaction - runs even on rollback"
+  correct: "transaction.on_commit(lambda: send_email_task.delay(order.id))"
+  incorrect: "send_email_task.delay(order.id)"
+  severity: critical
+  difficulty: medium
+  tags: [django, signal, transaction]
+
+- id: DJANGO_006
+  category: django
+  axis: implicit_knowledge
+  name: missing_login_required
+  plan: "Require authentication for user-specific views"
+  bug_description: "View accessible without login - missing @login_required"
+  correct: "@login_required"
+  incorrect: "# no decorator"
+  severity: critical
+  difficulty: easy
+  tags: [django, security, authentication]
+
+- id: DJANGO_007
+  category: django
+  axis: implicit_knowledge
+  name: raw_sql_injection
+  plan: "Use parameterized queries for user input"
+  bug_description: "SQL injection via f-string in raw query"
+  correct: "cursor.execute('SELECT * FROM orders WHERE id = %s', [order_id])"
+  incorrect: "cursor.execute(f'SELECT * FROM orders WHERE id = {order_id}')"
+  severity: critical
+  difficulty: easy
+  tags: [django, security, sql_injection]
+
+- id: DJANGO_008
+  category: django
+  axis: implicit_knowledge
+  name: middleware_order_dependency
+  plan: "Ensure middleware executes in correct order"
+  bug_description: "Permission check before auth middleware - user not set"
+  correct: "AuthenticationMiddleware before PermissionMiddleware"
+  incorrect: "PermissionMiddleware before AuthenticationMiddleware"
+  severity: critical
+  difficulty: hard
+  tags: [django, middleware, order]
+
+# =============================================================================
+# False Positive (5 patterns)
+# =============================================================================
+
+- id: FP_001
+  category: false_positive
+  name: standard_crud
+  plan: "Standard CRUD implementation with Django views"
+  bug_description: null
+  correct: "Standard class-based views"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, crud, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_002
+  category: false_positive
+  name: standard_model_validation
+  plan: "Standard Django model validations"
+  bug_description: null
+  correct: "validators, clean methods, field constraints"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, validation, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_003
+  category: false_positive
+  name: standard_queryset
+  plan: "Standard QuerySet operations"
+  bug_description: null
+  correct: "filter, exclude, annotate correctly used"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, queryset, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_004
+  category: false_positive
+  name: intentional_raw_sql
+  plan: "Performance-critical raw SQL query"
+  bug_description: null
+  correct: "Optimized raw SQL with proper parameterization"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, sql, intentional]
+  misleading_points: "Raw SQL looks dangerous but is parameterized"
+
+- id: FP_005
+  category: false_positive
+  name: intentional_update_bulk
+  plan: "Bulk update without signals"
+  bug_description: null
+  correct: "Intentional bulk_update for performance"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, bulk_update, intentional]
+  misleading_points: "bulk_update looks wrong but signals not needed"

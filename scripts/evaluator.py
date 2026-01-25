@@ -42,7 +42,13 @@ except ImportError:
     JUDGES_AVAILABLE = False
 
 
-CASES_DIR = Path(__file__).parent.parent / "cases" / "rails"
+def get_cases_dir(framework: str) -> Path:
+    """Get the cases directory for a framework."""
+    return Path(__file__).parent.parent / "cases" / framework
+
+
+# Default for backward compatibility
+CASES_DIR = get_cases_dir("rails")
 
 # Judge モデル設定 (legacy, used when judge-mode=single)
 JUDGE_MODEL = "claude-sonnet-4-20250514"
@@ -291,18 +297,20 @@ def extract_json(text: str) -> dict[str, Any] | None:
     return None
 
 
-def load_meta(case_id: str) -> dict[str, Any]:
+def load_meta(case_id: str, cases_dir: Path | None = None) -> dict[str, Any]:
     """ケースのメタ情報を読み込み"""
-    for meta_file in CASES_DIR.rglob("meta.json"):
+    search_dir = cases_dir or CASES_DIR
+    for meta_file in search_dir.rglob("meta.json"):
         meta = json.loads(meta_file.read_text())
         if meta["case_id"] == case_id:
             return meta
     raise ValueError(f"Case not found: {case_id}")
 
 
-def load_rubric(case_id: str) -> dict[str, Any] | None:
+def load_rubric(case_id: str, cases_dir: Path | None = None) -> dict[str, Any] | None:
     """ケースのルーブリックを読み込み（存在する場合）"""
-    for meta_file in CASES_DIR.rglob("meta.json"):
+    search_dir = cases_dir or CASES_DIR
+    for meta_file in search_dir.rglob("meta.json"):
         meta = json.loads(meta_file.read_text())
         if meta["case_id"] == case_id:
             rubric_file = meta_file.parent / "rubric.json"
@@ -311,9 +319,10 @@ def load_rubric(case_id: str) -> dict[str, Any] | None:
     return None
 
 
-def load_expected_critique(case_id: str) -> str | None:
+def load_expected_critique(case_id: str, cases_dir: Path | None = None) -> str | None:
     """Load the expected critique markdown file for a case."""
-    for meta_file in CASES_DIR.rglob("meta.json"):
+    search_dir = cases_dir or CASES_DIR
+    for meta_file in search_dir.rglob("meta.json"):
         meta = json.loads(meta_file.read_text())
         if meta["case_id"] == case_id:
             critique_file = meta_file.parent / "expected_critique.md"
@@ -1102,6 +1111,12 @@ def main() -> None:
         help="結果ディレクトリのパス",
     )
     parser.add_argument(
+        "--framework",
+        choices=["rails", "django"],
+        default=None,
+        help="Target framework (auto-detected from summary.json if not specified)",
+    )
+    parser.add_argument(
         "--skip-judge",
         action="store_true",
         help="Judgeモデル呼び出しをスキップし、簡易評価のみ行う",
@@ -1151,6 +1166,17 @@ def main() -> None:
     run_summary = None
     if summary_file.exists():
         run_summary = json.loads(summary_file.read_text())
+
+    # Determine framework (from argument, summary.json, or default)
+    if args.framework:
+        framework = args.framework
+    elif run_summary and "framework" in run_summary:
+        framework = run_summary["framework"]
+    else:
+        framework = "rails"
+
+    cases_dir = get_cases_dir(framework)
+    print(f"Using framework: {framework}, cases_dir: {cases_dir}")
 
     # Count cases for cost estimation
     result_files = [f for f in args.run_dir.glob("*.json")
@@ -1238,15 +1264,15 @@ def main() -> None:
                 continue
 
             try:
-                meta = load_meta(case_id)
+                meta = load_meta(case_id, cases_dir)
             except ValueError as e:
                 print(f"SKIPPED ({e})")
                 continue
 
             # 評価実行
             # Evaluation mode priority: semantic > rubric > judge > severity
-            expected_critique = load_expected_critique(case_id)
-            rubric = load_rubric(case_id)
+            expected_critique = load_expected_critique(case_id, cases_dir)
+            rubric = load_rubric(case_id, cases_dir)
             evaluation_mode = result.get("evaluation_mode", meta.get("evaluation_mode", "severity"))
 
             # Track ensemble details for this case

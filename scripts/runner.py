@@ -31,9 +31,32 @@ ModelName = Literal["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "g
 ALL_MODELS: list[ModelName] = ["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
 
 RunMode = Literal["explicit", "implicit", "dual"]
+FrameworkName = Literal["rails", "django"]
 
-CASES_DIR = Path(__file__).parent.parent / "cases" / "rails"
 RESULTS_DIR = Path(__file__).parent.parent / "results"
+
+# Framework configuration
+FRAMEWORK_CONFIG = {
+    "rails": {
+        "impl_ext": ".rb",
+        "language": "Ruby",
+        "code_block": "ruby",
+    },
+    "django": {
+        "impl_ext": ".py",
+        "language": "Python",
+        "code_block": "python",
+    },
+}
+
+
+def get_cases_dir(framework: str) -> Path:
+    """Get the cases directory for a framework."""
+    return Path(__file__).parent.parent / "cases" / framework
+
+
+# Default for backward compatibility
+CASES_DIR = get_cases_dir("rails")
 
 # モデル設定
 MODEL_CONFIG = {
@@ -91,7 +114,8 @@ MODEL_CONFIG = {
     },
 }
 
-REVIEW_PROMPT_TEMPLATE = """あなたはシニアRailsエンジニアです。
+# Rails review prompt templates
+REVIEW_PROMPT_RAILS_TEMPLATE = """あなたはシニアRailsエンジニアです。
 以下のコードをレビューしてください。
 
 ## 仕様書（Plan）
@@ -126,7 +150,46 @@ REVIEW_PROMPT_TEMPLATE = """あなたはシニアRailsエンジニアです。
 問題がない場合は has_issues を false にし、issues を空配列にしてください。
 """
 
-REVIEW_PROMPT_DIFF_TEMPLATE = """あなたはシニアRailsエンジニアです。
+# Django review prompt templates
+REVIEW_PROMPT_DJANGO_TEMPLATE = """You are a Senior Django Developer.
+Review the following Python code against the specification.
+
+## Specification (Plan)
+{plan}
+
+## Existing Codebase Context
+{context}
+
+## Code Under Review
+```python
+{impl}
+```
+
+## Output Format
+Respond with ONLY the following JSON format (no other text):
+```json
+{{
+  "has_issues": true/false,
+  "issues": [
+    {{
+      "severity": "critical/major/minor",
+      "type": "plan_mismatch/logic_bug/security/performance",
+      "location": "line number or code location",
+      "description": "description of the issue",
+      "suggestion": "suggested fix"
+    }}
+  ],
+  "summary": "overall findings"
+}}
+```
+
+If there are no issues, set has_issues to false and issues to an empty array.
+"""
+
+# Backward compatibility alias
+REVIEW_PROMPT_TEMPLATE = REVIEW_PROMPT_RAILS_TEMPLATE
+
+REVIEW_PROMPT_DIFF_RAILS_TEMPLATE = """あなたはシニアRailsエンジニアです。
 以下のPull Requestをレビューしてください。
 
 ## 仕様書（Plan）
@@ -161,8 +224,46 @@ REVIEW_PROMPT_DIFF_TEMPLATE = """あなたはシニアRailsエンジニアです
 問題がない場合は has_issues を false にし、issues を空配列にしてください。
 """
 
+REVIEW_PROMPT_DIFF_DJANGO_TEMPLATE = """You are a Senior Django Developer.
+Review the following Pull Request against the specification.
 
-def load_case(case_dir: Path, mode: RunMode = "explicit") -> dict[str, Any]:
+## Specification (Plan)
+{plan}
+
+## Existing Codebase Context
+{context}
+
+## PR Diff
+```diff
+{diff}
+```
+
+## Output Format
+Respond with ONLY the following JSON format (no other text):
+```json
+{{
+  "has_issues": true/false,
+  "issues": [
+    {{
+      "severity": "critical/major/minor",
+      "type": "plan_mismatch/logic_bug/security/performance",
+      "location": "filename:line number or code location",
+      "description": "description of the issue",
+      "suggestion": "suggested fix"
+    }}
+  ],
+  "summary": "overall findings"
+}}
+```
+
+If there are no issues, set has_issues to false and issues to an empty array.
+"""
+
+# Backward compatibility alias
+REVIEW_PROMPT_DIFF_TEMPLATE = REVIEW_PROMPT_DIFF_RAILS_TEMPLATE
+
+
+def load_case(case_dir: Path, mode: RunMode = "explicit", framework: str = "rails") -> dict[str, Any]:
     """ケースファイルを読み込み
 
     Args:
@@ -171,6 +272,7 @@ def load_case(case_dir: Path, mode: RunMode = "explicit") -> dict[str, Any]:
             - "explicit": context.md（ガイドライン含む）を使用
             - "implicit": context_base.md（ガイドラインなし）を使用
             - "dual": 呼び出し元で両方実行
+        framework: フレームワーク（rails または django）
 
     Returns:
         ケースデータの辞書
@@ -186,13 +288,26 @@ def load_case(case_dir: Path, mode: RunMode = "explicit") -> dict[str, Any]:
         if context_base_file.exists():
             context_file = context_base_file
 
+    # Determine implementation file based on framework
+    framework_cfg = FRAMEWORK_CONFIG.get(framework, FRAMEWORK_CONFIG["rails"])
+    impl_ext = framework_cfg["impl_ext"]
+    impl_file = case_dir / f"impl{impl_ext}"
+
+    # Fallback: try both extensions if primary doesn't exist
+    if not impl_file.exists():
+        alt_ext = ".py" if impl_ext == ".rb" else ".rb"
+        alt_impl_file = case_dir / f"impl{alt_ext}"
+        if alt_impl_file.exists():
+            impl_file = alt_impl_file
+
     case_data = {
         "plan": (case_dir / "plan.md").read_text(),
         "context": context_file.read_text(),
-        "impl": (case_dir / "impl.rb").read_text(),
+        "impl": impl_file.read_text(),
         "meta": meta,
         "context_mode": mode,
         "context_file": context_file.name,
+        "framework": framework,
     }
 
     # オプション: diff があれば読み込み
@@ -210,16 +325,26 @@ def load_case(case_dir: Path, mode: RunMode = "explicit") -> dict[str, Any]:
 
 def build_prompt(case: dict[str, Any]) -> str:
     """レビュープロンプトを構築"""
+    framework = case.get("framework", "rails")
+
+    # Select template based on framework
+    if framework == "django":
+        impl_template = REVIEW_PROMPT_DJANGO_TEMPLATE
+        diff_template = REVIEW_PROMPT_DIFF_DJANGO_TEMPLATE
+    else:
+        impl_template = REVIEW_PROMPT_RAILS_TEMPLATE
+        diff_template = REVIEW_PROMPT_DIFF_RAILS_TEMPLATE
+
     # diff があれば diff 用テンプレートを使用
     if "diff" in case:
-        return REVIEW_PROMPT_DIFF_TEMPLATE.format(
+        return diff_template.format(
             plan=case["plan"],
             context=case["context"],
             diff=case["diff"],
         )
 
     # なければ従来通り impl を使用
-    return REVIEW_PROMPT_TEMPLATE.format(
+    return impl_template.format(
         plan=case["plan"],
         context=case["context"],
         impl=case["impl"],
@@ -433,6 +558,7 @@ def run_single_case(
     case_dir: Path,
     mode: RunMode,
     verbose: bool = False,
+    framework: str = "rails",
 ) -> dict[str, Any]:
     """単一ケースを実行
 
@@ -441,11 +567,12 @@ def run_single_case(
         case_dir: ケースディレクトリ
         mode: 実行モード（explicit/implicit）
         verbose: 詳細出力
+        framework: フレームワーク（rails または django）
 
     Returns:
         実行結果の辞書
     """
-    case = load_case(case_dir, mode=mode)
+    case = load_case(case_dir, mode=mode, framework=framework)
     result = run_review(model, case)
 
     result["case_id"] = case["meta"]["case_id"]
@@ -468,6 +595,7 @@ def run_benchmark(
     output_dir: Path,
     mode: RunMode = "explicit",
     verbose: bool = False,
+    framework: str = "rails",
 ) -> dict[str, Any]:
     """単一モデルでベンチマークを実行
 
@@ -480,6 +608,7 @@ def run_benchmark(
             - "implicit": ガイドライン無しでレビュー
             - "dual": 両方実行して比較用データを生成
         verbose: 詳細出力
+        framework: フレームワーク（rails または django）
     """
     results = []
     total_cost = 0.0
@@ -511,7 +640,7 @@ def run_benchmark(
             print(f"[{i:3d}/{len(case_dirs)}] {category}/{case_id}{mode_label}", end=" ... ", flush=True)
 
             try:
-                result = run_single_case(model, case_dir, run_mode, verbose)
+                result = run_single_case(model, case_dir, run_mode, verbose, framework)
 
                 total_cost += result.get("cost", 0)
                 total_time += result.get("elapsed_time", 0)
@@ -588,10 +717,15 @@ def main() -> None:
         help="実行モード: explicit（ガイドライン有り）, implicit（ガイドライン無し）, dual（両方）",
     )
     parser.add_argument(
+        "--framework",
+        choices=["rails", "django"],
+        default="rails",
+        help="Target framework (default: rails)",
+    )
+    parser.add_argument(
         "--cases",
         type=Path,
-        default=CASES_DIR,
-        help="ケースディレクトリのパス",
+        help="ケースディレクトリのパス（デフォルト: cases/{framework}）",
     )
     parser.add_argument(
         "--output-dir",
@@ -611,6 +745,12 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    # Determine cases directory
+    if args.cases:
+        cases_dir = args.cases
+    else:
+        cases_dir = get_cases_dir(args.framework)
+
     # 出力ディレクトリ設定
     if args.output_dir:
         output_dir = args.output_dir
@@ -619,12 +759,12 @@ def main() -> None:
         output_dir = RESULTS_DIR / f"{timestamp}_run"
 
     # ケース探索
-    if not args.cases.exists():
-        print(f"Error: Cases directory not found: {args.cases}", file=sys.stderr)
+    if not cases_dir.exists():
+        print(f"Error: Cases directory not found: {cases_dir}", file=sys.stderr)
         sys.exit(1)
 
-    case_dirs = discover_cases(args.cases)
-    print(f"Found {len(case_dirs)} cases in {args.cases}")
+    case_dirs = discover_cases(cases_dir)
+    print(f"Found {len(case_dirs)} cases in {cases_dir} (framework: {args.framework})")
 
     if args.dry_run:
         print("\nCases to run:")
@@ -646,13 +786,14 @@ def main() -> None:
     # 実行
     all_summaries = []
     for model in models:
-        summary = run_benchmark(model, case_dirs, output_dir, mode=args.mode, verbose=args.verbose)
+        summary = run_benchmark(model, case_dirs, output_dir, mode=args.mode, verbose=args.verbose, framework=args.framework)
         all_summaries.append(summary)
 
     # 全体サマリー保存
     summary_file = output_dir / "summary.json"
     summary_data = {
         "timestamp": datetime.now().isoformat(),
+        "framework": args.framework,
         "mode": args.mode,
         "total_cases": len(case_dirs),
         "models": all_summaries,

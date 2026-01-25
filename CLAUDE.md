@@ -1,6 +1,6 @@
 # AI Review Benchmark
 
-Benchmark for evaluating AI code review quality on Rails applications.
+Benchmark for evaluating AI code review quality on Rails and Django applications.
 
 > Full specification: [docs/benchmark-spec-v3.md](docs/benchmark-spec-v3.md)
 
@@ -21,11 +21,17 @@ Benchmark for evaluating AI code review quality on Rails applications.
 ### Commands
 
 ```bash
-# Generate test case
+# Generate test case (Rails - default)
 python scripts/generator.py --pattern CALC_001
 
-# Run benchmark
+# Generate test case (Django)
+python scripts/generator.py --framework django --pattern CALC_001
+
+# Run benchmark (Rails - default)
 python scripts/runner.py --model claude-sonnet --cases cases/rails/
+
+# Run benchmark (Django)
+python scripts/runner.py --model claude-sonnet --framework django
 
 # Score results
 python scripts/evaluator.py --run-dir results/2025xxxx_run/
@@ -43,20 +49,38 @@ export GOOGLE_API_KEY=xxx
 ## Project Structure
 
 ```
-cases/rails/{CASE_ID}/
+cases/{framework}/{CASE_ID}/
 ├── plan.md      # Specification
 ├── context.md   # Existing codebase info
-├── impl.rb      # Code under review
+├── impl.rb      # Code under review (Rails)
+├── impl.py      # Code under review (Django)
 └── meta.json    # Ground truth
 ```
 
-## Test Cases (99 total)
+## Supported Frameworks
+
+| Framework | Pattern File | Cases Dir | Implementation |
+|-----------|--------------|-----------|----------------|
+| Rails | patterns.yaml | cases/rails/ | impl.rb |
+| Django | patterns_django.yaml | cases/django/ | impl.py |
+
+## Test Cases
+
+### Rails (99 total)
 
 | Axis | Categories | Cases |
 |------|------------|-------|
 | Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 46 |
 | Implicit Knowledge | EXT, PERF, DATA, RAILS | 34 |
 | False Positive | FP | 19 |
+
+### Django (30 MVP)
+
+| Axis | Categories | Cases |
+|------|------------|-------|
+| Spec Alignment | CALC, AUTH | 17 |
+| Implicit Knowledge | DJANGO | 8 |
+| False Positive | FP | 5 |
 
 ## Evaluation Targets
 
@@ -80,6 +104,9 @@ cases/rails/{CASE_ID}/
   "bug_anchor": "code snippet to match",
   "correct_implementation": "...",
   "severity": "critical | high | medium | low",
-  "tags": ["calculation", "discount"]
+  "tags": ["calculation", "discount"],
+  "framework": "django",           // Django only
+  "framework_version": "5.0+",     // Django only
+  "python_version": "3.11+"        // Django only
 }
 ```
