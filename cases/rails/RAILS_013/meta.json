@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_013",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "missing_pessimistic_lock",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Balance transfer without pessimistic locking (lock/select_for_update) allows concurrent transfers to read stale balance values, causing race conditions that can result in negative balances or lost updates.",
+  "bug_anchor": "from_account = Account.find(from_account_id)\n      to_account = Account.find(to_account_id)",
+  "correct_implementation": "from_account = Account.lock.find(from_account_id)\nto_account = Account.lock.find(to_account_id)",
+  "severity": "critical",
+  "tags": [
+    "rails",
+    "transaction",
+    "pessimistic_lock",
+    "race_condition",
+    "concurrency"
+  ]
+}

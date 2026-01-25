@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_014",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "default_scope_composition",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Using unscoped.featured does not fully remove default_scope. Named scopes defined on models with default_scope may still apply the default conditions internally, causing inactive products to be filtered out even when using unscoped.",
+  "bug_anchor": "Product.unscoped.featured",
+  "correct_implementation": "Product.unscoped.where(featured: true)",
+  "severity": "high",
+  "tags": [
+    "rails",
+    "default_scope",
+    "scope",
+    "active_record",
+    "query"
+  ]
+}

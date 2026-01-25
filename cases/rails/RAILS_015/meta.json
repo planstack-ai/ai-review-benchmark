@@ -1,0 +1,19 @@
+{
+  "case_id": "RAILS_015",
+  "category": "rails",
+  "axis": "implicit_knowledge",
+  "name": "enum_nil_handling",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Enum scopes (Order.pending) exclude rows where the enum column is NULL. Legacy data or rows created before enum was added may have NULL status, becoming invisible to enum-based queries.",
+  "bug_anchor": "Order.pending",
+  "correct_implementation": "Order.where(status: [:pending, nil])",
+  "severity": "high",
+  "tags": [
+    "rails",
+    "enum",
+    "null",
+    "migration",
+    "legacy_data"
+  ]
+}
