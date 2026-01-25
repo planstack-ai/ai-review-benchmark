@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(git reset:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(python scripts/runner.py:*)",
+      "Bash(python3 scripts/runner.py:*)",
+      "Bash(python3 -m py_compile:*)",
+      "Bash(docker build:*)",
+      "Bash(docker run:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"\"\"{}\"\"\"\" && ls {}/')",
+      "Bash(find:*)",
+      "Bash(python scripts/update_meta.py:*)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(ls:*)",
+      "Bash(python scripts/generator.py:*)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(pip install:*)",
+      "Bash(export:*)",
+      "Bash(python scripts/evaluator.py:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(git restore:*)",
+      "Bash(git checkout:*)",
+      "Bash(source:*)",
+      "Bash(python scripts/generate_critique.py:*)",
+      "Bash(grep:*)",
+      "Bash(for dir in results/*/)",
+      "Bash(done)",
+      "Bash(jq:*)",
+      "Bash(python scripts/migrate_to_dual.py:*)",
+      "Bash(for case in PERF_002 PERF_003 PERF_004 PERF_005 PERF_006)",
+      "Bash(do)",
+      "Bash(pip show:*)"
+    ]
+  }
+}
