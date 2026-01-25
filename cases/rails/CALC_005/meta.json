@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_005_main",
+      "category": "calculation_error",
+      "keywords": [
+        "subtotal",
+        "0.08",
+        "Hardcoded",
+        "old",
+        "tax",
+        "rate",
+        "still",
+        "using"
+      ],
+      "severity_expected": "major",
+      "description": "Hardcoded old tax rate - still using 8% instead of 10%",
+      "required": true
+    }
+  ]
 }

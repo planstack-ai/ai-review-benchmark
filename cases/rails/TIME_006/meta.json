@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "time_006_main",
+      "category": "time_handling",
+      "keywords": [
+        "Date.new(year, month, day + 1)",
+        "Year",
+        "crossing",
+        "logic",
+        "error",
+        "12",
+        "31",
+        "to"
+      ],
+      "severity_expected": "major",
+      "description": "Year crossing logic error - 12/31 to 1/1 fails",
+      "required": true
+    }
+  ]
 }

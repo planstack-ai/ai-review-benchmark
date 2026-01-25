@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "stock_007_main",
+      "category": "logic_error",
+      "keywords": [
+        "restore_stock",
+        "Cancel",
+        "spam",
+        "increases",
+        "stock",
+        "no",
+        "idempotency",
+        "check"
+      ],
+      "severity_expected": "critical",
+      "description": "Cancel spam increases stock - no idempotency check",
+      "required": true
+    }
+  ]
 }

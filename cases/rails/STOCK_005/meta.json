@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "stock_005_main",
+      "category": "logic_error",
+      "keywords": [
+        "validates",
+        "quantity",
+        "numericality",
+        "greater_than_or_equal_to",
+        "Zero",
+        "orders",
+        "allowed",
+        "through"
+      ],
+      "severity_expected": "major",
+      "description": "Zero quantity orders allowed through validation gap",
+      "required": true
+    }
+  ]
 }

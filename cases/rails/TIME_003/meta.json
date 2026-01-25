@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "time_003_main",
+      "category": "time_handling",
+      "keywords": [
+        "Time.current",
+        "expires_at",
+        "Off",
+        "by",
+        "one",
+        "on",
+        "expiry",
+        "using"
+      ],
+      "severity_expected": "major",
+      "description": "Off-by-one on expiry - using < instead of <=",
+      "required": true
+    }
+  ]
 }

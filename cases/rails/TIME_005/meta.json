@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "time_005_main",
+      "category": "time_handling",
+      "keywords": [
+        "Date.new(year, month + 1, day)",
+        "Invalid",
+        "date",
+        "error",
+        "February",
+        "30",
+        "doesn",
+        "exist"
+      ],
+      "severity_expected": "major",
+      "description": "Invalid date error - February 30 doesn't exist",
+      "required": true
+    }
+  ]
 }

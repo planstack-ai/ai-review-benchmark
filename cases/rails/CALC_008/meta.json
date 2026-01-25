@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_008_main",
+      "category": "calculation_error",
+      "keywords": [
+        "apply_coupon(coupon)",
+        "Coupon",
+        "stacking",
+        "allowed",
+        "multiple",
+        "coupons",
+        "can",
+        "be"
+      ],
+      "severity_expected": "major",
+      "description": "Coupon stacking allowed - multiple coupons can be applied",
+      "required": true
+    }
+  ]
 }

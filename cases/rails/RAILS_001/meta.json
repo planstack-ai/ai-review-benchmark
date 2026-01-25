@@ -30,5 +30,24 @@
     "must_not_contain": [
       "Product.where(status: 'active')"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_001_main",
+      "category": "logic_error",
+      "keywords": [
+        "Product.where(status: 'active')",
+        "active",
+        "Scope",
+        "not",
+        "used",
+        "reimplementing",
+        "where(status: 'active')",
+        "everywhere"
+      ],
+      "severity_expected": "major",
+      "description": "Scope not used - reimplementing where(status: 'active') everywhere",
+      "required": true
+    }
+  ]
 }

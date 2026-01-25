@@ -30,5 +30,24 @@
     "must_not_contain": [
       "Order.create(params)"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "ext_004_main",
+      "category": "external_api",
+      "keywords": [
+        "Order.create(params)",
+        "Network",
+        "retry",
+        "creates",
+        "duplicate",
+        "order",
+        "records",
+        "create_order"
+      ],
+      "severity_expected": "critical",
+      "description": "Network retry creates duplicate order records",
+      "required": true
+    }
+  ]
 }

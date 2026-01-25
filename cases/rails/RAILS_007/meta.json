@@ -30,5 +30,24 @@
     "must_not_contain": [
       "find_or_create_by without handling"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_007_main",
+      "category": "logic_error",
+      "keywords": [
+        "find_or_create_by",
+        "without",
+        "handling",
+        "Race",
+        "condition",
+        "creates",
+        "duplicate",
+        "records"
+      ],
+      "severity_expected": "major",
+      "description": "Race condition creates duplicate records",
+      "required": true
+    }
+  ]
 }

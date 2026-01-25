@@ -30,5 +30,24 @@
     "must_not_contain": [
       "response rescue nil"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "ext_006_main",
+      "category": "external_api",
+      "keywords": [
+        "response",
+        "rescue",
+        "nil",
+        "Shipping",
+        "API",
+        "error",
+        "swallowed",
+        "treated"
+      ],
+      "severity_expected": "major",
+      "description": "Shipping API error swallowed, treated as success",
+      "required": true
+    }
+  ]
 }

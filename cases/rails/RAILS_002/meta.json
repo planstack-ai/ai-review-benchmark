@@ -30,5 +30,24 @@
     "must_not_contain": [
       "order.status == 'pending'"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_002_main",
+      "category": "logic_error",
+      "keywords": [
+        "order.status",
+        "pending",
+        "==",
+        "String",
+        "literal",
+        "comparison",
+        "instead",
+        "of"
+      ],
+      "severity_expected": "major",
+      "description": "String literal comparison instead of enum",
+      "required": true
+    }
+  ]
 }

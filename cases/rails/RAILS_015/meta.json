@@ -15,5 +15,24 @@
     "null",
     "migration",
     "legacy_data"
+  ],
+  "must_find": [
+    {
+      "id": "rails_015_main",
+      "category": "logic_error",
+      "keywords": [
+        "Order.pending",
+        "Enum",
+        "scopes",
+        "exclude",
+        "rows",
+        "where",
+        "the",
+        "column"
+      ],
+      "severity_expected": "major",
+      "description": "Enum scopes (Order.pending) exclude rows where the enum column is NULL. Legacy data or rows created before enum was added may have NULL status, becoming invisible to enum-based queries.",
+      "required": true
+    }
   ]
 }

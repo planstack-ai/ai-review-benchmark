@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "notify_006_main",
+      "category": "notification",
+      "keywords": [
+        "users.each",
+        "send_email(u)",
+        "Mass",
+        "email",
+        "send",
+        "gets",
+        "blocked",
+        "by"
+      ],
+      "severity_expected": "major",
+      "description": "Mass email send gets blocked by rate limit",
+      "required": true
+    }
+  ]
 }

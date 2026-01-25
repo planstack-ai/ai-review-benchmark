@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "auth_001_main",
+      "category": "authorization",
+      "keywords": [
+        "Order.find(params[:id])",
+        "IDOR",
+        "vulnerability",
+        "can",
+        "access",
+        "other",
+        "user",
+        "order"
+      ],
+      "severity_expected": "critical",
+      "description": "IDOR vulnerability - can access other user's order by changing ID",
+      "required": true
+    }
+  ]
 }

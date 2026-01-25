@@ -30,5 +30,24 @@
     "must_not_contain": [
       "transaction { order.save!; charge_payment }"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "ext_003_main",
+      "category": "external_api",
+      "keywords": [
+        "transaction",
+        "order.save",
+        "charge_payment",
+        "Payment",
+        "charged",
+        "even",
+        "if",
+        "rolls"
+      ],
+      "severity_expected": "critical",
+      "description": "Payment charged even if transaction rolls back",
+      "required": true
+    }
+  ]
 }

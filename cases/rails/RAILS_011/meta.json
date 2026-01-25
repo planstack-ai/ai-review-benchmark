@@ -34,5 +34,24 @@
     "must_not_contain": [
       "ActiveRecord::Base.transaction do\n        create_notification_log!"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_011_main",
+      "category": "logic_error",
+      "keywords": [
+        "ActiveRecord",
+        "Base.transaction",
+        "do",
+        "create_notification_log",
+        "Nested",
+        "transaction",
+        "without",
+        "requires_new"
+      ],
+      "severity_expected": "critical",
+      "description": "Nested transaction without requires_new: true causes inner Rollback to affect outer transaction, potentially losing the order confirmation",
+      "required": true
+    }
+  ]
 }

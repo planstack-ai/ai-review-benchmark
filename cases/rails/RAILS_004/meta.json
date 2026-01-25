@@ -30,5 +30,24 @@
     "must_not_contain": [
       "has_many :items"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_004_main",
+      "category": "logic_error",
+      "keywords": [
+        "has_many",
+        "items",
+        "dependent",
+        "destroy",
+        "missing",
+        "children",
+        "orphaned",
+        "on"
+      ],
+      "severity_expected": "major",
+      "description": "dependent: :destroy missing - children orphaned on parent delete",
+      "required": true
+    }
+  ]
 }

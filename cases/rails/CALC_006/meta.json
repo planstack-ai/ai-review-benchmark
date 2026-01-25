@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_006_main",
+      "category": "calculation_error",
+      "keywords": [
+        "total",
+        "5000",
+        "shipping_fee",
+        "Boundary",
+        "condition",
+        "error",
+        "vs",
+        ">="
+      ],
+      "severity_expected": "major",
+      "description": "Boundary condition error - >= 5000 vs > 5000",
+      "required": true
+    }
+  ]
 }

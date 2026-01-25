@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "time_002_main",
+      "category": "time_handling",
+      "keywords": [
+        "start_date",
+        "Sale",
+        "period",
+        "boundary",
+        "error",
+        "00",
+        "start",
+        "becomes"
+      ],
+      "severity_expected": "major",
+      "description": "Sale period boundary error - 0:00 start becomes previous day 23:59",
+      "required": true
+    }
+  ]
 }

@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "notify_004_main",
+      "category": "notification",
+      "keywords": [
+        "user.name",
+        "Template",
+        "variable",
+        "is",
+        "nil",
+        "causing",
+        "error",
+        "resolve_variable"
+      ],
+      "severity_expected": "major",
+      "description": "Template variable user.name is nil causing error",
+      "required": true
+    }
+  ]
 }

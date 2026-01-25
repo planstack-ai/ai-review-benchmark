@@ -30,5 +30,24 @@
     "must_not_contain": [
       "after_save { NotifyJob.perform_later(id) }"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_005_main",
+      "category": "logic_error",
+      "keywords": [
+        "after_save",
+        "NotifyJob.perform_later(id)",
+        "Job",
+        "enqueued",
+        "in",
+        "transaction",
+        "runs",
+        "even"
+      ],
+      "severity_expected": "critical",
+      "description": "Job enqueued in transaction - runs even if rollback",
+      "required": true
+    }
+  ]
 }

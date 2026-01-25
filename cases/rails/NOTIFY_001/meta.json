@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "notify_001_main",
+      "category": "notification",
+      "keywords": [
+        "send_email",
+        "Retry",
+        "logic",
+        "sends",
+        "duplicate",
+        "confirmation",
+        "emails",
+        "handle_email_failure"
+      ],
+      "severity_expected": "major",
+      "description": "Retry logic sends duplicate confirmation emails",
+      "required": true
+    }
+  ]
 }

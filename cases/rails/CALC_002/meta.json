@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_002_main",
+      "category": "calculation_error",
+      "keywords": [
+        "subtotal",
+        "1.1",
+        "discount",
+        "Tax",
+        "calculation",
+        "order",
+        "wrong",
+        "applying"
+      ],
+      "severity_expected": "major",
+      "description": "Tax calculation order wrong - applying tax before discount yields different amount",
+      "required": true
+    }
+  ]
 }

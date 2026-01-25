@@ -30,5 +30,24 @@
     "must_not_contain": [
       "order_item.product.name"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "data_005_main",
+      "category": "data_integrity",
+      "keywords": [
+        "order_item.product.name",
+        "Product",
+        "name",
+        "change",
+        "affects",
+        "past",
+        "order",
+        "display"
+      ],
+      "severity_expected": "major",
+      "description": "Product name change affects past order display",
+      "required": true
+    }
+  ]
 }

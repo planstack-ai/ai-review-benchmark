@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "stock_001_main",
+      "category": "logic_error",
+      "keywords": [
+        "reserve_stock",
+        "on",
+        "add_to_cart",
+        "Stock",
+        "allocated",
+        "at",
+        "cart",
+        "addition"
+      ],
+      "severity_expected": "major",
+      "description": "Stock allocated at cart addition instead of payment confirmation",
+      "required": true
+    }
+  ]
 }

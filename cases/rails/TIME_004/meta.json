@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "time_004_main",
+      "category": "time_handling",
+      "keywords": [
+        "delivery_date",
+        "target_date",
+        "==",
+        "Time",
+        "truncation",
+        "causes",
+        "next",
+        "day"
+      ],
+      "severity_expected": "major",
+      "description": "Time truncation causes next-day treatment",
+      "required": true
+    }
+  ]
 }

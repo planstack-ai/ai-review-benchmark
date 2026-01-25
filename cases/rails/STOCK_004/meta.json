@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "stock_004_main",
+      "category": "logic_error",
+      "keywords": [
+        "available",
+        "total_stock",
+        "Reserved",
+        "stock",
+        "counted",
+        "as",
+        "double",
+        "counting"
+      ],
+      "severity_expected": "critical",
+      "description": "Reserved stock counted as available - double counting",
+      "required": true
+    }
+  ]
 }

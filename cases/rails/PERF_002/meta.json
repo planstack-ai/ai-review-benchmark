@@ -30,5 +30,24 @@
     "must_not_contain": [
       "Order.all.each { |o| process(o) }"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "perf_002_main",
+      "category": "performance",
+      "keywords": [
+        "Order.all.each",
+        "process(o)",
+        "Loading",
+        "all",
+        "orders",
+        "into",
+        "memory",
+        "Order.all"
+      ],
+      "severity_expected": "critical",
+      "description": "Loading all orders into memory - Order.all on 1M records",
+      "required": true
+    }
+  ]
 }

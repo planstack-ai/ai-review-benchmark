@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "state_005_main",
+      "category": "state_management",
+      "keywords": [
+        "partial_cancel",
+        "without",
+        "recalculation",
+        "Total",
+        "amount",
+        "wrong",
+        "after",
+        "partial"
+      ],
+      "severity_expected": "major",
+      "description": "Total amount wrong after partial item cancellation",
+      "required": true
+    }
+  ]
 }

@@ -30,5 +30,24 @@
     "must_not_contain": [
       "assume callback order"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_003_main",
+      "category": "logic_error",
+      "keywords": [
+        "assume",
+        "callback",
+        "order",
+        "before_save",
+        "affects",
+        "result",
+        "sanitize_content",
+        "extract_metadata"
+      ],
+      "severity_expected": "major",
+      "description": "before_save callback order affects result",
+      "required": true
+    }
+  ]
 }

@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "time_001_main",
+      "category": "time_handling",
+      "keywords": [
+        "created_at",
+        "Timezone",
+        "not",
+        "considered",
+        "UTC",
+        "saved",
+        "displayed",
+        "incorrectly"
+      ],
+      "severity_expected": "major",
+      "description": "Timezone not considered - UTC saved, displayed incorrectly as JST",
+      "required": true
+    }
+  ]
 }

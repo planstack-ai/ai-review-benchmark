@@ -30,5 +30,24 @@
     "must_not_contain": [
       "orders.includes(:items, :payments, :shipments, :user)"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "perf_003_main",
+      "category": "performance",
+      "keywords": [
+        "orders.includes(:items, :payments, :shipments, :user)",
+        "Eager",
+        "loading",
+        "unused",
+        "associations",
+        "wastes",
+        "resources",
+        "fetch_orders_with_associations"
+      ],
+      "severity_expected": "major",
+      "description": "Eager loading unused associations wastes resources",
+      "required": true
+    }
+  ]
 }

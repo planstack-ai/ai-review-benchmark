@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "notify_003_main",
+      "category": "notification",
+      "keywords": [
+        "send_confirmation",
+        "on",
+        "order_create",
+        "Order",
+        "complete",
+        "email",
+        "sent",
+        "before"
+      ],
+      "severity_expected": "major",
+      "description": "Order complete email sent before payment confirmation",
+      "required": true
+    }
+  ]
 }

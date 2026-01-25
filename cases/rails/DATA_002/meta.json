@@ -30,5 +30,24 @@
     "must_not_contain": [
       "validates :email, uniqueness: true (without DB constraint)"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "data_002_main",
+      "category": "data_integrity",
+      "keywords": [
+        "validates",
+        "email",
+        "uniqueness",
+        "true",
+        "without",
+        "DB",
+        "constraint",
+        "Unique"
+      ],
+      "severity_expected": "critical",
+      "description": "Unique constraint missing - duplicate emails allowed",
+      "required": true
+    }
+  ]
 }

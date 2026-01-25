@@ -30,5 +30,24 @@
     "must_not_contain": [
       "add_column :orders, :priority, :integer"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "data_006_main",
+      "category": "data_integrity",
+      "keywords": [
+        "add_column",
+        "orders",
+        "priority",
+        "integer",
+        "New",
+        "column",
+        "defaults",
+        "to"
+      ],
+      "severity_expected": "major",
+      "description": "New column defaults to NULL causing downstream errors",
+      "required": true
+    }
+  ]
 }

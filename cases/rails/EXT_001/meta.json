@@ -30,5 +30,24 @@
     "must_not_contain": [
       "rescue Timeout::Error => e; raise"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "ext_001_main",
+      "category": "external_api",
+      "keywords": [
+        "rescue",
+        "Timeout",
+        "Error",
+        "raise",
+        "=>",
+        "Payment",
+        "leaves",
+        "order"
+      ],
+      "severity_expected": "critical",
+      "description": "Payment timeout leaves order in unknown state",
+      "required": true
+    }
+  ]
 }

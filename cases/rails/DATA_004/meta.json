@@ -30,5 +30,24 @@
     "must_not_contain": [
       "no deleted_at filter"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "data_004_main",
+      "category": "data_integrity",
+      "keywords": [
+        "no",
+        "deleted_at",
+        "filter",
+        "Deleted",
+        "records",
+        "appear",
+        "in",
+        "search"
+      ],
+      "severity_expected": "major",
+      "description": "Deleted records appear in search results",
+      "required": true
+    }
+  ]
 }

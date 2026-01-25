@@ -30,5 +30,24 @@
     "must_not_contain": [
       "query without index"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "perf_005_main",
+      "category": "performance",
+      "keywords": [
+        "query",
+        "without",
+        "index",
+        "Search",
+        "condition",
+        "on",
+        "non",
+        "indexed"
+      ],
+      "severity_expected": "major",
+      "description": "Search condition on non-indexed column causes full scan",
+      "required": true
+    }
+  ]
 }

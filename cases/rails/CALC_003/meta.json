@@ -15,5 +15,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_003_main",
+      "category": "calculation_error",
+      "keywords": [
+        "items.sum",
+        "i.subtotal.round",
+        "Inconsistent",
+        "rounding",
+        "round",
+        "per",
+        "item",
+        "then"
+      ],
+      "severity_expected": "major",
+      "description": "Inconsistent rounding - round per item then sum vs sum then round yields different results",
+      "required": true
+    }
+  ]
 }

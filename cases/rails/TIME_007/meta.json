@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "time_007_main",
+      "category": "time_handling",
+      "keywords": [
+        "3.days.from_now",
+        "3.",
+        "Weekends",
+        "and",
+        "holidays",
+        "not",
+        "excluded",
+        "from"
+      ],
+      "severity_expected": "major",
+      "description": "Weekends and holidays not excluded from business days",
+      "required": true
+    }
+  ]
 }

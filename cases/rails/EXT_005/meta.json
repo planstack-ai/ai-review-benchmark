@@ -30,5 +30,24 @@
     "must_not_contain": [
       "available = local_stock"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "ext_005_main",
+      "category": "external_api",
+      "keywords": [
+        "available",
+        "local_stock",
+        "External",
+        "warehouse",
+        "stock",
+        "diff",
+        "not",
+        "considered"
+      ],
+      "severity_expected": "major",
+      "description": "External warehouse stock diff not considered",
+      "required": true
+    }
+  ]
 }

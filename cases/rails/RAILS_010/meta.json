@@ -30,5 +30,24 @@
     "must_not_contain": [
       "orders.includes(:items).where(items: { ... })"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_010_main",
+      "category": "logic_error",
+      "keywords": [
+        "orders.includes(:items)",
+        "where(items: { ... })",
+        "Wrong",
+        "eager",
+        "loading",
+        "method",
+        "generates",
+        "unexpected"
+      ],
+      "severity_expected": "major",
+      "description": "Wrong eager loading method generates unexpected query",
+      "required": true
+    }
+  ]
 }

@@ -30,5 +30,24 @@
     "must_not_contain": [
       "Rails.cache.fetch('orders')"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "perf_006_main",
+      "category": "performance",
+      "keywords": [
+        "Rails.cache.fetch('orders')",
+        "orders",
+        "Same",
+        "cache",
+        "key",
+        "for",
+        "all",
+        "users"
+      ],
+      "severity_expected": "major",
+      "description": "Same cache key for all users - cache collision",
+      "required": true
+    }
+  ]
 }

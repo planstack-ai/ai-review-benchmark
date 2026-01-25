@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "stock_006_main",
+      "category": "logic_error",
+      "keywords": [
+        "stock",
+        "cancelled_qty",
+        "Cancellation",
+        "processing",
+        "can",
+        "drive",
+        "negative",
+        "process_cancellation"
+      ],
+      "severity_expected": "major",
+      "description": "Cancellation processing can drive stock negative",
+      "required": true
+    }
+  ]
 }

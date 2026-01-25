@@ -30,5 +30,24 @@
     "must_not_contain": [
       "belongs_to :order without FK"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "data_001_main",
+      "category": "data_integrity",
+      "keywords": [
+        "belongs_to",
+        "order",
+        "without",
+        "FK",
+        "No",
+        "foreign",
+        "key",
+        "constraint"
+      ],
+      "severity_expected": "major",
+      "description": "No foreign key constraint - orphan records on parent delete",
+      "required": true
+    }
+  ]
 }

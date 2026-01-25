@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_009_main",
+      "category": "calculation_error",
+      "keywords": [
+        "subtotal",
+        "1000",
+        ">=",
+        "Minimum",
+        "check",
+        "on",
+        "pre",
+        "discount"
+      ],
+      "severity_expected": "major",
+      "description": "Minimum check on pre-discount amount instead of post-discount",
+      "required": true
+    }
+  ]
 }

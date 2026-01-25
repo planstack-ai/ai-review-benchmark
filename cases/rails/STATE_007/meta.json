@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "state_007_main",
+      "category": "state_management",
+      "keywords": [
+        "update(delivery_status: new_status)",
+        "Delivered",
+        "can",
+        "regress",
+        "to",
+        "shipping",
+        "status",
+        "valid_transition?"
+      ],
+      "severity_expected": "major",
+      "description": "Delivered can regress to shipping status",
+      "required": true
+    }
+  ]
 }

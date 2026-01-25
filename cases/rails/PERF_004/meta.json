@@ -30,5 +30,24 @@
     "must_not_contain": [
       "order.items.length"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "perf_004_main",
+      "category": "performance",
+      "keywords": [
+        "order.items.length",
+        "Loading",
+        "all",
+        "records",
+        "just",
+        "to",
+        "count",
+        "items.length"
+      ],
+      "severity_expected": "major",
+      "description": "Loading all records just to count - items.length vs items.count",
+      "required": true
+    }
+  ]
 }

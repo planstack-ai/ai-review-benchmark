@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_007_main",
+      "category": "calculation_error",
+      "keywords": [
+        "total",
+        "point_rate",
+        "Points",
+        "calculated",
+        "on",
+        "pre",
+        "discount",
+        "amount"
+      ],
+      "severity_expected": "major",
+      "description": "Points calculated on pre-discount amount instead of post-discount",
+      "required": true
+    }
+  ]
 }

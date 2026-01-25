@@ -30,5 +30,24 @@
     "must_not_contain": [
       "update without version check"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "data_003_main",
+      "category": "data_integrity",
+      "keywords": [
+        "update",
+        "without",
+        "version",
+        "check",
+        "No",
+        "optimistic",
+        "locking",
+        "last"
+      ],
+      "severity_expected": "major",
+      "description": "No optimistic locking - last write wins silently",
+      "required": true
+    }
+  ]
 }

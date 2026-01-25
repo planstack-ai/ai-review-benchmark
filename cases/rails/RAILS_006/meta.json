@@ -30,5 +30,24 @@
     "must_not_contain": [
       "params[:order]"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_006_main",
+      "category": "logic_error",
+      "keywords": [
+        "params",
+        "order",
+        "Strong",
+        "Parameters",
+        "missing",
+        "mass",
+        "assignment",
+        "vulnerability"
+      ],
+      "severity_expected": "critical",
+      "description": "Strong Parameters missing - mass assignment vulnerability",
+      "required": true
+    }
+  ]
 }

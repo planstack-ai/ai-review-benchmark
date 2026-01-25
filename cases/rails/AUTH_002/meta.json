@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "auth_002_main",
+      "category": "authorization",
+      "keywords": [
+        "Cart.find(params[:cart_id])",
+        "add_item(item)",
+        "Can",
+        "manipulate",
+        "other",
+        "user",
+        "cart",
+        "by"
+      ],
+      "severity_expected": "critical",
+      "description": "Can manipulate other user's cart by specifying cart_id",
+      "required": true
+    }
+  ]
 }

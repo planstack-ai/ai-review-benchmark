@@ -30,5 +30,24 @@
     "must_not_contain": [
       "process"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "ext_002_main",
+      "category": "external_api",
+      "keywords": [
+        "process",
+        "Same",
+        "webhook",
+        "processed",
+        "multiple",
+        "times",
+        "call",
+        "event_id"
+      ],
+      "severity_expected": "critical",
+      "description": "Same webhook processed multiple times",
+      "required": true
+    }
+  ]
 }

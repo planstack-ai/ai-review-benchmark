@@ -30,5 +30,24 @@
     "must_not_contain": [
       "order.items.each { |i| i.product.name }"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "perf_001_main",
+      "category": "performance",
+      "keywords": [
+        "order.items.each",
+        "i.product.name",
+        "query",
+        "on",
+        "order",
+        "items",
+        "accessing",
+        "product"
+      ],
+      "severity_expected": "major",
+      "description": "N+1 query on order items accessing product names",
+      "required": true
+    }
+  ]
 }

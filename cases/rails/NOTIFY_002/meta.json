@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "notify_002_main",
+      "category": "notification",
+      "keywords": [
+        "rescue",
+        "logger.error(e)",
+        "=>",
+        "Background",
+        "job",
+        "fails",
+        "silently",
+        "user"
+      ],
+      "severity_expected": "major",
+      "description": "Background job fails silently - user not notified",
+      "required": true
+    }
+  ]
 }

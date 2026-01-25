@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "time_008_main",
+      "category": "time_handling",
+      "keywords": [
+        "validates",
+        "delivery_date",
+        "presence",
+        "true",
+        "Past",
+        "delivery",
+        "dates",
+        "accepted"
+      ],
+      "severity_expected": "major",
+      "description": "Past delivery dates accepted",
+      "required": true
+    }
+  ]
 }

@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_004_main",
+      "category": "calculation_error",
+      "keywords": [
+        "0.1",
+        "0.2",
+        "Floating",
+        "point",
+        "precision",
+        "error",
+        "0.3",
+        "problem"
+      ],
+      "severity_expected": "major",
+      "description": "Floating point precision error - 0.1 + 0.2 != 0.3 problem",
+      "required": true
+    }
+  ]
 }

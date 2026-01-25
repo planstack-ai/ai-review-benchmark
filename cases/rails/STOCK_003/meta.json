@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "stock_003_main",
+      "category": "logic_error",
+      "keywords": [
+        "skip",
+        "stock",
+        "validation",
+        "at",
+        "checkout",
+        "Cart",
+        "quantity",
+        "not"
+      ],
+      "severity_expected": "major",
+      "description": "Cart quantity not revalidated - stock may deplete while cart abandoned",
+      "required": true
+    }
+  ]
 }

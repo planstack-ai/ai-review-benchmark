@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": false,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "auth_004_main",
+      "category": "authorization",
+      "keywords": [
+        "update_price",
+        "Regular",
+        "users",
+        "can",
+        "change",
+        "prices",
+        "admin",
+        "check"
+      ],
+      "severity_expected": "critical",
+      "description": "Regular users can change prices - admin check missing",
+      "required": true
+    }
+  ]
 }

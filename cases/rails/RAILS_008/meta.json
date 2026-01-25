@@ -30,5 +30,24 @@
     "must_not_contain": [
       "orders.update_all(status: 'archived')"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_008_main",
+      "category": "logic_error",
+      "keywords": [
+        "orders.update_all(status: 'archived')",
+        "archived",
+        "update_all",
+        "skips",
+        "callbacks",
+        "and",
+        "validations",
+        "archive_orders"
+      ],
+      "severity_expected": "major",
+      "description": "update_all skips callbacks and validations",
+      "required": true
+    }
+  ]
 }

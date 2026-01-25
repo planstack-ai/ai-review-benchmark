@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "auth_005_main",
+      "category": "authorization",
+      "keywords": [
+        "member_price",
+        "Guest",
+        "users",
+        "getting",
+        "member",
+        "pricing",
+        "membership",
+        "check"
+      ],
+      "severity_expected": "major",
+      "description": "Guest users getting member pricing - membership check hole",
+      "required": true
+    }
+  ]
 }

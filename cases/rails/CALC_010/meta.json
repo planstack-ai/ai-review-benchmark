@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_010_main",
+      "category": "calculation_error",
+      "keywords": [
+        "unit_price",
+        "quantity",
+        "Integer",
+        "overflow",
+        "on",
+        "for",
+        "large",
+        "orders"
+      ],
+      "severity_expected": "critical",
+      "description": "Integer overflow on unit_price * quantity for large orders",
+      "required": true
+    }
+  ]
 }

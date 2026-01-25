@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "auth_006_main",
+      "category": "authorization",
+      "keywords": [
+        "User.find(params[:user_id])",
+        "points",
+        "Can",
+        "access",
+        "other",
+        "user",
+        "via",
+        "API"
+      ],
+      "severity_expected": "major",
+      "description": "Can access other user's points via API",
+      "required": true
+    }
+  ]
 }

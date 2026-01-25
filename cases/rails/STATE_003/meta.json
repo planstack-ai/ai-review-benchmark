@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "state_003_main",
+      "category": "state_management",
+      "keywords": [
+        "process_payment",
+        "Payment",
+        "accepted",
+        "after",
+        "order",
+        "expiration",
+        "time",
+        "expired?"
+      ],
+      "severity_expected": "critical",
+      "description": "Payment accepted after order expiration time",
+      "required": true
+    }
+  ]
 }

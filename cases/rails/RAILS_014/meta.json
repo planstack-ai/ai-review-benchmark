@@ -15,5 +15,24 @@
     "scope",
     "active_record",
     "query"
+  ],
+  "must_find": [
+    {
+      "id": "rails_014_main",
+      "category": "logic_error",
+      "keywords": [
+        "Product.unscoped.featured",
+        "Using",
+        "unscoped.featured",
+        "does",
+        "not",
+        "fully",
+        "remove",
+        "default_scope"
+      ],
+      "severity_expected": "major",
+      "description": "Using unscoped.featured does not fully remove default_scope. Named scopes defined on models with default_scope may still apply the default conditions internally, causing inactive products to be filtered out even when using unscoped.",
+      "required": true
+    }
   ]
 }

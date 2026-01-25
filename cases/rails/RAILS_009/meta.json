@@ -30,5 +30,24 @@
     "must_not_contain": [
       "Order.select(:id, :total).map { |o| [o.id, o.total] }"
     ]
-  }
+  },
+  "must_find": [
+    {
+      "id": "rails_009_main",
+      "category": "logic_error",
+      "keywords": [
+        "Order.select(:id, :total)",
+        "map",
+        "o.id",
+        "o.total",
+        "select",
+        "loads",
+        "full",
+        "objects"
+      ],
+      "severity_expected": "major",
+      "description": "select loads full objects when only attributes needed",
+      "required": true
+    }
+  ]
 }

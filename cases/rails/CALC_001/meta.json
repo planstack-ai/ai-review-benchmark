@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "calc_001_main",
+      "category": "calculation_error",
+      "keywords": [
+        "total",
+        "0.1",
+        "Discount",
+        "rate",
+        "direction",
+        "wrong",
+        "becomes",
+        "90"
+      ],
+      "severity_expected": "critical",
+      "description": "Discount rate direction wrong, becomes 90% off",
+      "required": true
+    }
+  ]
 }

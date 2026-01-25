@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "stock_008_main",
+      "category": "logic_error",
+      "keywords": [
+        "components.sum(&:stock)",
+        "Bundle",
+        "stock",
+        "not",
+        "calculated",
+        "as",
+        "minimum",
+        "of"
+      ],
+      "severity_expected": "major",
+      "description": "Bundle stock not calculated as minimum of components",
+      "required": true
+    }
+  ]
 }

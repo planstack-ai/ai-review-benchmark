@@ -15,5 +15,24 @@
     "pessimistic_lock",
     "race_condition",
     "concurrency"
+  ],
+  "must_find": [
+    {
+      "id": "rails_013_main",
+      "category": "logic_error",
+      "keywords": [
+        "from_account",
+        "Account.find(from_account_id)",
+        "to_account",
+        "Account.find(to_account_id)",
+        "Balance",
+        "transfer",
+        "without",
+        "pessimistic"
+      ],
+      "severity_expected": "critical",
+      "description": "Balance transfer without pessimistic locking (lock/select_for_update) allows concurrent transfers to read stale balance values, causing race conditions that can result in negative balances or lost updates.",
+      "required": true
+    }
   ]
 }

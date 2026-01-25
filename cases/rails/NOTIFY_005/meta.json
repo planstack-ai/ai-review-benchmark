@@ -16,5 +16,24 @@
   ],
   "bug_anchor_verified": true,
   "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "has_expected_critique": true,
+  "must_find": [
+    {
+      "id": "notify_005_main",
+      "category": "notification",
+      "keywords": [
+        "OrderMailer.confirmation(user)",
+        "deliver_later",
+        "Email",
+        "sent",
+        "to",
+        "wrong",
+        "user",
+        "due"
+      ],
+      "severity_expected": "critical",
+      "description": "Email sent to wrong user due to variable scope",
+      "required": true
+    }
+  ]
 }

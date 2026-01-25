@@ -15,5 +15,24 @@
     "external_api",
     "deadlock",
     "performance"
+  ],
+  "must_find": [
+    {
+      "id": "rails_012_main",
+      "category": "logic_error",
+      "keywords": [
+        "ActiveRecord",
+        "Base.transaction",
+        "do",
+        "order.update",
+        "status",
+        "processing",
+        "result",
+        "PaymentGateway.charge"
+      ],
+      "severity_expected": "critical",
+      "description": "External API call (PaymentGateway.charge) inside transaction holds database locks during network I/O. On timeout or retry, locks are held for extended periods causing deadlocks and connection pool exhaustion.",
+      "required": true
+    }
   ]
 }
