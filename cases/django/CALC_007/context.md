@@ -63,18 +63,19 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
     class Meta:
-        db_table = 'orders'
         ordering = ['-created_at']
-
+    
     @property
     def final_amount(self) -> Decimal:
-        """Calculate the final amount after applying discount."""
+        """Amount after applying discount"""
         return max(self.total_amount - self.discount_amount, Decimal('0.00'))
-
-    def __str__(self) -> str:
-        return f"Order #{self.id} - {self.user.username} - ${self.final_amount}"
+    
+    def mark_as_paid(self) -> None:
+        """Mark order as paid and trigger point calculation"""
+        self.status = 'paid'
+        self.save(update_fields=['status', 'updated_at'])
 
 
 class UserPointsManager(models.Manager):
@@ -83,19 +84,18 @@ class UserPointsManager(models.Manager):
 
 
 class UserPoints(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='points_account')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='points')
     total_points = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
     objects = UserPointsManager()
-
+    
     class Meta:
-        db_table = 'user_points'
-        verbose_name_plural = 'User Points'
-
+        verbose_name_plural = "User points"
+    
     def add_points(self, points: int, order: Order = None) -> 'PointTransaction':
-        """Add points to user account and create transaction record."""
+        """Add points and create transaction record"""
         self.total_points += points
         self.save(update_fields=['total_points', 'updated_at'])
         
@@ -106,30 +106,23 @@ class UserPoints(models.Model):
             transaction_type='earned'
         )
 
-    def __str__(self) -> str:
-        return f"{self.user.username}: {self.total_points} points"
-
 
 class PointTransaction(models.Model):
     TRANSACTION_TYPES = [
-        ('earned', 'Points Earned'),
-        ('redeemed', 'Points Redeemed'),
-        ('expired', 'Points Expired'),
-        ('refunded', 'Points Refunded'),
+        ('earned', 'Earned'),
+        ('redeemed', 'Redeemed'),
+        ('expired', 'Expired'),
+        ('refunded', 'Refunded'),
     ]
-
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='point_transactions')
     order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True)
     points = models.IntegerField()
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
     class Meta:
-        db_table = 'point_transactions'
         ordering = ['-created_at']
-
-    def __str__(self) -> str:
-        return f"{self.user.username}: {self.points} points ({self.transaction_type})"
 
 
 # Constants

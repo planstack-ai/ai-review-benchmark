@@ -76,9 +76,6 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    BULK_QUANTITY_THRESHOLD = 100
-    MAX_SAFE_QUANTITY = 999999
-    
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     product_id = models.BigIntegerField()
     quantity = models.PositiveIntegerField(
@@ -93,13 +90,17 @@ class OrderItem(models.Model):
     
     class Meta:
         db_table = 'orders_orderitem'
-        indexes = [
-            models.Index(fields=['order']),
-        ]
     
-    def get_line_total(self) -> Decimal:
-        return Decimal(str(self.quantity)) * self.unit_price
+    @property
+    def line_total(self) -> Decimal:
+        return self.quantity * self.unit_price
     
-    def is_bulk_item(self) -> bool:
-        return self.quantity >= self.BULK_QUANTITY_THRESHOLD
+    def __str__(self) -> str:
+        return f"Order {self.order_id} - Product {self.product_id} x{self.quantity}"
+
+
+# Constants
+MAX_SAFE_INTEGER = 2**53 - 1
+BULK_ORDER_THRESHOLD = 100
+DECIMAL_PRECISION = 2
 ```

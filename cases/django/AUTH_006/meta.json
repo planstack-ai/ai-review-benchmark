@@ -1,0 +1,21 @@
+{
+  "case_id": "AUTH_006",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "access_other_points",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Can access other user's points via API",
+  "bug_anchor": "User.objects.get(pk=user_id).points",
+  "correct_implementation": "request.user.points",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "points",
+    "api"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

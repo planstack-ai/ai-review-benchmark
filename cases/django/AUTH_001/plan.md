@@ -18,12 +18,12 @@ An e-commerce platform requires strict access control for customer orders. Each 
 ## Constraints
 
 1. Order IDs may be sequential or predictable, requiring ownership validation
-2. Users cannot access orders through URL manipulation or direct ID guessing
+2. Users cannot access orders through direct URL manipulation
 3. Administrative users may have different access rules but regular users are strictly limited
 4. Order access must work consistently across all order-related views and endpoints
-5. The system must handle edge cases where orders exist but belong to different users
-6. Performance considerations must not compromise security by bypassing ownership checks
+5. The system must handle edge cases where orders might be transferred between users
+6. Performance considerations must not compromise security validation
 
 ## References
 
-See context.md for existing Django model structures, view patterns, and authentication implementations that should be leveraged for this feature.
+See context.md for existing Django model structures, view implementations, and URL patterns that should be leveraged for this authorization system.

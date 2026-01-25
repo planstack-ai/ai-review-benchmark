@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_005",
+  "category": "false_positive",
+  "axis": null,
+  "name": "intentional_update_bulk",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Intentional bulk_update for performance",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "bulk_update",
+    "intentional"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

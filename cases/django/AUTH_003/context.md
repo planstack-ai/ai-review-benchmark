@@ -51,82 +51,77 @@ class UserManager(models.Manager):
 
 
 class User(AbstractUser):
-    email = models.EmailField(unique=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_at: Optional[timezone.datetime] = models.DateTimeField(null=True, blank=True)
     
     objects = UserManager()
     
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    class Meta:
+        db_table = 'users_user'
+    
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
     
     def soft_delete(self) -> None:
         self.deleted_at = timezone.now()
         self.is_active = False
         self.save(update_fields=['deleted_at', 'is_active'])
-    
-    @property
-    def is_deleted(self) -> bool:
-        return self.deleted_at is not None
 
 
 class OrderQuerySet(models.QuerySet):
-    def with_user_data(self):
-        return self.select_related('user')
+    def with_active_users(self):
+        return self.select_related('user').filter(
+            user__is_active=True,
+            user__deleted_at__isnull=True
+        )
     
-    def for_active_users(self):
-        return self.filter(user__is_active=True, user__deleted_at__isnull=True)
+    def for_user(self, user: User):
+        return self.filter(user=user)
     
     def completed(self):
         return self.filter(status='completed')
-    
-    def pending(self):
-        return self.filter(status='pending')
 
 
 class OrderManager(models.Manager):
     def get_queryset(self):
         return OrderQuerySet(self.model, using=self._db)
     
-    def with_user_data(self):
-        return self.get_queryset().with_user_data()
-    
-    def for_active_users(self):
-        return self.get_queryset().for_active_users()
+    def with_active_users(self):
+        return self.get_queryset().with_active_users()
 
 
 class Order(models.Model):
-    ORDER_STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('processing', 'Processing'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
-    ]
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        PROCESSING = 'processing', 'Processing'
+        COMPLETED = 'completed', 'Completed'
+        CANCELLED = 'cancelled', 'Cancelled'
     
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
-    order_number = models.CharField(max_length=50, unique=True)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='pending')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    user: User = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
+    order_number: str = models.CharField(max_length=50, unique=True)
+    total_amount: Decimal = models.DecimalField(max_digits=10, decimal_places=2)
+    status: str = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    created_at: timezone.datetime = models.DateTimeField(auto_now_add=True)
+    updated_at: timezone.datetime = models.DateTimeField(auto_now=True)
     
     objects = OrderManager()
     
     class Meta:
+        db_table = 'orders_order'
         ordering = ['-created_at']
     
     def __str__(self) -> str:
         return f"Order {self.order_number}"
-    
-    @property
-    def customer_email(self) -> Optional[str]:
-        return self.user.email if self.user else None
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product_name = models.CharField(max_length=255)
-    quantity = models.PositiveIntegerField()
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    order: Order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product_name: str = models.CharField(max_length=255)
+    quantity: int = models.PositiveIntegerField()
+    unit_price: Decimal = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    class Meta:
+        db_table = 'orders_orderitem'
     
     @property
     def total_price(self) -> Decimal:

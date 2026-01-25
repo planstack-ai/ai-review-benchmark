@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_002",
+  "category": "false_positive",
+  "axis": null,
+  "name": "standard_model_validation",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "validators, clean methods, field constraints",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "validation",
+    "baseline"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

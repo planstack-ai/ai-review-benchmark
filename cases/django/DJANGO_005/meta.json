@@ -1,0 +1,21 @@
+{
+  "case_id": "DJANGO_005",
+  "category": "django",
+  "axis": "implicit_knowledge",
+  "name": "task_outside_on_commit",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Task queued inside transaction - runs even on rollback",
+  "bug_anchor": "send_email_task.delay(order.id)",
+  "correct_implementation": "transaction.on_commit(lambda: send_email_task.delay(order.id))",
+  "severity": "critical",
+  "tags": [
+    "django",
+    "signal",
+    "transaction"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

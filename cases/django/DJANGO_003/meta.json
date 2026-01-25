@@ -1,0 +1,21 @@
+{
+  "case_id": "DJANGO_003",
+  "category": "django",
+  "axis": "implicit_knowledge",
+  "name": "update_skips_save_hooks",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "QuerySet.update() skips save() hooks and signals",
+  "bug_anchor": "orders.update(status='archived')",
+  "correct_implementation": "for order in orders: order.status = 'archived'; order.save()",
+  "severity": "high",
+  "tags": [
+    "django",
+    "orm",
+    "hooks"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

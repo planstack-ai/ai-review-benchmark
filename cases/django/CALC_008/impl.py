@@ -57,23 +57,27 @@ class CouponService:
                 f"Order amount must be at least ${coupon.minimum_order_amount}"
             )
         
-        if coupon.user_specific and coupon.eligible_user != order.user:
+        if coupon.user_specific and coupon.allowed_user != order.user:
             raise ValidationError("This coupon is not valid for your account")
         
-        if self._has_user_exceeded_coupon_limit(order.user, coupon):
-            raise ValidationError("You have already used this coupon")
+        existing_usage = CouponUsage.objects.filter(
+            user=order.user,
+            coupon=coupon
+        ).count()
+        
+        if existing_usage >= coupon.max_uses_per_user:
+            raise ValidationError("You have already used this coupon the maximum number of times")
     
     def _calculate_discount(self, order: Order, coupon: Coupon) -> Decimal:
         """Calculate the discount amount based on coupon type."""
         if coupon.discount_type == 'percentage':
             discount = (order.total_amount * coupon.discount_value) / Decimal('100')
-            max_discount = (order.total_amount * self.max_discount_percentage) / Decimal('100')
-            return min(discount, max_discount, coupon.max_discount_amount or discount)
+            if coupon.max_discount_amount:
+                discount = min(discount, coupon.max_discount_amount)
+        else:
+            discount = min(coupon.discount_value, order.total_amount)
         
-        elif coupon.discount_type == 'fixed':
-            return min(coupon.discount_value, order.total_amount - self.min_order_amount)
-        
-        return Decimal('0.00')
+        return discount.quantize(Decimal('0.01'))
     
     def _apply_coupon(self, order: Order, coupon: Coupon, discount_amount: Decimal) -> None:
         """Apply the coupon discount to the order."""
@@ -85,17 +89,33 @@ class CouponService:
     def _create_coupon_usage_record(self, order: Order, coupon: Coupon) -> None:
         """Create a record of coupon usage for tracking purposes."""
         CouponUsage.objects.create(
+            user=order.user,
             coupon=coupon,
             order=order,
-            user=order.user,
             discount_applied=order.discount_amount
         )
     
-    def _has_user_exceeded_coupon_limit(self, user, coupon: Coupon) -> bool:
-        """Check if user has already used this coupon beyond allowed limit."""
-        usage_count = CouponUsage.objects.filter(
-            user=user,
-            coupon=coupon
-        ).count()
+    def remove_coupon_from_order(self, order: Order, coupon_code: str) -> bool:
+        """Remove a previously applied coupon from an order."""
+        try:
+            coupon = Coupon.objects.get(code=coupon_code.upper())
+            if coupon in order.applied_coupons.all():
+                with transaction.atomic():
+                    order.applied_coupons.remove(coupon)
+                    self._recalculate_order_total(order)
+                return True
+        except Coupon.DoesNotExist:
+            pass
+        return False
+    
+    def _recalculate_order_total(self, order: Order) -> None:
+        """Recalculate order total after coupon removal."""
+        order.discount_amount = Decimal('0.00')
+        order.total_amount = order.subtotal_amount
         
-        return usage_count >= coupon.max_uses_per_user
+        for coupon in order.applied_coupons.all():
+            discount = self._calculate_discount(order, coupon)
+            order.discount_amount += discount
+            order.total_amount -= discount
+        
+        order.save()

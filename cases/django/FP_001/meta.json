@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_001",
+  "category": "false_positive",
+  "axis": null,
+  "name": "standard_crud",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Standard class-based views",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "crud",
+    "baseline"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

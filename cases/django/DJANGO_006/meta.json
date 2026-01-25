@@ -1,0 +1,21 @@
+{
+  "case_id": "DJANGO_006",
+  "category": "django",
+  "axis": "implicit_knowledge",
+  "name": "missing_login_required",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "View accessible without login - missing @login_required",
+  "bug_anchor": "# no decorator",
+  "correct_implementation": "@login_required",
+  "severity": "critical",
+  "tags": [
+    "django",
+    "security",
+    "authentication"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": false
+}

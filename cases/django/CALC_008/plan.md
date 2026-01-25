@@ -2,30 +2,30 @@
 
 ## Overview
 
-This feature implements a coupon system for an e-commerce platform where customers can apply discount coupons to their orders. The system must enforce business rules around coupon usage to prevent abuse while providing a smooth user experience. The core business requirement is to allow only one coupon per order to maintain pricing integrity and prevent excessive discounting.
+This feature implements a coupon system for an e-commerce platform where customers can apply discount coupons to their orders. The system must enforce business rules around coupon usage to prevent abuse while providing a smooth customer experience. The core business requirement is to allow only one coupon per order to maintain pricing integrity and prevent excessive discounting.
 
 ## Requirements
 
-1. The system shall allow only one coupon to be applied per order at any given time
-2. When a customer attempts to apply a new coupon, any previously applied coupon must be automatically removed from the order
-3. The system shall validate that the coupon exists and is currently active before applying it
-4. The system shall calculate and apply the appropriate discount amount based on the coupon's discount type and value
-5. The order total must be recalculated immediately after coupon application or removal
-6. The system shall provide clear feedback to the user about successful coupon application
-7. The system shall handle coupon removal functionality when explicitly requested by the user
-8. All coupon operations must update the order's coupon relationship in the database
-9. The system shall prevent application of expired or inactive coupons
-10. Discount calculations must not result in negative order totals
+1. The system shall allow customers to apply exactly one coupon per order
+2. When a customer attempts to apply a coupon, the system shall validate that no other coupon is currently applied to the order
+3. If a coupon is already applied and the customer attempts to apply a different coupon, the system shall replace the existing coupon with the new one
+4. The system shall calculate and apply the discount amount based on the active coupon's discount rules
+5. The system shall update the order total to reflect the coupon discount
+6. The system shall provide clear feedback to the customer about coupon application success or failure
+7. The system shall maintain an audit trail of coupon applications and removals for each order
+8. The system shall validate coupon eligibility before application (expiration date, usage limits, minimum order requirements)
 
 ## Constraints
 
-1. Coupon codes must be case-insensitive when matching
-2. Only active coupons (where is_active=True) can be applied
-3. Coupons must not be expired (current date must be within valid date range)
-4. The final order total after discount application cannot be less than zero
-5. Coupon application must be atomic - either fully successful or no changes made
-6. The system must handle cases where the coupon table is empty or coupon doesn't exist
+1. Only active, non-expired coupons may be applied to orders
+2. Coupons cannot be applied to orders that have already been completed or shipped
+3. The discount amount cannot exceed the order subtotal
+4. Percentage-based coupons must be calculated against the order subtotal before taxes
+5. Fixed-amount coupons must be applied as absolute values in the order currency
+6. The system must handle concurrent coupon applications gracefully to prevent race conditions
+7. Coupon codes are case-insensitive for user convenience
+8. Each coupon can only be used once per customer if it has single-use restrictions
 
 ## References
 
-See context.md for existing model definitions, view implementations, and related code structure that this feature builds upon.
+See context.md for existing model definitions, database schema, and related implementation patterns used in the current codebase.

@@ -1,0 +1,21 @@
+{
+  "case_id": "DJANGO_004",
+  "category": "django",
+  "axis": "implicit_knowledge",
+  "name": "signal_fires_unconditionally",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "post_save signal fires on update - missing created check",
+  "bug_anchor": "send_welcome_email(instance)",
+  "correct_implementation": "if created: send_welcome_email(instance)",
+  "severity": "high",
+  "tags": [
+    "django",
+    "signal",
+    "conditional"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

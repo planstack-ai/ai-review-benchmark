@@ -1,0 +1,21 @@
+{
+  "case_id": "DJANGO_007",
+  "category": "django",
+  "axis": "implicit_knowledge",
+  "name": "raw_sql_injection",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "SQL injection via f-string in raw query",
+  "bug_anchor": "cursor.execute(f'SELECT * FROM orders WHERE id = {order_id}')",
+  "correct_implementation": "cursor.execute('SELECT * FROM orders WHERE id = %s', [order_id])",
+  "severity": "critical",
+  "tags": [
+    "django",
+    "security",
+    "sql_injection"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

@@ -18,13 +18,12 @@ This system implements minimum order amount validation for an e-commerce platfor
 ## Constraints
 
 1. The minimum order amount of 1000 yen is a fixed business rule and should not be configurable
-2. Validation must handle edge cases including zero-value items and negative discount amounts
-3. The system must prevent circumvention of the minimum order requirement through manipulation of discount calculations
-4. Orders with a discounted total of exactly 1000 yen must be accepted as valid
-5. The validation must be atomic - either the entire order meets requirements or the entire order is rejected
-6. Free shipping offers and shipping discounts must not count toward meeting the minimum order amount
-7. Gift card applications and store credit usage must be treated as payment methods, not discounts, for minimum amount calculations
+2. Validation must handle edge cases such as orders with zero or negative totals after excessive discounts
+3. The system must prevent circumvention of the minimum order requirement through order splitting or manipulation
+4. Free shipping offers or shipping discounts must not count toward meeting the minimum order amount
+5. Gift cards and store credit applications occur after minimum order validation
+6. Partial payments or installment plans must still meet the minimum order requirement for the total order value
 
 ## References
 
-See context.md for existing discount calculation implementations and order processing workflows that this minimum order amount validation must integrate with.
+See context.md for existing discount calculation implementations and order processing workflow details.

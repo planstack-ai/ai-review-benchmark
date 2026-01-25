@@ -1,0 +1,21 @@
+{
+  "case_id": "DJANGO_002",
+  "category": "django",
+  "axis": "implicit_knowledge",
+  "name": "select_related_vs_prefetch",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Wrong eager loading method - select_related for reverse FK or M2M",
+  "bug_anchor": "Order.objects.select_related('items')",
+  "correct_implementation": "Order.objects.prefetch_related('items')",
+  "severity": "high",
+  "tags": [
+    "django",
+    "orm",
+    "performance"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

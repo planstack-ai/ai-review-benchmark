@@ -31,7 +31,7 @@ class OrderCalculationService:
     
     def _calculate_subtotal(self, items: List[OrderItem]) -> Decimal:
         """Calculate subtotal by summing all item costs."""
-        return sum(item.subtotal.quantize(Decimal('0.01')) for item in items)
+        return sum(item.subtotal.quantize(self.precision) for item in items)
     
     def _calculate_tax(self, subtotal: Decimal) -> Decimal:
         """Calculate tax amount based on subtotal."""
@@ -44,33 +44,35 @@ class OrderCalculationService:
             return Decimal('0.00')
         return self.STANDARD_SHIPPING
     
-    def update_order_totals(self, order: Order) -> Order:
-        """Update order with calculated totals and save."""
-        with transaction.atomic():
-            order.subtotal = self._calculate_subtotal(order.items.all())
-            order.tax_amount = self._calculate_tax(order.subtotal)
-            order.shipping_cost = self._calculate_shipping(order.subtotal)
-            order.total = order.subtotal + order.tax_amount + order.shipping_cost
-            order.save()
+    def update_item_subtotal(self, item: OrderItem) -> None:
+        """Update individual item subtotal based on quantity and price."""
+        if item.quantity <= 0:
+            raise ValidationError("Item quantity must be positive")
+        
+        base_cost = item.product.price * item.quantity
+        discount_amount = self._calculate_item_discount(item)
+        item.subtotal = base_cost - discount_amount
+        item.save()
+    
+    def _calculate_item_discount(self, item: OrderItem) -> Decimal:
+        """Calculate discount for individual item based on quantity."""
+        if item.quantity >= 10:
+            return item.product.price * item.quantity * Decimal('0.05')
+        elif item.quantity >= 5:
+            return item.product.price * item.quantity * Decimal('0.02')
+        return Decimal('0.00')
+    
+    @transaction.atomic
+    def recalculate_order(self, order: Order) -> Order:
+        """Recalculate entire order including all items and totals."""
+        for item in order.items.all():
+            self.update_item_subtotal(item)
+        
+        order.total = self.calculate_order_total(order)
+        order.save()
         return order
     
     def validate_order_pricing(self, order: Order) -> bool:
         """Validate that order pricing is consistent and accurate."""
         calculated_total = self.calculate_order_total(order)
-        stored_total = order.total.quantize(self.precision) if order.total else Decimal('0.00')
-        
-        return calculated_total == stored_total
-    
-    def apply_discount(self, order: Order, discount_percent: Decimal) -> Decimal:
-        """Apply percentage discount to order and return new total."""
-        if not (Decimal('0') <= discount_percent <= Decimal('100')):
-            raise ValidationError("Discount percent must be between 0 and 100")
-        
-        original_subtotal = self._calculate_subtotal(order.items.all())
-        discount_multiplier = (Decimal('100') - discount_percent) / Decimal('100')
-        discounted_subtotal = original_subtotal * discount_multiplier
-        
-        tax_amount = self._calculate_tax(discounted_subtotal)
-        shipping_cost = self._calculate_shipping(discounted_subtotal)
-        
-        return (discounted_subtotal + tax_amount + shipping_cost).quantize(self.precision)
+        return abs(order.total - calculated_total) < Decimal('0.01')

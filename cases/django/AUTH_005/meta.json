@@ -1,0 +1,21 @@
+{
+  "case_id": "AUTH_005",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "guest_member_pricing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Guest users getting member pricing - membership check hole",
+  "bug_anchor": "member_price",
+  "correct_implementation": "member_price if request.user.is_authenticated and request.user.is_member else regular_price",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "membership",
+    "pricing"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

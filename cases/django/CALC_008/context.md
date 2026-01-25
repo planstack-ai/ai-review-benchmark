@@ -95,22 +95,6 @@ class Coupon(models.Model):
             discount = min(discount, self.max_discount_amount)
         
         return min(discount, order_amount)
-    
-    def is_valid_for_order(self, order_amount: Decimal) -> bool:
-        if not self.is_active:
-            return False
-        
-        now = timezone.now()
-        if not (self.valid_from <= now <= self.valid_until):
-            return False
-        
-        if self.usage_limit and self.used_count >= self.usage_limit:
-            return False
-        
-        if self.min_order_amount and order_amount < self.min_order_amount:
-            return False
-        
-        return True
 
 
 class Order(models.Model):
@@ -130,13 +114,15 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    def recalculate_total(self) -> None:
-        self.total = self.subtotal - self.discount_amount
-        self.save(update_fields=['total'])
+    def calculate_total(self) -> Decimal:
+        return max(self.subtotal - self.discount_amount, Decimal('0.00'))
+    
+    def has_coupon_applied(self) -> bool:
+        return self.ordercoupon_set.exists()
 
 
 class OrderCoupon(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='applied_coupons')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
     coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
     discount_applied = models.DecimalField(max_digits=10, decimal_places=2)
     applied_at = models.DateTimeField(auto_now_add=True)

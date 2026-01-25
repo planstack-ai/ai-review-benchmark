@@ -54,7 +54,7 @@ class User(AbstractUser):
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
     
     class Meta:
         verbose_name_plural = "categories"
@@ -105,6 +105,7 @@ class Product(models.Model):
         permissions = [
             ('change_product_price', 'Can change product price'),
         ]
+        ordering = ['-created_at']
     
     def __str__(self) -> str:
         return self.name

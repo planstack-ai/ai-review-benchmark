@@ -1,0 +1,21 @@
+{
+  "case_id": "DJANGO_001",
+  "category": "django",
+  "axis": "implicit_knowledge",
+  "name": "queryset_method_not_used",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "QuerySet method not used - reimplementing filter logic everywhere",
+  "bug_anchor": "Product.objects.filter(is_active=True, deleted_at__isnull=True)",
+  "correct_implementation": "Product.objects.active()",
+  "severity": "medium",
+  "tags": [
+    "django",
+    "orm",
+    "dry"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}
