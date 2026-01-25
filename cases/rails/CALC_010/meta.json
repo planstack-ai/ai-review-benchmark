@@ -14,5 +14,7 @@
     "overflow",
     "bulk"
   ],
-  "bug_anchor_verified": true
+  "bug_anchor_verified": true,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
 }

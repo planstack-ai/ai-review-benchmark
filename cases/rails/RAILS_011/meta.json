@@ -19,5 +19,6 @@
   "bug_anchor_verified": true,
   "has_diff": true,
   "has_rubric": true,
-  "evaluation_mode": "rubric"
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
 }

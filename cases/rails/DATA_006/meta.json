@@ -14,5 +14,7 @@
     "default",
     "null"
   ],
-  "bug_anchor_verified": false
+  "bug_anchor_verified": false,
+  "evaluation_mode": "semantic",
+  "has_expected_critique": true
 }

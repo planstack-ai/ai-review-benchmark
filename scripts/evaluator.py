@@ -69,6 +69,91 @@ AIレビュアーの出力を評価し、正解と比較してください。
 """
 
 
+# Semantic Judge Prompt for bug cases
+SEMANTIC_JUDGE_PROMPT_TEMPLATE = """You are an expert judge evaluating AI code review quality.
+
+## Your Task
+Compare the AI Reviewer's output against the Expected Critique (Ground Truth) and determine if the AI captured the essential finding.
+
+## Expected Critique (Ground Truth)
+{expected_critique}
+
+## AI Reviewer's Output
+```json
+{review_result}
+```
+
+## Evaluation Criteria
+
+### Primary Question: Did the AI identify the essential finding?
+Score the AI's detection on this scale:
+- **5 (Excellent)**: Correctly identifies the exact issue with accurate technical explanation
+- **4 (Good)**: Identifies the issue but with minor inaccuracies or less precise explanation
+- **3 (Acceptable)**: Identifies the issue partially or describes symptoms without root cause
+- **2 (Weak)**: Mentions something related but misses the core problem
+- **1 (Failed)**: Does not identify the issue or identifies wrong issues
+
+### Secondary Criteria:
+- **Severity Alignment**: Does the AI's severity rating match the expected severity?
+- **Suggestion Quality**: Is the suggested fix correct and actionable?
+- **Noise Level**: How many irrelevant/incorrect issues were reported?
+
+## Output Format
+Respond with ONLY the following JSON:
+```json
+{{
+  "semantic_match_score": 1-5,
+  "essential_finding_captured": true/false,
+  "severity_aligned": true/false,
+  "suggestion_quality": "excellent/good/acceptable/poor",
+  "noise_issues_count": 0,
+  "key_points_matched": ["point1", "point2"],
+  "key_points_missed": ["point3"],
+  "reasoning": "Brief explanation of the evaluation"
+}}
+```
+"""
+
+
+# Semantic Judge Prompt for false positive cases
+SEMANTIC_JUDGE_FP_PROMPT_TEMPLATE = """You are an expert judge evaluating AI code review quality.
+
+## Your Task
+This is a FALSE POSITIVE test case - the code is correct and should receive LGTM.
+Evaluate if the AI Reviewer correctly determined the code has no significant issues.
+
+## Expected Behavior (Ground Truth)
+{expected_critique}
+
+## AI Reviewer's Output
+```json
+{review_result}
+```
+
+## Evaluation Criteria
+
+### Primary Question: Did the AI correctly determine this code is acceptable?
+- **5 (Excellent)**: Correctly says LGTM or no significant issues, with accurate analysis
+- **4 (Good)**: Minor suggestions only, no false critical/major findings
+- **3 (Acceptable)**: Some incorrect concerns raised but severity is minor
+- **2 (Weak)**: False major findings reported
+- **1 (Failed)**: False critical findings or completely wrong analysis
+
+## Output Format
+Respond with ONLY the following JSON:
+```json
+{{
+  "semantic_match_score": 1-5,
+  "correctly_approved": true/false,
+  "false_critical_count": 0,
+  "false_major_count": 0,
+  "noise_issues_count": 0,
+  "reasoning": "Brief explanation of the evaluation"
+}}
+```
+"""
+
+
 @dataclass
 class EvaluationResult:
     """単一ケースの評価結果"""
@@ -89,6 +174,14 @@ class EvaluationResult:
     critical_count: int  # critical指摘の数
     major_count: int  # major指摘の数
     minor_count: int  # minor指摘の数
+    # Semantic evaluation fields
+    evaluation_mode: str = "severity"  # "semantic" | "rubric" | "severity"
+    semantic_score: int | None = None  # 1-5 score from semantic judge
+    essential_finding_captured: bool | None = None
+    severity_aligned: bool | None = None
+    suggestion_quality: str | None = None  # "excellent" | "good" | "acceptable" | "poor"
+    key_points_matched: list[str] | None = None
+    key_points_missed: list[str] | None = None
 
 
 @dataclass
@@ -120,6 +213,11 @@ class ModelMetrics:
     # カテゴリ別
     by_category: dict[str, dict[str, Any]]
     by_difficulty: dict[str, dict[str, Any]]
+    # Semantic evaluation metrics
+    semantic_cases: int = 0  # Number of cases evaluated with semantic judge
+    avg_semantic_score: float = 0.0  # Average 1-5 score
+    essential_finding_rate: float = 0.0  # % cases where essential finding captured
+    severity_alignment_rate: float = 0.0  # % cases where severity matched
 
 
 def extract_json(text: str) -> dict[str, Any] | None:
@@ -174,6 +272,17 @@ def load_rubric(case_id: str) -> dict[str, Any] | None:
             rubric_file = meta_file.parent / "rubric.json"
             if rubric_file.exists():
                 return json.loads(rubric_file.read_text())
+    return None
+
+
+def load_expected_critique(case_id: str) -> str | None:
+    """Load the expected critique markdown file for a case."""
+    for meta_file in CASES_DIR.rglob("meta.json"):
+        meta = json.loads(meta_file.read_text())
+        if meta["case_id"] == case_id:
+            critique_file = meta_file.parent / "expected_critique.md"
+            if critique_file.exists():
+                return critique_file.read_text()
     return None
 
 
@@ -302,6 +411,114 @@ def evaluate_with_rubric(
         "matched_nice": matched_nice,
         "failed_conditions": failed_conditions,
     }
+
+
+def evaluate_with_semantic_judge(
+    review_result: dict[str, Any],
+    expected_critique: str,
+    expected_detection: bool,
+    client: anthropic.Anthropic,
+) -> dict[str, Any]:
+    """Perform semantic comparison using LLM judge.
+
+    Args:
+        review_result: AI reviewer's output
+        expected_critique: Human-written expected critique (Ground Truth)
+        expected_detection: True for bug cases, False for FP cases
+        client: Anthropic client
+
+    Returns:
+        Evaluation result dict with semantic score and details
+    """
+    # Select appropriate prompt template
+    if expected_detection:
+        template = SEMANTIC_JUDGE_PROMPT_TEMPLATE
+    else:
+        template = SEMANTIC_JUDGE_FP_PROMPT_TEMPLATE
+
+    # Build prompt
+    parsed_response = review_result.get("parsed_response")
+    if parsed_response:
+        review_json = json.dumps(parsed_response, indent=2, ensure_ascii=False)
+    else:
+        review_json = review_result.get("raw_response", "No response")
+
+    prompt = template.format(
+        expected_critique=expected_critique,
+        review_result=review_json,
+    )
+
+    # Call judge model
+    start_time = time.time()
+    message = client.messages.create(
+        model=JUDGE_MODEL,
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    elapsed_time = time.time() - start_time
+
+    response_text = message.content[0].text
+    parsed = extract_json(response_text)
+
+    cost = (
+        message.usage.input_tokens * JUDGE_INPUT_COST_PER_1M / 1_000_000
+        + message.usage.output_tokens * JUDGE_OUTPUT_COST_PER_1M / 1_000_000
+    )
+
+    if parsed:
+        score = parsed.get("semantic_match_score", 1)
+        # Score >= 3 is considered detected for bug cases
+        # For FP cases, score >= 3 means correctly approved
+        detected = score >= 3
+
+        # Convert 1-5 score to detection_score (0.0 - 1.0)
+        # 5 -> 1.0, 4 -> 0.8, 3 -> 0.6, 2 -> 0.4, 1 -> 0.2
+        detection_score = score / 5.0
+
+        return {
+            "detected": detected,
+            "detection_score": detection_score,
+            "highest_severity": None,  # Not used in semantic evaluation
+            "accuracy": score * 20,  # Convert 1-5 to 20-100
+            "noise_count": parsed.get("noise_issues_count", 0),
+            "correct_location": False,  # Not evaluated in semantic mode
+            "reasoning": parsed.get("reasoning", ""),
+            "critical_count": 0,
+            "major_count": 0,
+            "minor_count": 0,
+            "judge_cost": cost,
+            "judge_time": elapsed_time,
+            # Semantic-specific fields
+            "evaluation_mode": "semantic",
+            "semantic_score": score,
+            "essential_finding_captured": parsed.get("essential_finding_captured", False),
+            "severity_aligned": parsed.get("severity_aligned", False),
+            "suggestion_quality": parsed.get("suggestion_quality", "poor"),
+            "key_points_matched": parsed.get("key_points_matched", []),
+            "key_points_missed": parsed.get("key_points_missed", []),
+        }
+    else:
+        return {
+            "detected": False,
+            "detection_score": 0.0,
+            "highest_severity": None,
+            "accuracy": 0,
+            "noise_count": 0,
+            "correct_location": False,
+            "reasoning": f"Failed to parse semantic judge response: {response_text[:200]}",
+            "critical_count": 0,
+            "major_count": 0,
+            "minor_count": 0,
+            "judge_cost": cost,
+            "judge_time": elapsed_time,
+            "evaluation_mode": "semantic",
+            "semantic_score": 1,
+            "essential_finding_captured": False,
+            "severity_aligned": False,
+            "suggestion_quality": "poor",
+            "key_points_matched": [],
+            "key_points_missed": [],
+        }
 
 
 def judge_review(
@@ -533,6 +750,22 @@ def calculate_metrics(evaluations: list[EvaluationResult]) -> ModelMetrics:
                 "accuracy_avg": sum(e.accuracy for e in diff_evals) / len(diff_evals),
             }
 
+    # Semantic evaluation metrics
+    semantic_evals = [e for e in evaluations if e.evaluation_mode == "semantic" and e.semantic_score is not None]
+    semantic_cases = len(semantic_evals)
+    avg_semantic_score = (
+        sum(e.semantic_score for e in semantic_evals) / semantic_cases
+        if semantic_cases > 0 else 0.0
+    )
+    essential_finding_rate = (
+        sum(1 for e in semantic_evals if e.essential_finding_captured) / semantic_cases
+        if semantic_cases > 0 else 0.0
+    )
+    severity_alignment_rate = (
+        sum(1 for e in semantic_evals if e.severity_aligned) / semantic_cases
+        if semantic_cases > 0 else 0.0
+    )
+
     return ModelMetrics(
         model=model,
         total_cases=len(evaluations),
@@ -555,6 +788,11 @@ def calculate_metrics(evaluations: list[EvaluationResult]) -> ModelMetrics:
         minor_detections=minor_detections,
         by_category=by_category,
         by_difficulty=by_difficulty,
+        # Semantic evaluation metrics
+        semantic_cases=semantic_cases,
+        avg_semantic_score=avg_semantic_score,
+        essential_finding_rate=essential_finding_rate,
+        severity_alignment_rate=severity_alignment_rate,
     )
 
 
@@ -715,11 +953,26 @@ def main() -> None:
                 continue
 
             # 評価実行
-            # rubric があれば rubric 評価を優先
+            # Evaluation mode priority: semantic > rubric > judge > severity
+            expected_critique = load_expected_critique(case_id)
             rubric = load_rubric(case_id)
             evaluation_mode = result.get("evaluation_mode", meta.get("evaluation_mode", "severity"))
 
-            if rubric and evaluation_mode == "rubric":
+            if expected_critique and evaluation_mode == "semantic":
+                # Semantic evaluation requires judge model
+                if args.skip_judge:
+                    print(f"(semantic requires judge)", end=" ")
+                    judge_result = evaluate_without_judge(result, meta)
+                else:
+                    judge_result = evaluate_with_semantic_judge(
+                        result,
+                        expected_critique,
+                        meta.get("expected_detection", True),
+                        client,
+                    )
+                    total_judge_cost += judge_result.get("judge_cost", 0)
+                    print(f"(semantic)", end=" ")
+            elif rubric and evaluation_mode == "rubric":
                 judge_result = evaluate_with_rubric(
                     result,
                     rubric,
@@ -755,6 +1008,14 @@ def main() -> None:
                 critical_count=judge_result.get("critical_count", 0),
                 major_count=judge_result.get("major_count", 0),
                 minor_count=judge_result.get("minor_count", 0),
+                # Semantic evaluation fields
+                evaluation_mode=judge_result.get("evaluation_mode", "severity"),
+                semantic_score=judge_result.get("semantic_score"),
+                essential_finding_captured=judge_result.get("essential_finding_captured"),
+                severity_aligned=judge_result.get("severity_aligned"),
+                suggestion_quality=judge_result.get("suggestion_quality"),
+                key_points_matched=judge_result.get("key_points_matched"),
+                key_points_missed=judge_result.get("key_points_missed"),
             )
             evaluations.append(evaluation)
 
