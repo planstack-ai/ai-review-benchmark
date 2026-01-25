@@ -20,10 +20,14 @@ Quantitatively verify whether DeepSeek V3/R1, at 1/20th the API cost, can delive
 
 | Model | Cost ($/1M input) | Role |
 |-------|-------------------|------|
-| Claude 3.5 Sonnet | $3.00 | Baseline |
+| Claude Sonnet 4 | $3.00 | Baseline |
+| GPT-4o | $2.50 | OpenAI Flagship |
+| GPT-4o mini | $0.15 | OpenAI Cost Efficient |
 | DeepSeek V3 | $0.14 | Cost Killer |
-| DeepSeek R1 | $0.14 | Reasoner |
-| Gemini 1.5 Pro | $1.25 | Long Context |
+| DeepSeek R1 | $0.55 | Reasoner |
+| Gemini 2.5 Pro | $1.25 | Long Context |
+| Gemini 3 Pro | $1.25 | Latest Gemini |
+| Gemini 3 Flash | $0.10 | Fast & Cheap |
 
 ## Test Case Structure (v3: 95 cases)
 
@@ -148,6 +152,7 @@ Set API keys via environment variables:
 
 ```bash
 export ANTHROPIC_API_KEY=xxx
+export OPENAI_API_KEY=xxx
 export DEEPSEEK_API_KEY=xxx
 export GOOGLE_API_KEY=xxx
 ```

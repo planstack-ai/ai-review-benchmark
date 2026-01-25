@@ -27,8 +27,8 @@ import anthropic
 import google.generativeai as genai
 import openai
 
-ModelName = Literal["claude-sonnet", "deepseek-v3", "deepseek-r1", "gemini-pro"]
-ALL_MODELS: list[ModelName] = ["claude-sonnet", "deepseek-v3", "deepseek-r1", "gemini-pro"]
+ModelName = Literal["claude-sonnet", "gpt-4o", "gpt-4o-mini", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
+ALL_MODELS: list[ModelName] = ["claude-sonnet", "gpt-4o", "gpt-4o-mini", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
 
 RunMode = Literal["explicit", "implicit", "dual"]
 
@@ -41,6 +41,16 @@ MODEL_CONFIG = {
         "model_id": "claude-sonnet-4-20250514",
         "input_cost_per_1m": 3.00,
         "output_cost_per_1m": 15.00,
+    },
+    "gpt-4o": {
+        "model_id": "gpt-4o",
+        "input_cost_per_1m": 2.50,
+        "output_cost_per_1m": 10.00,
+    },
+    "gpt-4o-mini": {
+        "model_id": "gpt-4o-mini",
+        "input_cost_per_1m": 0.15,
+        "output_cost_per_1m": 0.60,
     },
     "deepseek-v3": {
         "model_id": "deepseek-chat",
@@ -55,9 +65,19 @@ MODEL_CONFIG = {
         "output_cost_per_1m": 2.19,
     },
     "gemini-pro": {
-        "model_id": "gemini-1.5-pro",
+        "model_id": "gemini-2.5-pro",
         "input_cost_per_1m": 1.25,
         "output_cost_per_1m": 5.00,
+    },
+    "gemini-3-pro": {
+        "model_id": "gemini-3-pro-preview",
+        "input_cost_per_1m": 1.25,
+        "output_cost_per_1m": 10.00,
+    },
+    "gemini-3-flash": {
+        "model_id": "gemini-3-flash-preview",
+        "input_cost_per_1m": 0.10,
+        "output_cost_per_1m": 0.40,
     },
 }
 
@@ -260,6 +280,41 @@ def call_claude_sonnet(prompt: str) -> dict[str, Any]:
     }
 
 
+def call_openai(prompt: str, model_name: Literal["gpt-4o", "gpt-4o-mini"]) -> dict[str, Any]:
+    """OpenAI APIを呼び出し"""
+    config = MODEL_CONFIG[model_name]
+
+    client = openai.OpenAI(
+        api_key=os.environ.get("OPENAI_API_KEY"),
+    )
+
+    start_time = time.time()
+    response = client.chat.completions.create(
+        model=config["model_id"],
+        max_tokens=4096,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    elapsed_time = time.time() - start_time
+
+    raw_response = response.choices[0].message.content or ""
+    parsed = extract_json(raw_response)
+
+    input_tokens = response.usage.prompt_tokens if response.usage else 0
+    output_tokens = response.usage.completion_tokens if response.usage else 0
+
+    return {
+        "raw_response": raw_response,
+        "parsed_response": parsed,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "elapsed_time": elapsed_time,
+        "cost": (
+            input_tokens * config["input_cost_per_1m"] / 1_000_000
+            + output_tokens * config["output_cost_per_1m"] / 1_000_000
+        ),
+    }
+
+
 def call_deepseek(prompt: str, model_name: Literal["deepseek-v3", "deepseek-r1"]) -> dict[str, Any]:
     """DeepSeek APIを呼び出し（OpenAI互換）"""
     config = MODEL_CONFIG[model_name]
@@ -306,9 +361,9 @@ def call_deepseek_r1(prompt: str) -> dict[str, Any]:
     return call_deepseek(prompt, "deepseek-r1")
 
 
-def call_gemini_pro(prompt: str) -> dict[str, Any]:
-    """Gemini Pro APIを呼び出し"""
-    config = MODEL_CONFIG["gemini-pro"]
+def call_gemini(prompt: str, model_name: str = "gemini-pro") -> dict[str, Any]:
+    """Gemini APIを呼び出し"""
+    config = MODEL_CONFIG[model_name]
 
     genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
     model = genai.GenerativeModel(config["model_id"])
@@ -343,12 +398,14 @@ def run_review(model: ModelName, case: dict[str, Any]) -> dict[str, Any]:
 
     if model == "claude-sonnet":
         return call_claude_sonnet(prompt)
+    elif model in ("gpt-4o", "gpt-4o-mini"):
+        return call_openai(prompt, model)
     elif model == "deepseek-v3":
         return call_deepseek_v3(prompt)
     elif model == "deepseek-r1":
         return call_deepseek_r1(prompt)
-    elif model == "gemini-pro":
-        return call_gemini_pro(prompt)
+    elif model in ("gemini-pro", "gemini-3-pro", "gemini-3-flash"):
+        return call_gemini(prompt, model)
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -510,7 +567,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="AIコードレビューベンチマーク実行")
     parser.add_argument(
         "--model",
-        choices=["claude-sonnet", "deepseek-v3", "deepseek-r1", "gemini-pro", "all"],
+        choices=["claude-sonnet", "gpt-4o", "gpt-4o-mini", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash", "all"],
         required=True,
         help="使用するモデル（'all'で全モデル実行）",
     )
