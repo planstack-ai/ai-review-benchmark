@@ -19,6 +19,20 @@
   "bug_anchor_verified": true,
   "has_diff": true,
   "has_rubric": true,
-  "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "evaluation_mode": "dual",
+  "has_expected_critique": true,
+  "dual_config": {
+    "explicit_includes_guidelines": true,
+    "implicit_requires_inference": true,
+    "guidelines_generated": true
+  },
+  "fix_required": true,
+  "fix_validation": {
+    "must_contain": [
+      "ActiveRecord::Base.transaction(requires_new: true) do"
+    ],
+    "must_not_contain": [
+      "ActiveRecord::Base.transaction do\n        create_notification_log!"
+    ]
+  }
 }

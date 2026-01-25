@@ -5,125 +5,61 @@
 ```ruby
 # == Schema Information
 #
-# Table name: orders
+# Table name: documents
 #
-#  id           :bigint           not null, primary key
-#  status       :string           not null
-#  total_amount :decimal(10,2)    not null
-#  tax_amount   :decimal(10,2)    default(0.0)
-#  discount     :decimal(10,2)    default(0.0)
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
-#  user_id      :bigint           not null
+#  id                :bigint           not null, primary key
+#  title             :string           not null
+#  raw_content       :text             not null
+#  processed_content :text
+#  metadata          :jsonb            default({})
+#  status            :string           default("pending"), not null
+#  user_id           :bigint           not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
 #
-
-# Table name: order_items
+# Indexes
 #
-#  id         :bigint           not null, primary key
-#  quantity   :integer          not null
-#  price      :decimal(8,2)     not null
-#  order_id   :bigint           not null
-#  product_id :bigint           not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#
-
-# Table name: inventory_items
-#
-#  id              :bigint           not null, primary key
-#  product_id      :bigint           not null
-#  quantity        :integer          not null
-#  reserved_count  :integer          default(0)
-#  created_at      :datetime         not null
-#  updated_at      :datetime         not null
-#
+#  index_documents_on_user_id  (user_id)
+#  index_documents_on_status   (status)
 ```
 
 ## Models
 
 ```ruby
-class Order < ApplicationRecord
-  STATUSES = %w[pending confirmed processing shipped delivered cancelled].freeze
-  TAX_RATE = 0.08
+class Document < ApplicationRecord
+  STATUSES = %w[pending processing processed failed].freeze
 
   belongs_to :user
-  has_many :order_items, dependent: :destroy
-  has_many :products, through: :order_items
 
+  validates :title, presence: true
+  validates :raw_content, presence: true
   validates :status, inclusion: { in: STATUSES }
-  validates :total_amount, presence: true, numericality: { greater_than: 0 }
 
   scope :pending, -> { where(status: 'pending') }
-  scope :confirmed, -> { where(status: 'confirmed') }
-  scope :cancelled, -> { where(status: 'cancelled') }
-
-  def subtotal
-    order_items.sum { |item| item.quantity * item.price }
-  end
-
-  def calculate_tax
-    subtotal * TAX_RATE
-  end
-
-  def calculate_total
-    subtotal + tax_amount - discount
-  end
-
-  def reserve_inventory!
-    order_items.each(&:reserve_inventory!)
-  end
-
-  def release_inventory!
-    order_items.each(&:release_inventory!)
-  end
-
-  def send_confirmation_email
-    OrderMailer.confirmation(self).deliver_later
-  end
-
-  def log_status_change
-    Rails.logger.info "Order #{id} status changed to #{status}"
-  end
+  scope :processed, -> { where(status: 'processed') }
+  scope :failed, -> { where(status: 'failed') }
 end
 
-class OrderItem < ApplicationRecord
-  belongs_to :order
-  belongs_to :product
+class User < ApplicationRecord
+  has_many :documents, dependent: :destroy
 
-  validates :quantity, presence: true, numericality: { greater_than: 0 }
-  validates :price, presence: true, numericality: { greater_than: 0 }
-
-  def reserve_inventory!
-    inventory_item = product.inventory_item
-    inventory_item.increment!(:reserved_count, quantity)
-  end
-
-  def release_inventory!
-    inventory_item = product.inventory_item
-    inventory_item.decrement!(:reserved_count, quantity)
-  end
-end
-
-class Product < ApplicationRecord
-  has_one :inventory_item, dependent: :destroy
-  has_many :order_items, dependent: :destroy
-
+  validates :email, presence: true, uniqueness: true
   validates :name, presence: true
-  validates :price, presence: true, numericality: { greater_than: 0 }
-
-  def available_quantity
-    inventory_item&.quantity || 0
-  end
-end
-
-class InventoryItem < ApplicationRecord
-  belongs_to :product
-
-  validates :quantity, presence: true, numericality: { greater_than_or_equal_to: 0 }
-  validates :reserved_count, presence: true, numericality: { greater_than_or_equal_to: 0 }
-
-  def available_count
-    quantity - reserved_count
-  end
 end
 ```
+
+## Service Pattern Guidelines
+
+When implementing services with ActiveModel::Callbacks:
+- Use `throw :abort` in before_* callbacks to halt the callback chain when validation fails
+- Validation callbacks should run first and prevent further processing on failure
+- Consider callback execution order carefully when callbacks have dependencies
+- Use `prepend: true` option to ensure critical callbacks run before others
+- Callbacks that fail validation should prevent the callback chain from continuing
+
+## Usage Guidelines
+
+- Be mindful of callback execution order. Callbacks in the same phase execute in the order they are defined. Ensure proper sequencing of operations.
+
+- Be aware that `update_all` and `delete_all` skip callbacks and validations. Use them only when you intentionally want to bypass model logic.
+

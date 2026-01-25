@@ -1,27 +1,26 @@
-# Active User Management System
+# Product Analytics Service
 
 ## Overview
 
-The system needs to manage user accounts with different status levels. Users can be active, inactive, or suspended. The application requires functionality to retrieve and display only active users for various business operations, such as user listings, notifications, and administrative reports. This ensures that inactive or suspended users are excluded from normal business workflows while maintaining data integrity.
+The system needs to provide analytics and reporting functionality for products. This includes generating reports on active products, calculating revenue metrics, tracking top performers, monitoring inventory levels, and exporting product data. The service should leverage existing model scopes and follow Rails conventions for maintainability.
 
 ## Requirements
 
-1. The system must provide a way to filter users based on their active status
-2. User listings must display only users with active status
-3. The filtering mechanism must be reusable across different parts of the application
-4. The system must handle cases where no active users exist
-5. The active user filtering must be efficient and not perform unnecessary database queries
-6. The implementation must leverage existing database-level filtering capabilities
-7. The user status determination must be consistent throughout the application
+1. Generate comprehensive product reports including active product counts, revenue by category, and top performers
+2. Export active products to CSV format with relevant details (name, category, price, stock, rating)
+3. Provide bulk pricing update functionality for active products
+4. Calculate conversion rates based on product views and purchases
+5. Monitor inventory levels to identify low stock and out of stock items
+6. All queries for active products must use the existing `Product.active` scope for consistency
 
 ## Constraints
 
-- Users have a status field that determines their active state
-- Only users with 'active' status should be considered active
-- The system must not modify user status when retrieving active users
-- Database queries should be optimized to filter at the database level rather than in application memory
-- The solution must be maintainable and follow Rails conventions
+- Products have a status field with values: 'active', 'inactive', 'discontinued'
+- Only products with 'active' status should be included in analytics
+- The implementation must use existing model scopes rather than inline query conditions
+- Database queries should be optimized and follow Rails conventions
+- The solution must be DRY - avoid repeating query logic across methods
 
 ## References
 
-See context.md for existing User model implementation and available scope definitions.
+See context.md for existing Product model implementation and the `Product.active` scope definition.

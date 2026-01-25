@@ -103,3 +103,8 @@ class OrderItem < ApplicationRecord
   validates :price, presence: true, numericality: { greater_than: 0 }
 end
 ```
+
+## Usage Guidelines
+
+- Follow Rails best practices and conventions. Review existing code patterns in the codebase for consistency.
+

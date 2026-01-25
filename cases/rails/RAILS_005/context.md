@@ -5,86 +5,115 @@
 ```ruby
 # == Schema Information
 #
-# Table name: orders
-#
-#  id           :bigint           not null, primary key
-#  user_id      :bigint           not null
-#  status       :string           default("pending"), not null
-#  total_amount :decimal(10,2)    not null
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
-#
-# Table name: users
+# Table name: repositories
 #
 #  id         :bigint           not null, primary key
-#  email      :string           not null
 #  name       :string           not null
+#  full_name  :string           not null
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
 #
-# Table name: notifications
+# Table name: pull_requests
 #
-#  id           :bigint           not null, primary key
-#  user_id      :bigint           not null
-#  message      :text             not null
-#  notification_type :string      not null
-#  read_at      :datetime
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
+#  id            :bigint           not null, primary key
+#  repository_id :bigint           not null
+#  number        :integer          not null
+#  title         :string           not null
+#  review_status :string           default("pending")
+#  reviewed_at   :datetime
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#
+# Table name: code_reviews
+#
+#  id              :bigint           not null, primary key
+#  repository_id   :bigint           not null
+#  pull_request_id :bigint           not null
+#  reviewer_id     :bigint           not null
+#  status          :string           default("pending"), not null
+#  automated       :boolean          default(false)
+#  started_at      :datetime
+#  completed_at    :datetime
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#
+# Table name: review_comments
+#
+#  id              :bigint           not null, primary key
+#  pull_request_id :bigint           not null
+#  reviewer_id     :bigint           not null
+#  file_path       :string           not null
+#  line_number     :integer
+#  comment         :text             not null
+#  severity        :string
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#
+# Table name: changed_files
+#
+#  id              :bigint           not null, primary key
+#  pull_request_id :bigint           not null
+#  path            :string           not null
+#  content         :text
+#  change_type     :string           not null
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
 ```
 
 ## Models
 
 ```ruby
-class User < ApplicationRecord
-  has_many :orders, dependent: :destroy
-  has_many :notifications, dependent: :destroy
+class Repository < ApplicationRecord
+  has_many :pull_requests, dependent: :destroy
+  has_many :code_reviews, dependent: :destroy
 
-  validates :email, presence: true, uniqueness: true
-  validates :name, presence: true
-
-  scope :active, -> { where.not(deleted_at: nil) }
+  validates :name, :full_name, presence: true
 end
 
-class Order < ApplicationRecord
-  belongs_to :user
+class PullRequest < ApplicationRecord
+  belongs_to :repository
+  has_many :code_reviews, dependent: :destroy
+  has_many :review_comments, dependent: :destroy
+  has_many :changed_files, dependent: :destroy
 
-  validates :status, inclusion: { in: %w[pending processing completed cancelled] }
-  validates :total_amount, presence: true, numericality: { greater_than: 0 }
-
-  scope :pending, -> { where(status: 'pending') }
-  scope :completed, -> { where(status: 'completed') }
-
-  def complete!
-    update!(status: 'completed')
-  end
-
-  def cancel!
-    update!(status: 'cancelled')
-  end
-
-  private
-
-  def send_completion_notification
-    NotificationJob.perform_later(user_id, "Your order ##{id} has been completed!")
-  end
-
-  def send_cancellation_notification
-    NotificationJob.perform_later(user_id, "Your order ##{id} has been cancelled.")
-  end
+  validates :number, presence: true
+  validates :title, presence: true
 end
 
-class Notification < ApplicationRecord
-  belongs_to :user
+class CodeReview < ApplicationRecord
+  belongs_to :repository
+  belongs_to :pull_request
+  belongs_to :reviewer, class_name: 'User'
 
-  validates :message, presence: true
-  validates :notification_type, presence: true
+  validates :status, inclusion: { in: %w[pending in_progress completed] }
+end
 
-  scope :unread, -> { where(read_at: nil) }
-  scope :recent, -> { order(created_at: :desc) }
+class ReviewComment < ApplicationRecord
+  belongs_to :pull_request
+  belongs_to :reviewer, class_name: 'User'
 
-  def mark_as_read!
-    update!(read_at: Time.current)
+  validates :file_path, :comment, presence: true
+end
+
+class ChangedFile < ApplicationRecord
+  belongs_to :pull_request
+
+  validates :path, :change_type, presence: true
+
+  def ruby_file?
+    path.end_with?('.rb')
+  end
+
+  def javascript_file?
+    path.end_with?('.js', '.jsx', '.ts', '.tsx')
+  end
+
+  def test_file?
+    path.include?('spec/') || path.include?('test/')
+  end
+
+  def name
+    File.basename(path)
   end
 end
 ```
@@ -92,25 +121,59 @@ end
 ## Jobs
 
 ```ruby
-class NotificationJob < ApplicationJob
-  queue_as :default
+class NotifyReviewCompleteJob < ApplicationJob
+  queue_as :notifications
 
-  def perform(user_id, message)
-    user = User.find(user_id)
-    Notification.create!(
-      user: user,
-      message: message,
-      notification_type: 'order_update'
-    )
+  def perform(review_id)
+    review = CodeReview.find(review_id)
+    # Send notification logic
   end
 end
 
-class EmailNotificationJob < ApplicationJob
-  queue_as :mailers
+class UpdateMetricsJob < ApplicationJob
+  queue_as :metrics
 
-  def perform(user_id, subject, body)
-    user = User.find(user_id)
-    UserMailer.notification(user, subject, body).deliver_now
+  def perform(repository_id)
+    # Update metrics logic
+  end
+end
+
+class NotifyDeveloperJob < ApplicationJob
+  queue_as :notifications
+
+  def perform(pull_request_id, errors_count)
+    # Notify developer logic
   end
 end
 ```
+
+## Analyzers (External Services)
+
+```ruby
+class RubocopAnalyzer
+  def initialize(content); end
+  def analyze; []; end
+end
+
+class SecurityScanner
+  def initialize(content); end
+  def scan; []; end
+end
+
+class EslintAnalyzer
+  def initialize(content); end
+  def analyze; []; end
+end
+
+class TestCoverageAnalyzer
+  def initialize(file); end
+  def calculate_coverage; 85; end
+end
+```
+
+## Notes
+
+When scheduling background jobs from within database transactions:
+- Use `after_commit` callbacks instead of `after_save` to ensure jobs are only enqueued after the transaction successfully commits
+- Jobs enqueued during a transaction may execute before the transaction commits, causing race conditions
+- If a transaction rolls back, jobs scheduled with `after_save` will still execute with stale/invalid data

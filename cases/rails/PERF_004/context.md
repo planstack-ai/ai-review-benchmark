@@ -7,12 +7,13 @@
 #
 # Table name: orders
 #
-#  id          :bigint           not null, primary key
-#  user_id     :bigint           not null
-#  status      :string           not null
-#  total_cents :integer          not null
-#  created_at  :datetime         not null
-#  updated_at  :datetime         not null
+#  id            :bigint           not null, primary key
+#  user_id       :bigint           not null
+#  status        :string           not null
+#  total_amount  :decimal(10, 2)   not null
+#  shipped_at    :datetime
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
 #
 # Indexes
 #
@@ -21,20 +22,42 @@
 #  index_orders_on_created_at     (created_at)
 #
 
-# Table name: order_items
+# Table name: items (order line items)
 #
-#  id         :bigint           not null, primary key
-#  order_id   :bigint           not null
-#  product_id :bigint           not null
-#  quantity   :integer          not null
-#  price_cents :integer         not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
+#  id            :bigint           not null, primary key
+#  order_id      :bigint           not null
+#  product_name  :string           not null
+#  quantity      :integer          not null
+#  price         :decimal(10, 2)   not null
+#  fulfilled     :boolean          default(false)
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
 #
 # Indexes
 #
-#  index_order_items_on_order_id   (order_id)
-#  index_order_items_on_product_id (product_id)
+#  index_items_on_order_id   (order_id)
+#
+
+# Table name: payments
+#
+#  id         :bigint           not null, primary key
+#  order_id   :bigint           not null
+#  amount     :decimal(10, 2)   not null
+#  status     :string           not null
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#
+
+# Table name: shipping_addresses
+#
+#  id         :bigint           not null, primary key
+#  order_id   :bigint           not null
+#  street     :string           not null
+#  city       :string           not null
+#  state      :string           not null
+#  zip        :string           not null
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
 #
 
 # Table name: users
@@ -52,60 +75,62 @@
 ```ruby
 class User < ApplicationRecord
   has_many :orders, dependent: :destroy
-  
+
   validates :email, presence: true, uniqueness: true
   validates :name, presence: true
-  
-  scope :active, -> { joins(:orders).where(orders: { created_at: 30.days.ago.. }).distinct }
 end
 
 class Order < ApplicationRecord
   belongs_to :user
-  has_many :order_items, dependent: :destroy
-  has_many :products, through: :order_items
-  
-  validates :status, presence: true, inclusion: { in: %w[pending confirmed shipped delivered cancelled] }
-  validates :total_cents, presence: true, numericality: { greater_than: 0 }
-  
+  has_many :items, dependent: :destroy
+  has_many :payments, dependent: :destroy
+  has_one :shipping_address, dependent: :destroy
+
+  validates :status, presence: true, inclusion: { in: %w[pending confirmed shipped delivered completed cancelled] }
+  validates :total_amount, presence: true, numericality: { greater_than: 0 }
+
   scope :pending, -> { where(status: 'pending') }
-  scope :confirmed, -> { where(status: 'confirmed') }
+  scope :completed, -> { where(status: 'completed') }
   scope :shipped, -> { where(status: 'shipped') }
-  scope :delivered, -> { where(status: 'delivered') }
-  scope :cancelled, -> { where(status: 'cancelled') }
-  scope :completed, -> { where(status: ['delivered', 'shipped']) }
-  scope :active, -> { where.not(status: 'cancelled') }
-  scope :recent, -> { where(created_at: 30.days.ago..) }
-  scope :this_month, -> { where(created_at: Date.current.beginning_of_month..) }
-  scope :last_month, -> { where(created_at: 1.month.ago.beginning_of_month..1.month.ago.end_of_month) }
-  
-  def total_amount
-    Money.new(total_cents)
-  end
 end
 
-class OrderItem < ApplicationRecord
+class Item < ApplicationRecord
   belongs_to :order
-  belongs_to :product
-  
+
+  validates :product_name, presence: true
   validates :quantity, presence: true, numericality: { greater_than: 0 }
-  validates :price_cents, presence: true, numericality: { greater_than: 0 }
-  
-  def price
-    Money.new(price_cents)
-  end
-  
-  def total_price
-    Money.new(price_cents * quantity)
+  validates :price, presence: true, numericality: { greater_than: 0 }
+
+  def fulfilled?
+    fulfilled
   end
 end
 
-class Product < ApplicationRecord
-  has_many :order_items, dependent: :destroy
-  has_many :orders, through: :order_items
-  
-  validates :name, presence: true
-  validates :price_cents, presence: true, numericality: { greater_than: 0 }
-  
-  scope :popular, -> { joins(:order_items).group('products.id').having('COUNT(order_items.id) > 10') }
+class Payment < ApplicationRecord
+  belongs_to :order
+
+  validates :amount, presence: true, numericality: { greater_than: 0 }
+  validates :status, presence: true
+end
+
+class ShippingAddress < ApplicationRecord
+  belongs_to :order
+
+  validates :street, :city, :state, :zip, presence: true
 end
 ```
+
+## Performance Guidelines
+
+When counting associations in Rails:
+- Use `.count` for efficient SQL COUNT queries
+- Use `.length` only when records are already loaded
+- Use `.size` which automatically chooses the best approach
+- Avoid loading full association collections just to count them
+
+## Usage Guidelines
+
+- Use `count` for database COUNT queries. Avoid `length` or `size` on ActiveRecord relations as they load all records into memory.
+
+- Never load entire tables into memory. Use `find_each` or `find_in_batches` for batch processing large datasets.
+

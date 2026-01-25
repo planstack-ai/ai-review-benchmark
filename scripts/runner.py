@@ -30,6 +30,8 @@ import openai
 ModelName = Literal["claude-sonnet", "deepseek-v3", "deepseek-r1", "gemini-pro"]
 ALL_MODELS: list[ModelName] = ["claude-sonnet", "deepseek-v3", "deepseek-r1", "gemini-pro"]
 
+RunMode = Literal["explicit", "implicit", "dual"]
+
 CASES_DIR = Path(__file__).parent.parent / "cases" / "rails"
 RESULTS_DIR = Path(__file__).parent.parent / "results"
 
@@ -130,13 +132,37 @@ REVIEW_PROMPT_DIFF_TEMPLATE = """あなたはシニアRailsエンジニアです
 """
 
 
-def load_case(case_dir: Path) -> dict[str, Any]:
-    """ケースファイルを読み込み"""
+def load_case(case_dir: Path, mode: RunMode = "explicit") -> dict[str, Any]:
+    """ケースファイルを読み込み
+
+    Args:
+        case_dir: ケースディレクトリのパス
+        mode: 実行モード
+            - "explicit": context.md（ガイドライン含む）を使用
+            - "implicit": context_base.md（ガイドラインなし）を使用
+            - "dual": 呼び出し元で両方実行
+
+    Returns:
+        ケースデータの辞書
+    """
+    meta = json.loads((case_dir / "meta.json").read_text())
+
+    # モードに応じたcontextファイルを選択
+    context_file = case_dir / "context.md"  # デフォルト
+
+    if mode == "implicit":
+        # implicit モードでは context_base.md を使用（なければ context.md にフォールバック）
+        context_base_file = case_dir / "context_base.md"
+        if context_base_file.exists():
+            context_file = context_base_file
+
     case_data = {
         "plan": (case_dir / "plan.md").read_text(),
-        "context": (case_dir / "context.md").read_text(),
+        "context": context_file.read_text(),
         "impl": (case_dir / "impl.rb").read_text(),
-        "meta": json.loads((case_dir / "meta.json").read_text()),
+        "meta": meta,
+        "context_mode": mode,
+        "context_file": context_file.name,
     }
 
     # オプション: diff があれば読み込み
@@ -335,82 +361,147 @@ def discover_cases(cases_path: Path) -> list[Path]:
     return sorted(case_dirs)
 
 
+def run_single_case(
+    model: ModelName,
+    case_dir: Path,
+    mode: RunMode,
+    verbose: bool = False,
+) -> dict[str, Any]:
+    """単一ケースを実行
+
+    Args:
+        model: モデル名
+        case_dir: ケースディレクトリ
+        mode: 実行モード（explicit/implicit）
+        verbose: 詳細出力
+
+    Returns:
+        実行結果の辞書
+    """
+    case = load_case(case_dir, mode=mode)
+    result = run_review(model, case)
+
+    result["case_id"] = case["meta"]["case_id"]
+    result["category"] = case["meta"]["category"]
+    result["expected_detection"] = case["meta"]["expected_detection"]
+    result["difficulty"] = case["meta"]["difficulty"]
+    result["success"] = True
+    result["has_diff"] = "diff" in case
+    result["has_rubric"] = "rubric" in case
+    result["evaluation_mode"] = case["meta"].get("evaluation_mode", "severity")
+    result["context_mode"] = mode
+    result["context_file"] = case.get("context_file", "context.md")
+
+    return result
+
+
 def run_benchmark(
     model: ModelName,
     case_dirs: list[Path],
     output_dir: Path,
+    mode: RunMode = "explicit",
     verbose: bool = False,
 ) -> dict[str, Any]:
-    """単一モデルでベンチマークを実行"""
+    """単一モデルでベンチマークを実行
+
+    Args:
+        model: モデル名
+        case_dirs: ケースディレクトリのリスト
+        output_dir: 結果出力ディレクトリ
+        mode: 実行モード
+            - "explicit": ガイドライン有りでレビュー
+            - "implicit": ガイドライン無しでレビュー
+            - "dual": 両方実行して比較用データを生成
+        verbose: 詳細出力
+    """
     results = []
     total_cost = 0.0
     total_time = 0.0
     errors = []
 
+    mode_suffix = f" [{mode}]" if mode != "explicit" else ""
     print(f"\n{'='*60}")
-    print(f"Running: {model}")
+    print(f"Running: {model}{mode_suffix}")
     print(f"{'='*60}")
+
+    # dual モードでは実行回数が2倍
+    modes_to_run: list[RunMode] = ["explicit", "implicit"] if mode == "dual" else [mode]
 
     for i, case_dir in enumerate(case_dirs, 1):
         case_id = case_dir.name
         category = case_dir.parent.name
-        print(f"[{i:3d}/{len(case_dirs)}] {category}/{case_id}", end=" ... ", flush=True)
+        meta = json.loads((case_dir / "meta.json").read_text())
 
-        try:
-            case = load_case(case_dir)
-            result = run_review(model, case)
-            result["case_id"] = case["meta"]["case_id"]
-            result["category"] = case["meta"]["category"]
-            result["expected_detection"] = case["meta"]["expected_detection"]
-            result["difficulty"] = case["meta"]["difficulty"]
-            result["success"] = True
-            result["has_diff"] = "diff" in case
-            result["has_rubric"] = "rubric" in case
-            result["evaluation_mode"] = case["meta"].get("evaluation_mode", "severity")
+        # dual モード対応ケースかチェック
+        is_dual_capable = meta.get("evaluation_mode") == "dual"
 
-            total_cost += result.get("cost", 0)
-            total_time += result.get("elapsed_time", 0)
+        for run_mode in modes_to_run:
+            # dual モードでも、dual 非対応ケースは explicit のみ実行
+            if mode == "dual" and run_mode == "implicit" and not is_dual_capable:
+                continue
 
-            print(f"OK ({result.get('elapsed_time', 0):.1f}s, ${result.get('cost', 0):.4f})")
+            mode_label = f" ({run_mode})" if mode == "dual" else ""
+            print(f"[{i:3d}/{len(case_dirs)}] {category}/{case_id}{mode_label}", end=" ... ", flush=True)
 
-            if verbose and result.get("parsed_response"):
-                parsed = result["parsed_response"]
-                if parsed.get("has_issues"):
-                    print(f"       Issues found: {len(parsed.get('issues', []))}")
+            try:
+                result = run_single_case(model, case_dir, run_mode, verbose)
 
-        except Exception as e:
-            result = {
-                "case_id": case_dir.name,
-                "category": category,
-                "success": False,
-                "error": str(e),
-            }
-            errors.append(f"{category}/{case_id}: {e}")
-            print(f"ERROR: {e}")
+                total_cost += result.get("cost", 0)
+                total_time += result.get("elapsed_time", 0)
 
-        results.append(result)
+                print(f"OK ({result.get('elapsed_time', 0):.1f}s, ${result.get('cost', 0):.4f})")
+
+                if verbose and result.get("parsed_response"):
+                    parsed = result["parsed_response"]
+                    if parsed.get("has_issues"):
+                        print(f"       Issues found: {len(parsed.get('issues', []))}")
+
+            except Exception as e:
+                result = {
+                    "case_id": case_dir.name,
+                    "category": category,
+                    "context_mode": run_mode,
+                    "success": False,
+                    "error": str(e),
+                }
+                errors.append(f"{category}/{case_id} ({run_mode}): {e}")
+                print(f"ERROR: {e}")
+
+            results.append(result)
 
     # 結果保存
+    # dual モードの場合はファイル名にモードを含めない（結果にcontext_modeが含まれる）
     output_file = output_dir / f"{model}.json"
     output_file.write_text(json.dumps(results, indent=2, ensure_ascii=False))
 
     # サマリー
+    actual_runs = len(results)
     summary = {
         "model": model,
+        "mode": mode,
         "total_cases": len(case_dirs),
+        "total_runs": actual_runs,
         "successful": len([r for r in results if r.get("success")]),
         "failed": len([r for r in results if not r.get("success")]),
         "total_cost": total_cost,
         "total_time": total_time,
-        "avg_time_per_case": total_time / len(case_dirs) if case_dirs else 0,
+        "avg_time_per_run": total_time / actual_runs if actual_runs else 0,
         "errors": errors,
     }
 
+    if mode == "dual":
+        explicit_results = [r for r in results if r.get("context_mode") == "explicit"]
+        implicit_results = [r for r in results if r.get("context_mode") == "implicit"]
+        summary["explicit_runs"] = len(explicit_results)
+        summary["implicit_runs"] = len(implicit_results)
+
     print(f"\n{model} Summary:")
-    print(f"  Cases: {summary['successful']}/{summary['total_cases']} successful")
+    print(f"  Runs: {summary['successful']}/{summary['total_runs']} successful")
+    if mode == "dual":
+        print(f"  (explicit: {summary.get('explicit_runs', 0)}, implicit: {summary.get('implicit_runs', 0)})")
     print(f"  Total cost: ${summary['total_cost']:.4f}")
     print(f"  Total time: {summary['total_time']:.1f}s")
-    print(f"  Avg time/case: {summary['avg_time_per_case']:.1f}s")
+    print(f"  Avg time/run: {summary['avg_time_per_run']:.1f}s")
 
     return summary
 
@@ -422,6 +513,12 @@ def main() -> None:
         choices=["claude-sonnet", "deepseek-v3", "deepseek-r1", "gemini-pro", "all"],
         required=True,
         help="使用するモデル（'all'で全モデル実行）",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["explicit", "implicit", "dual"],
+        default="explicit",
+        help="実行モード: explicit（ガイドライン有り）, implicit（ガイドライン無し）, dual（両方）",
     )
     parser.add_argument(
         "--cases",
@@ -482,13 +579,14 @@ def main() -> None:
     # 実行
     all_summaries = []
     for model in models:
-        summary = run_benchmark(model, case_dirs, output_dir, args.verbose)
+        summary = run_benchmark(model, case_dirs, output_dir, mode=args.mode, verbose=args.verbose)
         all_summaries.append(summary)
 
     # 全体サマリー保存
     summary_file = output_dir / "summary.json"
     summary_data = {
         "timestamp": datetime.now().isoformat(),
+        "mode": args.mode,
         "total_cases": len(case_dirs),
         "models": all_summaries,
     }

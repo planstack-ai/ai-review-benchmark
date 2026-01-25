@@ -130,3 +130,8 @@ class Category < ApplicationRecord
   scope :with_active_products, -> { joins(:products).where(products: { active: true }).distinct }
 end
 ```
+
+## Usage Guidelines
+
+- Ensure database indexes exist for columns used in WHERE clauses, ORDER BY, and JOIN conditions for optimal query performance.
+

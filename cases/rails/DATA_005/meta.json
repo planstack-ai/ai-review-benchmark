@@ -15,6 +15,20 @@
     "snapshot"
   ],
   "bug_anchor_verified": true,
-  "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "evaluation_mode": "dual",
+  "has_expected_critique": true,
+  "dual_config": {
+    "explicit_includes_guidelines": true,
+    "implicit_requires_inference": true,
+    "guidelines_generated": true
+  },
+  "fix_required": true,
+  "fix_validation": {
+    "must_contain": [
+      "order_item.snapshot_product_name"
+    ],
+    "must_not_contain": [
+      "order_item.product.name"
+    ]
+  }
 }

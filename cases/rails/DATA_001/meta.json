@@ -15,6 +15,20 @@
     "integrity"
   ],
   "bug_anchor_verified": false,
-  "evaluation_mode": "semantic",
-  "has_expected_critique": true
+  "evaluation_mode": "dual",
+  "has_expected_critique": true,
+  "dual_config": {
+    "explicit_includes_guidelines": true,
+    "implicit_requires_inference": true,
+    "guidelines_generated": true
+  },
+  "fix_required": true,
+  "fix_validation": {
+    "must_contain": [
+      "add_foreign_key :order_items, :orders"
+    ],
+    "must_not_contain": [
+      "belongs_to :order without FK"
+    ]
+  }
 }

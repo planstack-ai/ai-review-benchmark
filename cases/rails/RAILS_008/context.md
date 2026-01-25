@@ -7,31 +7,42 @@
 #
 # Table name: users
 #
+#  id                     :bigint           not null, primary key
+#  email                  :string           not null
+#  name                   :string           not null
+#  archived_orders_count  :integer          default(0)
+#  last_archival_at       :datetime
+#  notification_preferences :jsonb          default({})
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#
+# Table name: orders
+#
+#  id              :bigint           not null, primary key
+#  user_id         :bigint           not null
+#  status          :string           default("pending"), not null
+#  total_amount    :decimal(10, 2)   not null
+#  archived_at     :datetime
+#  archive_reason  :string
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#
+# Table name: order_items
+#
 #  id         :bigint           not null, primary key
-#  email      :string           not null
-#  name       :string           not null
-#  status     :string           default("active")
-#  last_login :datetime
+#  order_id   :bigint           not null
+#  product_id :bigint           not null
+#  quantity   :integer          not null
+#  price      :decimal(10, 2)   not null
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
 #
-# Table name: posts
-#
-#  id          :bigint           not null, primary key
-#  title       :string           not null
-#  content     :text
-#  status      :string           default("draft")
-#  user_id     :bigint           not null
-#  published_at :datetime
-#  created_at  :datetime         not null
-#  updated_at  :datetime         not null
-#
-# Table name: notifications
+# Table name: payments
 #
 #  id         :bigint           not null, primary key
-#  user_id    :bigint           not null
-#  message    :string           not null
-#  read       :boolean          default(false)
+#  order_id   :bigint           not null
+#  amount     :decimal(10, 2)   not null
+#  status     :string           default("pending")
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
 ```
@@ -40,96 +51,96 @@
 
 ```ruby
 class User < ApplicationRecord
-  has_many :posts, dependent: :destroy
-  has_many :notifications, dependent: :destroy
+  has_many :orders, dependent: :destroy
 
   validates :email, presence: true, uniqueness: true
   validates :name, presence: true
 
-  enum status: { active: 'active', inactive: 'inactive', suspended: 'suspended' }
-
-  scope :active, -> { where(status: 'active') }
-  scope :recently_active, -> { where('last_login > ?', 1.week.ago) }
-
-  after_update :send_status_change_notification, if: :saved_change_to_status?
-  after_update :log_login_activity, if: :saved_change_to_last_login?
-
-  private
-
-  def send_status_change_notification
-    return unless status_previously_changed?
-    
-    UserMailer.status_changed(self).deliver_later
-    create_system_notification("Your account status has been updated to #{status}")
-  end
-
-  def log_login_activity
-    Rails.logger.info "User #{id} logged in at #{last_login}"
-    update_login_streak
-  end
-
-  def create_system_notification(message)
-    notifications.create!(message: message)
-  end
-
-  def update_login_streak
-    # Complex login streak calculation logic
+  def notification_preferences
+    super || {}
   end
 end
 
-class Post < ApplicationRecord
+class Order < ApplicationRecord
+  STATUSES = %w[pending processing completed cancelled archived].freeze
+  ARCHIVE_REASONS = %w[expired cancelled inactive].freeze
+
   belongs_to :user
+  has_many :order_items, dependent: :destroy
+  has_many :payments, dependent: :destroy
 
-  validates :title, presence: true
-  validates :user_id, presence: true
+  validates :status, inclusion: { in: STATUSES }
+  validates :archive_reason, inclusion: { in: ARCHIVE_REASONS }, allow_nil: true
+  validates :total_amount, presence: true, numericality: { greater_than: 0 }
 
-  enum status: { draft: 'draft', published: 'published', archived: 'archived' }
+  # Important callbacks for order updates
+  after_update :log_status_change, if: :saved_change_to_status?
+  after_update :update_inventory, if: :saved_change_to_status?
+  after_update :notify_user, if: :saved_change_to_status?
+  after_update :record_audit_trail
 
-  scope :published, -> { where(status: 'published') }
-  scope :recent, -> { where('created_at > ?', 1.month.ago) }
-
-  before_update :set_published_at, if: :will_save_change_to_status?
-  after_update :notify_followers, if: :saved_change_to_status?
-  after_update :update_search_index
+  scope :pending, -> { where(status: 'pending') }
+  scope :processing, -> { where(status: 'processing') }
+  scope :archived, -> { where(status: 'archived') }
 
   private
 
-  def set_published_at
-    if status_changed? && status == 'published'
-      self.published_at = Time.current
-    end
+  def log_status_change
+    Rails.logger.info "Order #{id} status changed from #{status_before_last_save} to #{status}"
+    AuditLog.create!(
+      auditable: self,
+      action: 'status_change',
+      old_value: status_before_last_save,
+      new_value: status
+    )
   end
 
-  def notify_followers
-    return unless status_previously_changed? && published?
-    
-    NotifyFollowersJob.perform_later(self)
+  def update_inventory
+    return unless status == 'archived' || status == 'cancelled'
+    order_items.each { |item| InventoryService.restore(item) }
   end
 
-  def update_search_index
-    SearchIndexJob.perform_later(self)
+  def notify_user
+    OrderMailer.status_update(self).deliver_later
+  end
+
+  def record_audit_trail
+    OrderAuditService.record(self)
   end
 end
 
-class Notification < ApplicationRecord
-  belongs_to :user
+class OrderItem < ApplicationRecord
+  belongs_to :order
+  belongs_to :product
 
-  validates :message, presence: true
+  validates :quantity, presence: true, numericality: { greater_than: 0 }
+  validates :price, presence: true, numericality: { greater_than: 0 }
+end
 
-  scope :unread, -> { where(read: false) }
-  scope :recent, -> { where('created_at > ?', 1.week.ago) }
+class Payment < ApplicationRecord
+  belongs_to :order
 
-  after_create :send_push_notification
-  after_update :mark_as_processed, if: :saved_change_to_read?
+  validates :amount, presence: true, numericality: { greater_than: 0 }
+  validates :status, inclusion: { in: %w[pending completed failed refunded] }
+end
+```
 
-  private
+## Mailers
 
-  def send_push_notification
-    PushNotificationService.new(user, message).deliver
-  end
-
-  def mark_as_processed
-    Rails.logger.info "Notification #{id} marked as read by user #{user_id}"
+```ruby
+class UserMailer < ApplicationMailer
+  def orders_archived(user:, archived_count:, archive_reason:)
+    @user = user
+    @archived_count = archived_count
+    @archive_reason = archive_reason
+    mail(to: user.email, subject: "#{archived_count} orders have been archived")
   end
 end
 ```
+
+## Notes
+
+When performing bulk updates on orders:
+- Use `find_each { |order| order.update(...) }` to ensure callbacks are triggered
+- Avoid `update_all` when callbacks contain important business logic (audit logging, notifications, inventory updates)
+- If `update_all` is used intentionally for performance, ensure all skipped business logic is handled manually

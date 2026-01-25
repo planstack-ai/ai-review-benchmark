@@ -5,142 +5,111 @@
 ```ruby
 # == Schema Information
 #
-# Table name: users
-#
-#  id         :bigint           not null, primary key
-#  email      :string           not null
-#  name       :string           not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#
-# Table name: posts
-#
-#  id         :bigint           not null, primary key
-#  title      :string           not null
-#  content    :text
-#  user_id    :bigint           not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#
-# Table name: comments
-#
-#  id         :bigint           not null, primary key
-#  content    :text             not null
-#  post_id    :bigint           not null
-#  user_id    :bigint           not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#
-# Table name: likes
-#
-#  id         :bigint           not null, primary key
-#  post_id    :bigint           not null
-#  user_id    :bigint           not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#
-# Table name: tags
+# Table name: projects
 #
 #  id         :bigint           not null, primary key
 #  name       :string           not null
+#  status     :string           default("active"), not null
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
 #
-# Table name: post_tags
+# Table name: review_sessions
 #
-#  id         :bigint           not null, primary key
-#  post_id    :bigint           not null
-#  tag_id     :bigint           not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
+#  id                  :bigint           not null, primary key
+#  project_id          :bigint           not null
+#  started_at          :datetime
+#  completed_at        :datetime
+#  status              :string           default("pending"), not null
+#  benchmark_type      :string
+#  accuracy_percentage :decimal(5, 2)
+#  precision_score     :decimal(5, 3)
+#  recall_score        :decimal(5, 3)
+#  created_at          :datetime         not null
+#  updated_at          :datetime         not null
+#
+# Table name: benchmark_files
+#
+#  id                :bigint           not null, primary key
+#  review_session_id :bigint           not null
+#  file_path         :string           not null
+#  content           :text
+#  expected_issues   :integer          default(0)
+#  temporary         :boolean          default(false)
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#
+# Table name: test_cases
+#
+#  id                :bigint           not null, primary key
+#  review_session_id :bigint           not null
+#  pattern_name      :string           not null
+#  severity          :string
+#  expected_result   :boolean          default(true)
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#
+# Table name: code_issues
+#
+#  id                :bigint           not null, primary key
+#  review_session_id :bigint           not null
+#  file_path         :string           not null
+#  line_number       :integer
+#  issue_type        :string           not null
+#  description       :text
+#  severity          :string
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
 ```
 
 ## Models
 
 ```ruby
-class User < ApplicationRecord
-  validates :email, presence: true, uniqueness: true
+class Project < ApplicationRecord
+  has_many :review_sessions, dependent: :destroy
+
   validates :name, presence: true
+  validates :status, inclusion: { in: %w[active inactive archived] }
 
-  has_many :posts
-  has_many :comments
-  has_many :likes
+  scope :active, -> { where(status: 'active') }
 
-  scope :active, -> { where(deleted_at: nil) }
-  
-  def full_profile_complete?
-    email.present? && name.present?
+  def active?
+    status == 'active'
   end
 end
 
-class Post < ApplicationRecord
-  validates :title, presence: true
-  validates :user_id, presence: true
+class ReviewSession < ApplicationRecord
+  belongs_to :project
+  has_many :benchmark_files, dependent: :destroy
+  has_many :test_cases, dependent: :destroy
+  has_many :code_issues, dependent: :destroy
 
-  belongs_to :user
-  has_many :comments
-  has_many :likes
-  has_many :post_tags
-  has_many :tags, through: :post_tags
-
-  scope :published, -> { where.not(published_at: nil) }
-  scope :recent, -> { order(created_at: :desc) }
-
-  def published?
-    published_at.present?
-  end
-
-  def like_count
-    likes.count
-  end
+  validates :project_id, presence: true
+  validates :status, inclusion: { in: %w[pending running completed failed] }
 end
 
-class Comment < ApplicationRecord
-  validates :content, presence: true
-  validates :post_id, presence: true
-  validates :user_id, presence: true
+class BenchmarkFile < ApplicationRecord
+  belongs_to :review_session
 
-  belongs_to :post
-  belongs_to :user
-
-  scope :recent, -> { order(created_at: :desc) }
-  scope :approved, -> { where(approved: true) }
-
-  def excerpt(limit = 100)
-    content.truncate(limit)
-  end
+  validates :file_path, presence: true
 end
 
-class Like < ApplicationRecord
-  validates :post_id, presence: true
-  validates :user_id, presence: true
-  validates :user_id, uniqueness: { scope: :post_id }
+class TestCase < ApplicationRecord
+  belongs_to :review_session
 
-  belongs_to :post
-  belongs_to :user
-
-  scope :recent, -> { order(created_at: :desc) }
+  validates :pattern_name, presence: true
 end
 
-class Tag < ApplicationRecord
-  validates :name, presence: true, uniqueness: true
+class CodeIssue < ApplicationRecord
+  belongs_to :review_session
 
-  has_many :post_tags
-  has_many :posts, through: :post_tags
-
-  scope :popular, -> { joins(:posts).group('tags.id').having('COUNT(posts.id) > 5') }
-
-  def slug
-    name.parameterize
-  end
-end
-
-class PostTag < ApplicationRecord
-  validates :post_id, presence: true
-  validates :tag_id, presence: true
-  validates :post_id, uniqueness: { scope: :tag_id }
-
-  belongs_to :post
-  belongs_to :tag
+  validates :file_path, presence: true
+  validates :issue_type, presence: true
 end
 ```
+
+## Notes
+
+The benchmark service generates sample Ruby code to test AI code review capabilities. When generating sample code, it should follow Rails best practices including:
+- Proper `dependent: :destroy` on associations to prevent orphaned records
+- Correct use of `params` in controllers (not in model methods)
+- Proper eager loading to avoid N+1 queries

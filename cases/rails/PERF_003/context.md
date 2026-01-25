@@ -105,3 +105,8 @@ class PostTag < ApplicationRecord
   belongs_to :tag
 end
 ```
+
+## Usage Guidelines
+
+- Only eager load associations that will actually be used. Unnecessary eager loading can slow down queries.
+

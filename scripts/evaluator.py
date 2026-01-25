@@ -17,6 +17,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+# Load .env file if python-dotenv is available
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / ".env")
+except ImportError:
+    pass
+
 import anthropic
 
 
@@ -182,6 +189,12 @@ class EvaluationResult:
     suggestion_quality: str | None = None  # "excellent" | "good" | "acceptable" | "poor"
     key_points_matched: list[str] | None = None
     key_points_missed: list[str] | None = None
+    # Dual mode / Fix evaluation fields
+    context_mode: str = "explicit"  # "explicit" | "implicit"
+    fix_score: float = 0.0  # 0.0-1.0 fix suggestion quality
+    fix_correct: bool = False  # Whether fix matches expected implementation
+    fix_validation_passed: list[str] | None = None  # Which validation rules passed
+    fix_validation_failed: list[str] | None = None  # Which validation rules failed
 
 
 @dataclass
@@ -218,6 +231,14 @@ class ModelMetrics:
     avg_semantic_score: float = 0.0  # Average 1-5 score
     essential_finding_rate: float = 0.0  # % cases where essential finding captured
     severity_alignment_rate: float = 0.0  # % cases where severity matched
+    # Dual mode / Fix evaluation metrics
+    fix_accuracy: float = 0.0  # Correct fixes / Detected issues
+    avg_fix_score: float = 0.0  # Average fix quality score
+    # Dual mode comparison (only populated when dual mode data available)
+    explicit_recall: float | None = None  # Recall with guidelines
+    implicit_recall: float | None = None  # Recall without guidelines
+    inference_gap: float | None = None  # explicit_recall - implicit_recall
+    by_context_mode: dict[str, dict[str, Any]] | None = None  # Breakdown by mode
 
 
 def extract_json(text: str) -> dict[str, Any] | None:
@@ -284,6 +305,59 @@ def load_expected_critique(case_id: str) -> str | None:
             if critique_file.exists():
                 return critique_file.read_text()
     return None
+
+
+def evaluate_fix_suggestion(
+    suggestion: str,
+    fix_validation: dict[str, Any] | None,
+) -> tuple[float, bool, list[str], list[str]]:
+    """Evaluate a fix suggestion against validation rules.
+
+    Args:
+        suggestion: The fix suggestion text from AI review
+        fix_validation: Validation rules from meta.json containing:
+            - must_contain: List of strings that must be present
+            - must_not_contain: List of strings that must NOT be present
+
+    Returns:
+        Tuple of (score, is_correct, passed_rules, failed_rules)
+        - score: 0.0-1.0 quality score
+        - is_correct: True if all rules pass
+        - passed_rules: List of rules that passed
+        - failed_rules: List of rules that failed
+    """
+    if not fix_validation or not suggestion:
+        return 0.0, False, [], []
+
+    passed = []
+    failed = []
+    suggestion_lower = suggestion.lower()
+
+    # Check must_contain rules
+    must_contain = fix_validation.get("must_contain", [])
+    for pattern in must_contain:
+        if pattern.lower() in suggestion_lower:
+            passed.append(f"contains: {pattern}")
+        else:
+            failed.append(f"missing: {pattern}")
+
+    # Check must_not_contain rules
+    must_not_contain = fix_validation.get("must_not_contain", [])
+    for pattern in must_not_contain:
+        if pattern.lower() in suggestion_lower:
+            failed.append(f"contains forbidden: {pattern}")
+        else:
+            passed.append(f"avoids: {pattern}")
+
+    # Calculate score
+    total_rules = len(must_contain) + len(must_not_contain)
+    if total_rules == 0:
+        return 0.0, False, [], []
+
+    score = len(passed) / total_rules
+    is_correct = len(failed) == 0
+
+    return score, is_correct, passed, failed
 
 
 def matches_keywords(text: str, rule: dict[str, Any]) -> bool:
@@ -766,6 +840,67 @@ def calculate_metrics(evaluations: list[EvaluationResult]) -> ModelMetrics:
         if semantic_cases > 0 else 0.0
     )
 
+    # Fix evaluation metrics
+    detected_evals = [e for e in bug_evals if e.detected]
+    fix_accuracy = (
+        sum(1 for e in detected_evals if e.fix_correct) / len(detected_evals)
+        if detected_evals else 0.0
+    )
+    avg_fix_score = (
+        sum(e.fix_score for e in detected_evals) / len(detected_evals)
+        if detected_evals else 0.0
+    )
+
+    # Dual mode metrics (explicit vs implicit comparison)
+    explicit_evals = [e for e in evaluations if e.context_mode == "explicit"]
+    implicit_evals = [e for e in evaluations if e.context_mode == "implicit"]
+
+    explicit_recall: float | None = None
+    implicit_recall: float | None = None
+    inference_gap: float | None = None
+    by_context_mode: dict[str, dict[str, Any]] | None = None
+
+    # Only calculate if both modes have data
+    if explicit_evals and implicit_evals:
+        explicit_bug_evals = [e for e in explicit_evals if e.expected_detection]
+        implicit_bug_evals = [e for e in implicit_evals if e.expected_detection]
+
+        if explicit_bug_evals:
+            explicit_tp = sum(1 for e in explicit_bug_evals if e.detected)
+            explicit_recall = explicit_tp / len(explicit_bug_evals)
+
+        if implicit_bug_evals:
+            implicit_tp = sum(1 for e in implicit_bug_evals if e.detected)
+            implicit_recall = implicit_tp / len(implicit_bug_evals)
+
+        if explicit_recall is not None and implicit_recall is not None:
+            inference_gap = explicit_recall - implicit_recall
+
+        by_context_mode = {
+            "explicit": {
+                "total": len(explicit_evals),
+                "bug_cases": len(explicit_bug_evals),
+                "detected": sum(1 for e in explicit_bug_evals if e.detected) if explicit_bug_evals else 0,
+                "recall": explicit_recall,
+                "fix_accuracy": (
+                    sum(1 for e in explicit_bug_evals if e.detected and e.fix_correct) /
+                    sum(1 for e in explicit_bug_evals if e.detected)
+                    if sum(1 for e in explicit_bug_evals if e.detected) > 0 else 0.0
+                ),
+            },
+            "implicit": {
+                "total": len(implicit_evals),
+                "bug_cases": len(implicit_bug_evals),
+                "detected": sum(1 for e in implicit_bug_evals if e.detected) if implicit_bug_evals else 0,
+                "recall": implicit_recall,
+                "fix_accuracy": (
+                    sum(1 for e in implicit_bug_evals if e.detected and e.fix_correct) /
+                    sum(1 for e in implicit_bug_evals if e.detected)
+                    if sum(1 for e in implicit_bug_evals if e.detected) > 0 else 0.0
+                ),
+            },
+        }
+
     return ModelMetrics(
         model=model,
         total_cases=len(evaluations),
@@ -793,6 +928,14 @@ def calculate_metrics(evaluations: list[EvaluationResult]) -> ModelMetrics:
         avg_semantic_score=avg_semantic_score,
         essential_finding_rate=essential_finding_rate,
         severity_alignment_rate=severity_alignment_rate,
+        # Fix evaluation metrics
+        fix_accuracy=fix_accuracy,
+        avg_fix_score=avg_fix_score,
+        # Dual mode comparison metrics
+        explicit_recall=explicit_recall,
+        implicit_recall=implicit_recall,
+        inference_gap=inference_gap,
+        by_context_mode=by_context_mode,
     )
 
 
@@ -875,6 +1018,40 @@ def generate_report(
             )
 
         lines.append("")
+
+        # Fix evaluation section
+        if metrics.fix_accuracy > 0 or metrics.avg_fix_score > 0:
+            lines.extend([
+                "### Fix Suggestion Quality",
+                "",
+                f"- Fix Accuracy: {metrics.fix_accuracy:.1%}",
+                f"- Avg Fix Score: {metrics.avg_fix_score:.2f}",
+                "",
+            ])
+
+        # Dual mode comparison section
+        if metrics.by_context_mode:
+            lines.extend([
+                "### Dual Mode Comparison (Explicit vs Implicit)",
+                "",
+                "| Mode | Bug Cases | Detected | Recall | Fix Accuracy |",
+                "|------|-----------|----------|--------|--------------|",
+            ])
+
+            for mode_name, mode_data in metrics.by_context_mode.items():
+                recall_str = f"{mode_data['recall']:.1%}" if mode_data['recall'] is not None else "N/A"
+                lines.append(
+                    f"| {mode_name} | {mode_data['bug_cases']} | {mode_data['detected']} | "
+                    f"{recall_str} | {mode_data['fix_accuracy']:.1%} |"
+                )
+
+            lines.extend([
+                "",
+                f"**Inference Gap**: {metrics.inference_gap:.1%}" if metrics.inference_gap is not None else "",
+                "",
+            ])
+        else:
+            lines.append("")
 
     report_path = output_dir / "report.md"
     report_path.write_text("\n".join(lines))
@@ -990,6 +1167,22 @@ def main() -> None:
             review_has_issues = parsed.get("has_issues") if parsed else None
             review_issue_count = len(parsed.get("issues", [])) if parsed else 0
 
+            # Fix suggestion評価
+            fix_validation = meta.get("fix_validation")
+            context_mode = result.get("context_mode", "explicit")
+
+            # Collect all suggestions from issues
+            all_suggestions = ""
+            if parsed and parsed.get("issues"):
+                for issue in parsed["issues"]:
+                    suggestion = issue.get("suggestion", "")
+                    if suggestion:
+                        all_suggestions += suggestion + "\n"
+
+            fix_score, fix_correct, fix_passed, fix_failed = evaluate_fix_suggestion(
+                all_suggestions, fix_validation
+            )
+
             evaluation = EvaluationResult(
                 case_id=case_id,
                 category=meta.get("category", "unknown"),
@@ -1016,6 +1209,12 @@ def main() -> None:
                 suggestion_quality=judge_result.get("suggestion_quality"),
                 key_points_matched=judge_result.get("key_points_matched"),
                 key_points_missed=judge_result.get("key_points_missed"),
+                # Dual mode / Fix evaluation fields
+                context_mode=context_mode,
+                fix_score=fix_score,
+                fix_correct=fix_correct,
+                fix_validation_passed=fix_passed if fix_passed else None,
+                fix_validation_failed=fix_failed if fix_failed else None,
             )
             evaluations.append(evaluation)
 

@@ -9,103 +9,128 @@
 #
 #  id         :bigint           not null, primary key
 #  email      :string           not null
-#  first_name :string
-#  last_name  :string
-#  role       :string           default("user")
+#  name       :string           not null
 #  active     :boolean          default(true)
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
 #
-# Table name: posts
+# Table name: orders
 #
-#  id          :bigint           not null, primary key
-#  title       :string           not null
-#  content     :text
-#  status      :string           default("draft")
-#  user_id     :bigint           not null
-#  category_id :bigint
-#  created_at  :datetime         not null
-#  updated_at  :datetime         not null
+#  id           :bigint           not null, primary key
+#  user_id      :bigint           not null
+#  product_id   :bigint           not null
+#  quantity     :integer          not null
+#  address      :text             not null
+#  total_amount :decimal(10, 2)   not null
+#  status       :string           default("pending"), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
 #
-# Table name: categories
+# Table name: products
 #
-#  id          :bigint           not null, primary key
-#  name        :string           not null
-#  description :text
-#  active      :boolean          default(true)
-#  created_at  :datetime         not null
-#  updated_at  :datetime         not null
+#  id         :bigint           not null, primary key
+#  name       :string           not null
+#  price      :decimal(10, 2)   not null
+#  available  :boolean          default(true)
+#  stock      :integer          default(0)
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
 ```
 
 ## Models
 
 ```ruby
 class User < ApplicationRecord
-  ROLES = %w[user admin moderator].freeze
-  
-  has_many :posts, dependent: :destroy
-  
+  has_many :orders, dependent: :destroy
+
   validates :email, presence: true, uniqueness: true
-  validates :role, inclusion: { in: ROLES }
-  
+  validates :name, presence: true
+
   scope :active, -> { where(active: true) }
-  scope :by_role, ->(role) { where(role: role) }
-  
-  def full_name
-    "#{first_name} #{last_name}".strip
-  end
-  
-  def admin?
-    role == 'admin'
+
+  def active?
+    active
   end
 end
 
-class Post < ApplicationRecord
-  STATUSES = %w[draft published archived].freeze
-  
+class Order < ApplicationRecord
+  STATUSES = %w[pending paid shipped delivered cancelled].freeze
+
   belongs_to :user
-  belongs_to :category, optional: true
-  
-  validates :title, presence: true
+  belongs_to :product
+
+  validates :quantity, presence: true, numericality: { greater_than: 0 }
+  validates :address, presence: true
+  validates :total_amount, presence: true, numericality: { greater_than: 0 }
   validates :status, inclusion: { in: STATUSES }
-  
-  scope :published, -> { where(status: 'published') }
-  scope :by_status, ->(status) { where(status: status) }
-  scope :recent, -> { order(created_at: :desc) }
-  
-  def published?
-    status == 'published'
+
+  scope :pending, -> { where(status: 'pending') }
+  scope :paid, -> { where(status: 'paid') }
+
+  def paid?
+    status == 'paid'
   end
 end
 
-class Category < ApplicationRecord
-  has_many :posts, dependent: :nullify
-  
-  validates :name, presence: true, uniqueness: true
-  
-  scope :active, -> { where(active: true) }
-  scope :alphabetical, -> { order(:name) }
+class Product < ApplicationRecord
+  has_many :orders, dependent: :restrict_with_error
+
+  validates :name, presence: true
+  validates :price, presence: true, numericality: { greater_than: 0 }
+
+  scope :available, -> { where(available: true) }
+
+  def available?
+    available && stock > 0
+  end
 end
 ```
 
-## Application Controller
+## Services
 
 ```ruby
-class ApplicationController < ActionController::Base
-  protect_from_forgery with: :exception
-  
-  before_action :authenticate_user!
-  before_action :configure_permitted_parameters, if: :devise_controller?
-  
-  private
-  
-  def configure_permitted_parameters
-    devise_parameter_sanitizer.permit(:sign_up, keys: [:first_name, :last_name])
-    devise_parameter_sanitizer.permit(:account_update, keys: [:first_name, :last_name])
+class PaymentService
+  def initialize(order)
+    @order = order
   end
-  
-  def require_admin
-    redirect_to root_path unless current_user&.admin?
+
+  def process
+    # Payment processing logic
+    @order.update!(status: 'paid')
+  end
+end
+
+class InventoryService
+  def initialize(product, quantity)
+    @product = product
+    @quantity = quantity
+  end
+
+  def decrement
+    @product.decrement!(:stock, @quantity)
   end
 end
 ```
+
+## Mailers
+
+```ruby
+class OrderMailer < ApplicationMailer
+  def confirmation_email(order)
+    @order = order
+    mail(to: order.user.email, subject: 'Order Confirmation')
+  end
+end
+```
+
+## Security Notes
+
+When handling user input in services:
+- Always use Rails strong parameters: `params.require(:order).permit(:allowed_fields)`
+- Never pass raw `params[:order]` directly to model creation
+- Whitelist only the specific attributes that should be mass-assignable
+
+## Usage Guidelines
+
+- Always use strong parameters to whitelist permitted attributes. Never allow mass assignment of sensitive fields like role, admin, etc.
+
