@@ -18,7 +18,8 @@ Quantitatively verify whether DeepSeek V3/R1, at 1/20th the API cost, can delive
 | Model | Cost ($/1M input) | Role |
 |-------|-------------------|------|
 | Claude Sonnet 4 | $3.00 | Baseline |
-| GPT-4o | $2.50 | OpenAI Flagship |
+| GPT-4o | $2.50 | OpenAI Legacy |
+| GPT-5 | $1.25 | OpenAI Flagship |
 | DeepSeek V3 | $0.14 | Cost Killer |
 | DeepSeek R1 | $0.55 | Reasoner |
 | Gemini 2.5 Pro | $1.25 | Long Context |

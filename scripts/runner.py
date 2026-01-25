@@ -27,8 +27,8 @@ import anthropic
 import google.generativeai as genai
 import openai
 
-ModelName = Literal["claude-sonnet", "gpt-4o", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
-ALL_MODELS: list[ModelName] = ["claude-sonnet", "gpt-4o", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
+ModelName = Literal["claude-sonnet", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
+ALL_MODELS: list[ModelName] = ["claude-sonnet", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
 
 RunMode = Literal["explicit", "implicit", "dual"]
 
@@ -45,6 +45,11 @@ MODEL_CONFIG = {
     "gpt-4o": {
         "model_id": "gpt-4o",
         "input_cost_per_1m": 2.50,
+        "output_cost_per_1m": 10.00,
+    },
+    "gpt-5": {
+        "model_id": "gpt-5",
+        "input_cost_per_1m": 1.25,
         "output_cost_per_1m": 10.00,
     },
     "deepseek-v3": {
@@ -275,7 +280,7 @@ def call_claude_sonnet(prompt: str) -> dict[str, Any]:
     }
 
 
-def call_openai(prompt: str, model_name: Literal["gpt-4o"]) -> dict[str, Any]:
+def call_openai(prompt: str, model_name: Literal["gpt-4o", "gpt-5"]) -> dict[str, Any]:
     """OpenAI APIを呼び出し"""
     config = MODEL_CONFIG[model_name]
 
@@ -393,7 +398,7 @@ def run_review(model: ModelName, case: dict[str, Any]) -> dict[str, Any]:
 
     if model == "claude-sonnet":
         return call_claude_sonnet(prompt)
-    elif model == "gpt-4o":
+    elif model in ("gpt-4o", "gpt-5"):
         return call_openai(prompt, model)
     elif model == "deepseek-v3":
         return call_deepseek_v3(prompt)
@@ -562,7 +567,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="AIコードレビューベンチマーク実行")
     parser.add_argument(
         "--model",
-        choices=["claude-sonnet", "gpt-4o", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash", "all"],
+        choices=["claude-sonnet", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash", "all"],
         required=True,
         help="使用するモデル（'all'で全モデル実行）",
     )
