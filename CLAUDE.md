@@ -20,6 +20,8 @@ Benchmark for evaluating AI code review quality on Rails and Django applications
 
 ### Commands
 
+**Always activate venv first:** `source .venv/bin/activate`
+
 ```bash
 # Generate test case (Rails - default)
 python scripts/generator.py --pattern CALC_001

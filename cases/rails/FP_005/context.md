@@ -5,130 +5,135 @@
 ```ruby
 # == Schema Information
 #
+# Table name: orders
+#
+#  id                :bigint           not null, primary key
+#  user_id           :bigint           not null
+#  status            :string           default("pending")
+#  subtotal          :decimal(10,2)
+#  tax_amount        :decimal(10,2)
+#  shipping_cost     :decimal(10,2)
+#  total_amount      :decimal(10,2)
+#  payment_status    :string           default("unpaid")
+#  payment_reference :string
+#  confirmed_at      :datetime
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#
+# Indexes
+#
+#  index_orders_on_user_id  (user_id)
+#  index_orders_on_status   (status)
+#
+
+# Table name: order_items
+#
+#  id         :bigint           not null, primary key
+#  order_id   :bigint           not null
+#  product_id :bigint           not null
+#  quantity   :integer          not null
+#  unit_price :decimal(8,2)     not null
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#
+# Indexes
+#
+#  index_order_items_on_order_id    (order_id)
+#  index_order_items_on_product_id  (product_id)
+#
+
+# Table name: products
+#
+#  id             :bigint           not null, primary key
+#  name           :string           not null
+#  price          :decimal(8,2)     not null
+#  stock_quantity :integer          default(0)
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#
+
 # Table name: users
 #
-#  id                     :bigint           not null, primary key
-#  email                  :string           not null
-#  first_name             :string
-#  last_name              :string
-#  status                 :integer          default("active")
-#  email_verified_at      :datetime
-#  last_login_at          :datetime
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
+#  id         :bigint           not null, primary key
+#  email      :string           not null
+#  name       :string
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
 #
-# Indexes
-#
-#  index_users_on_email   (email) UNIQUE
-#
-
-# Table name: user_profiles
-#
-#  id                     :bigint           not null, primary key
-#  user_id                :bigint           not null
-#  bio                    :text
-#  avatar_url             :string
-#  preferences            :jsonb
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#
-# Indexes
-#
-#  index_user_profiles_on_user_id  (user_id)
-#
-
-# Table name: audit_logs
-#
-#  id                     :bigint           not null, primary key
-#  auditable_type         :string
-#  auditable_id           :bigint
-#  action                 :string
-#  changes                :jsonb
-#  user_id                :bigint
-#  created_at             :datetime         not null
-#
-# Indexes
-#
-#  index_audit_logs_on_auditable  (auditable_type,auditable_id)
-#  index_audit_logs_on_user_id    (user_id)
 ```
 
 ## Models
 
 ```ruby
-class User < ApplicationRecord
-  enum status: { active: 0, inactive: 1, suspended: 2 }
+class Order < ApplicationRecord
+  belongs_to :user
+  has_many :order_items, dependent: :destroy
+  has_many :products, through: :order_items
 
-  has_one :user_profile, dependent: :destroy
-  has_many :audit_logs, dependent: :destroy
+  enum status: { pending: 'pending', confirmed: 'confirmed', shipped: 'shipped', delivered: 'delivered', cancelled: 'cancelled' }
+  enum payment_status: { unpaid: 'unpaid', paid: 'paid', refunded: 'refunded' }
+
+  validates :user, presence: true
+end
+
+class OrderItem < ApplicationRecord
+  belongs_to :order
+  belongs_to :product
+
+  validates :quantity, presence: true, numericality: { greater_than: 0 }
+  validates :unit_price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+
+  def line_total
+    quantity * unit_price
+  end
+end
+
+class Product < ApplicationRecord
+  has_many :order_items, dependent: :destroy
+
+  validates :name, presence: true
+  validates :price, presence: true, numericality: { greater_than: 0 }
+  validates :stock_quantity, numericality: { greater_than_or_equal_to: 0 }
+end
+
+class User < ApplicationRecord
+  has_many :orders, dependent: :destroy
 
   validates :email, presence: true, uniqueness: true
-  validates :first_name, :last_name, presence: true
+end
+```
 
-  scope :verified, -> { where.not(email_verified_at: nil) }
-  scope :recent_login, -> { where('last_login_at > ?', 30.days.ago) }
+## External Services
 
-  def full_name
-    "#{first_name} #{last_name}".strip
-  end
-
-  def verified?
-    email_verified_at.present?
-  end
-
-  private
-
-  def normalize_email
-    self.email = email.downcase.strip if email.present?
-  end
-
-  def send_welcome_email
-    UserMailer.welcome(self).deliver_later
-  end
-
-  def create_default_profile
-    build_user_profile(preferences: default_preferences)
-  end
-
-  def default_preferences
-    {
-      notifications: true,
-      theme: 'light',
-      language: 'en'
-    }
+```ruby
+class PaymentGateway
+  # Charges the given amount using the payment method
+  # Returns a result object with success?, transaction_id, error_message
+  def self.charge(amount:, payment_method:, customer:)
+    # External payment processing
   end
 end
 
-class UserProfile < ApplicationRecord
-  belongs_to :user
-
-  validates :bio, length: { maximum: 500 }
-
-  def avatar_present?
-    avatar_url.present?
-  end
-
-  def notification_enabled?
-    preferences.dig('notifications') == true
+class OrderMailer < ApplicationMailer
+  def confirmation_email(order)
+    @order = order
+    mail(to: order.user.email, subject: 'Order Confirmation')
   end
 end
+```
 
-class AuditLog < ApplicationRecord
-  belongs_to :auditable, polymorphic: true
-  belongs_to :user, optional: true
+## Shipping Address
 
-  validates :action, presence: true
+```ruby
+class ShippingAddress
+  attr_accessor :country, :state, :city, :postal_code
 
-  scope :for_model, ->(model) { where(auditable: model) }
-  scope :recent, -> { where('created_at > ?', 7.days.ago) }
+  def international?
+    country != 'US'
+  end
 
-  def self.log_action(auditable, action, changes = {}, current_user = nil)
-    create!(
-      auditable: auditable,
-      action: action,
-      changes: changes,
-      user: current_user
-    )
+  def tax_rate
+    # Returns state-specific tax rate or nil for default
   end
 end
 ```

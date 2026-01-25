@@ -16,21 +16,23 @@ class OrderProcessingService
   end
 
   def call
-    run_callbacks :process do
-      return failure_result('Invalid order data') unless valid_order_data?
-      
-      run_callbacks :validate_order do
-        validate_inventory
-        calculate_totals
-      end
+    ActiveRecord::Base.transaction do
+      run_callbacks :process do
+        return failure_result('Invalid order data') unless valid_order_data?
 
-      run_callbacks :payment do
-        process_payment
-        update_order_status
-      end
+        run_callbacks :validate_order do
+          validate_inventory
+          calculate_totals
+        end
 
-      send_confirmation_email
-      success_result
+        run_callbacks :payment do
+          process_payment
+          update_order_status
+        end
+
+        send_confirmation_email
+        success_result
+      end
     end
   rescue StandardError => e
     failure_result(e.message)
@@ -52,8 +54,8 @@ class OrderProcessingService
   def calculate_totals
     subtotal = order.order_items.sum { |item| item.quantity * item.unit_price }
     tax_amount = subtotal * tax_rate
-    shipping_cost = calculate_shipping_cost
-    
+    shipping_cost = calculate_shipping_cost(subtotal)
+
     order.update!(
       subtotal: subtotal,
       tax_amount: tax_amount,
@@ -91,8 +93,8 @@ class OrderProcessingService
     OrderMailer.confirmation_email(order).deliver_later
   end
 
-  def calculate_shipping_cost
-    return 0 if order.total_amount > 100
+  def calculate_shipping_cost(amount)
+    return 0 if amount > 100
     shipping_address&.international? ? 25.00 : 10.00
   end
 

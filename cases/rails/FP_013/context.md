@@ -5,120 +5,65 @@
 ```ruby
 # == Schema Information
 #
-# Table name: orders
+# Table name: users
 #
-#  id           :bigint           not null, primary key
-#  user_id      :bigint           not null
-#  status       :string           not null
-#  total_amount :decimal(10,2)    not null
-#  shipped_at   :datetime
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
+#  id            :bigint           not null, primary key
+#  email         :string           not null
+#  name          :string
+#  status        :string           default("active"), not null
+#  updated_by_id :bigint
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
 #
 # Indexes
 #
-#  index_orders_on_user_id  (user_id)
-#  index_orders_on_status   (status)
+#  index_users_on_email   (email) UNIQUE
+#  index_users_on_status  (status)
 #
 
-# Table name: order_items
+# Table name: activity_logs
 #
-#  id         :bigint           not null, primary key
-#  order_id   :bigint           not null
-#  product_id :bigint           not null
-#  quantity   :integer          not null
-#  price      :decimal(8,2)     not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
+#  id             :bigint           not null, primary key
+#  action         :string           not null
+#  performed_by_id :bigint          not null
+#  details        :jsonb            default({})
+#  created_at     :datetime         not null
 #
 # Indexes
 #
-#  index_order_items_on_order_id    (order_id)
-#  index_order_items_on_product_id  (product_id)
-#
-
-# Table name: inventory_items
-#
-#  id           :bigint           not null, primary key
-#  product_id   :bigint           not null
-#  warehouse_id :bigint           not null
-#  quantity     :integer          not null, default: 0
-#  reserved     :integer          not null, default: 0
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
-#
-# Indexes
-#
-#  index_inventory_items_on_product_id_and_warehouse_id  (product_id,warehouse_id) UNIQUE
+#  index_activity_logs_on_performed_by_id  (performed_by_id)
+#  index_activity_logs_on_action           (action)
 #
 ```
 
 ## Models
 
 ```ruby
-class Order < ApplicationRecord
-  belongs_to :user
-  has_many :order_items, dependent: :destroy
-  has_many :products, through: :order_items
+class User < ApplicationRecord
+  belongs_to :updated_by, class_name: 'User', optional: true
+  has_many :activity_logs, foreign_key: :performed_by_id
 
-  STATUSES = %w[pending confirmed processing shipped delivered cancelled].freeze
+  STATUSES = %w[active inactive suspended].freeze
 
+  validates :email, presence: true, uniqueness: true
   validates :status, inclusion: { in: STATUSES }
-  validates :total_amount, presence: true, numericality: { greater_than: 0 }
 
-  scope :pending, -> { where(status: 'pending') }
-  scope :confirmed, -> { where(status: 'confirmed') }
-  scope :processing, -> { where(status: 'processing') }
-  scope :shipped, -> { where(status: 'shipped') }
-  scope :older_than, ->(date) { where('created_at < ?', date) }
+  scope :active, -> { where(status: 'active') }
+  scope :inactive, -> { where(status: 'inactive') }
+  scope :suspended, -> { where(status: 'suspended') }
 
   after_update :send_status_notification, if: :saved_change_to_status?
-  after_update :update_shipped_timestamp, if: -> { status == 'shipped' && saved_change_to_status? }
 
   private
 
   def send_status_notification
-    OrderStatusMailer.status_changed(self).deliver_later
-  end
-
-  def update_shipped_timestamp
-    update_column(:shipped_at, Time.current)
+    UserStatusMailer.status_changed(self).deliver_later
   end
 end
 
-class OrderItem < ApplicationRecord
-  belongs_to :order
-  belongs_to :product
+class ActivityLog < ApplicationRecord
+  belongs_to :performed_by, class_name: 'User'
 
-  validates :quantity, presence: true, numericality: { greater_than: 0 }
-  validates :price, presence: true, numericality: { greater_than: 0 }
-
-  scope :for_product, ->(product_id) { where(product_id: product_id) }
-end
-
-class InventoryItem < ApplicationRecord
-  belongs_to :product
-  belongs_to :warehouse
-
-  validates :quantity, presence: true, numericality: { greater_than_or_equal_to: 0 }
-  validates :reserved, presence: true, numericality: { greater_than_or_equal_to: 0 }
-
-  scope :for_product, ->(product_id) { where(product_id: product_id) }
-  scope :with_available_stock, -> { where('quantity > reserved') }
-
-  def available_quantity
-    quantity - reserved
-  end
-end
-
-class Product < ApplicationRecord
-  has_many :order_items, dependent: :destroy
-  has_many :inventory_items, dependent: :destroy
-  has_many :orders, through: :order_items
-
-  validates :name, presence: true
-  validates :price, presence: true, numericality: { greater_than: 0 }
-
-  scope :active, -> { where(active: true) }
+  validates :action, presence: true
 end
 ```
