@@ -1,25 +1,25 @@
-# User Profile Management System
+# User Profile Management Service
 
 ## Overview
 
-A comprehensive user profile management system that allows administrators and users to perform standard CRUD (Create, Read, Update, Delete) operations on user profiles. The system manages user information including personal details, contact information, and account preferences with appropriate access controls and data validation.
+A user profile management service that provides CRUD operations on user profiles with email validation and logging.
 
 ## Requirements
 
-1. Implement a complete CRUD interface for user profiles
-2. Support creation of new user profiles with required fields: name, email, and role
-3. Provide read functionality to display individual user profiles
-4. Enable updating of user profile information
-5. Allow deletion of user profiles with proper cleanup
-6. Include comprehensive input validation
-7. Implement proper error handling with meaningful error messages
+1. Support creation, update, and deletion of user profiles
+2. Validate email format and uniqueness
+3. Send welcome email on user creation
+4. Log user operations (create, update, delete)
+5. Support user activation and deactivation
+6. Allow finding users by email
 
 ## Constraints
 
 1. Email addresses must be unique
-2. User roles must be restricted to predefined values
-3. All operations must maintain data integrity
+2. Only allow specific fields to be mass-assigned (first_name, last_name, email, phone, role)
+3. Cascade delete associated data via foreign keys
 
-## References
+## Notes
 
-See context.md for existing user management implementations.
+- Posts and comments are cascade deleted via foreign keys in the database schema
+- Error collection is optional and may be empty if model doesn't have validation errors

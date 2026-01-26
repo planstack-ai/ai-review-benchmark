@@ -1112,7 +1112,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--framework",
-        choices=["rails", "django"],
+        choices=["rails", "django", "laravel"],
         default=None,
         help="Target framework (auto-detected from summary.json if not specified)",
     )
