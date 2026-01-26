@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_004",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "date_only_comparison",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Time truncation causes next-day treatment",
+  "bug_anchor": "delivery_date == target_date",
+  "correct_implementation": "delivery_date.date() == target_date.date()",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "date",
+    "comparison"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

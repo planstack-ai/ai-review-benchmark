@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_002",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "non_atomic_stock_update",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Race condition between stock check and update",
+  "bug_anchor": "if product.stock > 0: product.stock -= 1; product.save()",
+  "correct_implementation": "Product.objects.filter(stock__gt=0).update(stock=F('stock')-1)",
+  "severity": "critical",
+  "tags": [
+    "inventory",
+    "race_condition",
+    "atomic"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

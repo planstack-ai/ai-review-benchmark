@@ -1,0 +1,21 @@
+{
+  "case_id": "NOTIFY_005",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "recipient_mixup",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Email sent to wrong user due to variable scope",
+  "bug_anchor": "send_email(user.email) with wrong user variable",
+  "correct_implementation": "send_email(order.user.email)",
+  "severity": "critical",
+  "tags": [
+    "notification",
+    "recipient",
+    "privacy"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

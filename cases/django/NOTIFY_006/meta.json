@@ -1,0 +1,21 @@
+{
+  "case_id": "NOTIFY_006",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "bulk_rate_limit",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Mass email send gets blocked by rate limit",
+  "bug_anchor": "for user in users: send_email(user)",
+  "correct_implementation": "for user in users: send_email_task.delay(user.id)",
+  "severity": "medium",
+  "tags": [
+    "notification",
+    "bulk",
+    "rate_limit"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": false
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "STATE_002",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "cancel_window_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Cancellation succeeds even after shipment",
+  "bug_anchor": "order.cancel() without status check",
+  "correct_implementation": "if order.status == 'shipped': raise ValidationError",
+  "severity": "high",
+  "tags": [
+    "state",
+    "cancellation",
+    "validation"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

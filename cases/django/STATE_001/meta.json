@@ -1,0 +1,21 @@
+{
+  "case_id": "STATE_001",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "invalid_state_transition",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Invalid transition allowed - shipped can go back to pending",
+  "bug_anchor": "order.status = new_status without validation",
+  "correct_implementation": "validate_transition(from_status, to_status) before update",
+  "severity": "critical",
+  "tags": [
+    "state",
+    "transition",
+    "validation"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

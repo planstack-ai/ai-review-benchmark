@@ -1,0 +1,21 @@
+{
+  "case_id": "STATE_004",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "duplicate_payment",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Double-click charges twice - no duplicate check",
+  "bug_anchor": "order = Order.objects.get(id=order_id)",
+  "correct_implementation": "select_for_update() with if order.is_paid: return",
+  "severity": "critical",
+  "tags": [
+    "state",
+    "payment",
+    "duplicate"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

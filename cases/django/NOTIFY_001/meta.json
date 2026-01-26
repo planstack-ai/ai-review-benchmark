@@ -1,0 +1,21 @@
+{
+  "case_id": "NOTIFY_001",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "duplicate_email",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Retry logic sends duplicate confirmation emails",
+  "bug_anchor": "send_email() without checking email_sent flag",
+  "correct_implementation": "if order.email_sent: return; send_email(); order.email_sent = True",
+  "severity": "high",
+  "tags": [
+    "notification",
+    "email",
+    "duplicate"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": false
+}

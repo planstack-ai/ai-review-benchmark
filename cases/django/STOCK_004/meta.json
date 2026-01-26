@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_004",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "reserved_actual_confusion",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Reserved stock counted as available - double counting",
+  "bug_anchor": "'available_stock': product.stock_quantity,",
+  "correct_implementation": "available = total_stock - reserved_stock",
+  "severity": "critical",
+  "tags": [
+    "inventory",
+    "reservation",
+    "counting"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

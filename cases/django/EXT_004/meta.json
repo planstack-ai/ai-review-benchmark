@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_004",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "retry_duplicate_order",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Network retry creates duplicate order records",
+  "bug_anchor": "Order.objects.create()",
+  "correct_implementation": "Order.objects.get_or_create(idempotency_key=key)",
+  "severity": "critical",
+  "tags": [
+    "external",
+    "retry",
+    "duplicate"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

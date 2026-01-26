@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_006",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "year_crossing",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Year crossing logic error - 12/31 to 1/1 fails",
+  "bug_anchor": "date.replace(day=day+1)",
+  "correct_implementation": "date + timedelta(days=1)",
+  "severity": "high",
+  "tags": [
+    "time",
+    "year_end",
+    "boundary"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

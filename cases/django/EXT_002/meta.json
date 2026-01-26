@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_002",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "webhook_not_idempotent",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Same webhook processed multiple times",
+  "bug_anchor": "process_webhook() without idempotency check",
+  "correct_implementation": "if WebhookLog.objects.filter(event_id=event_id).exists(): return",
+  "severity": "critical",
+  "tags": [
+    "external",
+    "webhook",
+    "idempotency"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": false
+}

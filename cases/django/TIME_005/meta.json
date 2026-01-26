@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_005",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "month_end_processing",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Invalid date error - February 30 doesn't exist",
+  "bug_anchor": "date.replace(month=month+1)",
+  "correct_implementation": "relativedelta(months=1) or date + timedelta then clamp",
+  "severity": "high",
+  "tags": [
+    "time",
+    "month_end",
+    "validation"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

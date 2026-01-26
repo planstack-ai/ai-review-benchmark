@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_001",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "timezone_not_considered",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Timezone not considered - UTC saved, displayed incorrectly as local time",
+  "bug_anchor": "review.created_at.strftime('%Y-%m-%d %H:%M:%S')",
+  "correct_implementation": "localtime(created_at) or timezone.activate(user.timezone)",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "timezone",
+    "display"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

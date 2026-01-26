@@ -1,0 +1,21 @@
+{
+  "case_id": "NOTIFY_003",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "notification_timing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Order complete email sent before payment confirmation",
+  "bug_anchor": "send_confirmation on order_create",
+  "correct_implementation": "send_confirmation in payment_success handler",
+  "severity": "high",
+  "tags": [
+    "notification",
+    "timing",
+    "order"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": false
+}

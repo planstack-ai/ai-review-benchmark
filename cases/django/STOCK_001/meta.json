@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_001",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "stock_allocation_timing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Stock allocated at cart addition instead of payment confirmation",
+  "bug_anchor": "_reserve_stock_for_item(product, quantity, cart.user_id)",
+  "correct_implementation": "reserve_stock on checkout with select_for_update()",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "timing",
+    "reservation"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_007",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "business_day_calculation",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Weekends and holidays not excluded from business days",
+  "bug_anchor": "current_date = current_date + timedelta(days=1)",
+  "correct_implementation": "np.busday_offset or custom business_days_add",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "business_day",
+    "holiday"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}
