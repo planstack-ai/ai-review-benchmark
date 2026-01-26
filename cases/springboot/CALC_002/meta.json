@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_002",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "tax_calculation_order",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Tax calculation order wrong - applying tax before discount yields different amount",
+  "bug_anchor": "subtotal.multiply(BigDecimal.valueOf(1.1)).subtract(discount)",
+  "correct_implementation": "subtotal.subtract(discount).multiply(BigDecimal.valueOf(1.1))",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "tax",
+    "discount"
+  ],
+  "framework": "springboot",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": true
+}

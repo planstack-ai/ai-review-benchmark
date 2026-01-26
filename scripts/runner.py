@@ -31,7 +31,7 @@ ModelName = Literal["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "g
 ALL_MODELS: list[ModelName] = ["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
 
 RunMode = Literal["explicit", "implicit", "dual"]
-FrameworkName = Literal["rails", "django", "laravel"]
+FrameworkName = Literal["rails", "django", "laravel", "springboot"]
 
 RESULTS_DIR = Path(__file__).parent.parent / "results"
 
@@ -51,6 +51,11 @@ FRAMEWORK_CONFIG = {
         "impl_ext": ".php",
         "language": "PHP",
         "code_block": "php",
+    },
+    "springboot": {
+        "impl_ext": ".java",
+        "language": "Java",
+        "code_block": "java",
     },
 }
 
@@ -230,6 +235,42 @@ Respond with ONLY the following JSON format (no other text):
 If there are no issues, set has_issues to false and issues to an empty array.
 """
 
+# Spring Boot review prompt templates
+REVIEW_PROMPT_SPRINGBOOT_TEMPLATE = """You are a Senior Spring Boot Developer.
+Review the following Java code against the specification.
+
+## Specification (Plan)
+{plan}
+
+## Existing Codebase Context
+{context}
+
+## Code Under Review
+```java
+{impl}
+```
+
+## Output Format
+Respond with ONLY the following JSON format (no other text):
+```json
+{{
+  "has_issues": true/false,
+  "issues": [
+    {{
+      "severity": "critical/major/minor",
+      "type": "plan_mismatch/logic_bug/security/performance",
+      "location": "line number or code location",
+      "description": "description of the issue",
+      "suggestion": "suggested fix"
+    }}
+  ],
+  "summary": "overall findings"
+}}
+```
+
+If there are no issues, set has_issues to false and issues to an empty array.
+"""
+
 REVIEW_PROMPT_DIFF_RAILS_TEMPLATE = """あなたはシニアRailsエンジニアです。
 以下のPull Requestをレビューしてください。
 
@@ -301,6 +342,41 @@ If there are no issues, set has_issues to false and issues to an empty array.
 """
 
 REVIEW_PROMPT_DIFF_LARAVEL_TEMPLATE = """You are a Senior Laravel Developer.
+Review the following Pull Request against the specification.
+
+## Specification (Plan)
+{plan}
+
+## Existing Codebase Context
+{context}
+
+## PR Diff
+```diff
+{diff}
+```
+
+## Output Format
+Respond with ONLY the following JSON format (no other text):
+```json
+{{
+  "has_issues": true/false,
+  "issues": [
+    {{
+      "severity": "critical/major/minor",
+      "type": "plan_mismatch/logic_bug/security/performance",
+      "location": "filename:line number or code location",
+      "description": "description of the issue",
+      "suggestion": "suggested fix"
+    }}
+  ],
+  "summary": "overall findings"
+}}
+```
+
+If there are no issues, set has_issues to false and issues to an empty array.
+"""
+
+REVIEW_PROMPT_DIFF_SPRINGBOOT_TEMPLATE = """You are a Senior Spring Boot Developer.
 Review the following Pull Request against the specification.
 
 ## Specification (Plan)
@@ -410,6 +486,9 @@ def build_prompt(case: dict[str, Any]) -> str:
     elif framework == "laravel":
         impl_template = REVIEW_PROMPT_LARAVEL_TEMPLATE
         diff_template = REVIEW_PROMPT_DIFF_LARAVEL_TEMPLATE
+    elif framework == "springboot":
+        impl_template = REVIEW_PROMPT_SPRINGBOOT_TEMPLATE
+        diff_template = REVIEW_PROMPT_DIFF_SPRINGBOOT_TEMPLATE
     else:
         impl_template = REVIEW_PROMPT_RAILS_TEMPLATE
         diff_template = REVIEW_PROMPT_DIFF_RAILS_TEMPLATE
@@ -797,7 +876,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--framework",
-        choices=["rails", "django", "laravel"],
+        choices=["rails", "django", "laravel", "springboot"],
         default="rails",
         help="Target framework (default: rails)",
     )

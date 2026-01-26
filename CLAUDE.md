@@ -1,6 +1,6 @@
 # AI Review Benchmark
 
-Benchmark for evaluating AI code review quality on Rails and Django applications.
+Benchmark for evaluating AI code review quality on Rails, Django, Laravel, and Spring Boot applications.
 
 > Full specification: [docs/benchmark-spec-v3.md](docs/benchmark-spec-v3.md)
 
@@ -9,6 +9,7 @@ Benchmark for evaluating AI code review quality on Rails and Django applications
 - Use **English** for all code, comments, commits, and documentation
 - Python: 3.11+, type hints, black, ruff, Google-style docstrings
 - Ruby: 3.2+ / Rails 7.1+, rubocop compliant
+- Java: 21+ / Spring Boot 3.2+, standard Java conventions
 
 ### Planning Workflow
 
@@ -29,11 +30,17 @@ python scripts/generator.py --pattern CALC_001
 # Generate test case (Django)
 python scripts/generator.py --framework django --pattern CALC_001
 
+# Generate test case (Spring Boot)
+python scripts/generator.py --framework springboot --pattern CALC_001
+
 # Run benchmark (Rails - default)
 python scripts/runner.py --model claude-sonnet --cases cases/rails/
 
 # Run benchmark (Django)
 python scripts/runner.py --model claude-sonnet --framework django
+
+# Run benchmark (Spring Boot)
+python scripts/runner.py --model claude-sonnet --framework springboot
 
 # Score results
 python scripts/evaluator.py --run-dir results/2025xxxx_run/
@@ -56,6 +63,8 @@ cases/{framework}/{CASE_ID}/
 ├── context.md   # Existing codebase info
 ├── impl.rb      # Code under review (Rails)
 ├── impl.py      # Code under review (Django)
+├── impl.php     # Code under review (Laravel)
+├── impl.java    # Code under review (Spring Boot)
 └── meta.json    # Ground truth
 ```
 
@@ -65,6 +74,8 @@ cases/{framework}/{CASE_ID}/
 |-----------|--------------|-----------|----------------|
 | Rails | patterns.yaml | cases/rails/ | impl.rb |
 | Django | patterns_django.yaml | cases/django/ | impl.py |
+| Laravel | - | cases/laravel/ | impl.php |
+| Spring Boot | patterns_springboot.yaml | cases/springboot/ | impl.java |
 
 ## Test Cases
 
@@ -82,6 +93,14 @@ cases/{framework}/{CASE_ID}/
 |------|------------|-------|
 | Spec Alignment | CALC, AUTH | 17 |
 | Implicit Knowledge | DJANGO | 8 |
+| False Positive | FP | 5 |
+
+### Spring Boot (33 MVP)
+
+| Axis | Categories | Cases |
+|------|------------|-------|
+| Spec Alignment | CALC, AUTH, STATE, TIME, STOCK, NOTIFY | 20 |
+| Implicit Knowledge | SPRING | 8 |
 | False Positive | FP | 5 |
 
 ## Evaluation Targets
@@ -107,8 +126,9 @@ cases/{framework}/{CASE_ID}/
   "correct_implementation": "...",
   "severity": "critical | high | medium | low",
   "tags": ["calculation", "discount"],
-  "framework": "django",           // Django only
-  "framework_version": "5.0+",     // Django only
-  "python_version": "3.11+"        // Django only
+  "framework": "django | springboot",  // Django/Spring Boot only
+  "framework_version": "5.0+ | 3.2+",  // Django/Spring Boot only
+  "python_version": "3.11+",           // Django only
+  "java_version": "21+"                // Spring Boot only
 }
 ```

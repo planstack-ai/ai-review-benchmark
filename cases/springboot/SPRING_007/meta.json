@@ -1,0 +1,21 @@
+{
+  "case_id": "SPRING_007",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "n_plus_one_query",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "N+1 query problem - fetching items for each order separately",
+  "bug_anchor": "List<Order> findAll(); // then access order.getItems() in loop",
+  "correct_implementation": "@EntityGraph(attributePaths = {\\\"items\\\"}) List<Order> findAll();",
+  "severity": "high",
+  "tags": [
+    "spring",
+    "jpa",
+    "performance"
+  ],
+  "framework": "springboot",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": true
+}

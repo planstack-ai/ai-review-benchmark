@@ -1,0 +1,21 @@
+{
+  "case_id": "STATE_001",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "invalid_state_transition",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Allows cancellation from any state including SHIPPED",
+  "bug_anchor": "order.cancel();",
+  "correct_implementation": "if (order.getStatus() == PENDING || order.getStatus() == CONFIRMED) { order.cancel(); }",
+  "severity": "high",
+  "tags": [
+    "state",
+    "validation",
+    "order"
+  ],
+  "framework": "springboot",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": true
+}

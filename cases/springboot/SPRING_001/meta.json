@@ -1,0 +1,21 @@
+{
+  "case_id": "SPRING_001",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "transactional_propagation_wrong",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "@Transactional propagation issue - nested service has REQUIRES_NEW causing partial commit",
+  "bug_anchor": "@Transactional // nested call has REQUIRES_NEW",
+  "correct_implementation": "@Transactional(propagation = Propagation.REQUIRED)",
+  "severity": "critical",
+  "tags": [
+    "spring",
+    "transaction",
+    "propagation"
+  ],
+  "framework": "springboot",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": false
+}

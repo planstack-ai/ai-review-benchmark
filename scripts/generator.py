@@ -16,6 +16,11 @@ import time
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
+
+# Load .env file from project root
+load_dotenv(Path(__file__).parent.parent / ".env")
+
 # anthropic is imported lazily to allow --dry-run without the package
 anthropic = None
 
@@ -45,6 +50,13 @@ FRAMEWORK_CONFIG = {
         "orm": "Django ORM",
         "patterns_file": "patterns_django.yaml",
     },
+    "springboot": {
+        "impl_ext": ".java",
+        "language": "Java",
+        "expert_role": "Senior Spring Boot developer",
+        "orm": "Spring Data JPA",
+        "patterns_file": "patterns_springboot.yaml",
+    },
 }
 
 
@@ -66,6 +78,7 @@ CATEGORY_PREFIXES = {
     "data": "DATA",
     "rails": "RAILS",
     "django": "DJANGO",
+    "spring": "SPRING",
     "false_positive": "FP",
 }
 
@@ -182,6 +195,36 @@ It should contain realistic Django/Python code that would exist before the imple
 - Use Python 3.11+ syntax and Django 5.0+ patterns
 
 Generate only the markdown content, no explanations."""
+    elif framework == "springboot":
+        prompt = f"""Generate a context.md file for an AI code review benchmark test case.
+
+This file represents the EXISTING CODEBASE that a code reviewer can reference.
+It should contain realistic Spring Boot/Java code that would exist before the implementation under review.
+
+## Pattern Information
+- Category: {category}
+- Feature: {name}
+- Requirement: {plan}
+
+## Requirements for context.md
+
+1. Start with "# Existing Codebase" heading
+2. Include a "## Schema" section with JPA entity definitions
+3. Include a "## Entities" section with relevant JPA entities and repositories
+4. Include useful repository methods, service interfaces, and constants that SHOULD be used by the implementation
+5. The code should hint at the correct approach without explicitly stating it
+6. Use realistic Spring Boot conventions and patterns
+7. Keep it focused (100-150 lines max)
+
+## Important
+- Do NOT include the implementation under review
+- Do NOT include comments like "use this for X" - let the code speak for itself
+- Make it look like real production code extracted from a Spring Boot app
+- Use Java 21+ syntax and Spring Boot 3.2+ patterns
+- Use BigDecimal for monetary calculations
+- Include proper Spring annotations (@Entity, @Repository, @Service, etc.)
+
+Generate only the markdown content, no explanations."""
     else:
         prompt = f"""Generate a context.md file for an AI code review benchmark test case.
 
@@ -221,7 +264,8 @@ def generate_plan_md(client: Any, pattern: dict[str, Any]) -> str:
     is_fp = category == "false_positive"
 
     framework = CONFIG["framework"]
-    framework_name = "Django" if framework == "django" else "Rails"
+    framework_names = {"django": "Django", "springboot": "Spring Boot", "rails": "Rails"}
+    framework_name = framework_names.get(framework, "Rails")
 
     prompt = f"""Generate a plan.md file for an AI code review benchmark test case.
 
@@ -256,8 +300,14 @@ Generate only the markdown content, no explanations."""
     return generate_with_llm(client, prompt)
 
 
-def generate_impl(client: Any, pattern: dict[str, Any]) -> str:
-    """Generate implementation file using LLM (impl.rb for Rails, impl.py for Django)."""
+def generate_impl(client: Any, pattern: dict[str, Any], context_content: str = "") -> str:
+    """Generate implementation file using LLM (impl.rb for Rails, impl.py for Django, impl.java for Spring Boot).
+
+    Args:
+        client: Anthropic client
+        pattern: Pattern definition from YAML
+        context_content: Content of context.md (used for FP cases to ensure consistency)
+    """
     category = pattern.get("category", "")
     name = pattern.get("name", "")
     plan = pattern.get("plan", "")
@@ -276,6 +326,11 @@ def generate_impl(client: Any, pattern: dict[str, Any]) -> str:
 - Feature: {name.replace('_', ' ').title()}
 - Requirement: {plan}
 
+## Existing Codebase (context.md)
+The implementation MUST be consistent with the following existing codebase:
+
+{context_content}
+
 ## Requirements
 
 1. Generate a complete, working Python service class (30-80 lines)
@@ -284,6 +339,13 @@ def generate_impl(client: Any, pattern: dict[str, Any]) -> str:
 4. Include realistic method structure with private helpers (prefix with _)
 5. Use meaningful variable names, type hints, and clear logic flow
 6. This is a FALSE POSITIVE test - the code should pass review
+
+## CRITICAL: Consistency with Existing Codebase
+- MUST use existing model classes, methods, and fields exactly as defined in context.md
+- MUST use existing constants instead of redefining them
+- MUST use existing manager/queryset methods instead of creating new ones
+- MUST NOT call methods that don't exist in the model definitions
+- MUST match the exact method signatures and return types from context.md
 
 ## Important
 - Do NOT add any comments explaining the code is correct
@@ -331,6 +393,85 @@ def generate_impl(client: Any, pattern: dict[str, Any]) -> str:
 - Do NOT wrap in markdown code blocks (no ```python)
 - Do NOT add any explanation before or after the code"""
 
+    elif framework == "springboot":
+        if is_fp:
+            prompt = f"""Generate a Java service class for an AI code review benchmark (Spring Boot).
+
+## Pattern Information
+- Feature: {name.replace('_', ' ').title()}
+- Requirement: {plan}
+
+## Existing Codebase (context.md)
+The implementation MUST be consistent with the following existing codebase:
+
+{context_content}
+
+## Requirements
+
+1. Generate a complete, working Java service class (40-100 lines)
+2. The implementation should be CORRECT - no bugs
+3. Follow Spring Boot conventions and Java best practices
+4. Include realistic method structure with private helpers
+5. Use meaningful variable names and clear logic flow
+6. This is a FALSE POSITIVE test - the code should pass review
+
+## CRITICAL: Consistency with Existing Codebase
+- MUST use existing entity classes, methods, and fields exactly as defined in context.md
+- MUST use existing constants (e.g., DiscountConstants) instead of redefining them
+- MUST use existing repository methods instead of creating new ones
+- MUST NOT call methods that don't exist in the entity definitions
+- MUST match the exact method signatures and return types from context.md
+
+## Important
+- Do NOT add any comments explaining the code is correct
+- Do NOT add TODO or FIXME comments
+- Make it look like natural production code
+- The code should be reviewable (not too simple, not too complex)
+- Use BigDecimal for monetary calculations
+- Include proper Spring annotations (@Service, @Transactional, etc.)
+
+## Output Format
+- Output ONLY raw Java code
+- Start with package declaration and imports
+- Do NOT wrap in markdown code blocks (no ```java)
+- Do NOT add any explanation before or after the code"""
+
+        else:
+            prompt = f"""Generate a Java service class for an AI code review benchmark (Spring Boot).
+
+## Pattern Information
+- Feature: {name.replace('_', ' ').title()}
+- Requirement: {plan}
+
+## Bug to Embed
+- Description: {bug_description}
+- Incorrect pattern: {incorrect}
+- Correct pattern (for reference, do NOT use): {correct}
+
+## Requirements
+
+1. Generate a complete, working Java service class (40-100 lines)
+2. The implementation MUST contain the bug described above
+3. The bug should be SUBTLE - not obvious at first glance
+4. Follow Spring Boot conventions otherwise
+5. Include realistic method structure with private helpers
+6. Use meaningful variable names and clear logic flow
+
+## Critical Rules
+- Do NOT add comments like "// BUG:" or "// TODO:" or "// FIXME:"
+- Do NOT add any comments that hint at the bug
+- Do NOT add comments explaining what's wrong
+- The buggy code should look natural and intentional
+- A reviewer should need to carefully read the code to find the bug
+- Use BigDecimal for monetary calculations
+- Include proper Spring annotations (@Service, @Transactional, etc.)
+
+## Output Format
+- Output ONLY raw Java code
+- Start with package declaration and imports
+- Do NOT wrap in markdown code blocks (no ```java)
+- Do NOT add any explanation before or after the code"""
+
     else:  # Rails
         if is_fp:
             prompt = f"""Generate a Ruby service class for an AI code review benchmark.
@@ -338,6 +479,11 @@ def generate_impl(client: Any, pattern: dict[str, Any]) -> str:
 ## Pattern Information
 - Feature: {name.replace('_', ' ').title()}
 - Requirement: {plan}
+
+## Existing Codebase (context.md)
+The implementation MUST be consistent with the following existing codebase:
+
+{context_content}
 
 ## Requirements
 
@@ -347,6 +493,13 @@ def generate_impl(client: Any, pattern: dict[str, Any]) -> str:
 4. Include realistic method structure with private helpers
 5. Use meaningful variable names and clear logic flow
 6. This is a FALSE POSITIVE test - the code should pass review
+
+## CRITICAL: Consistency with Existing Codebase
+- MUST use existing model classes, methods, and scopes exactly as defined in context.md
+- MUST use existing constants instead of redefining them
+- MUST use existing model methods instead of creating new ones
+- MUST NOT call methods that don't exist in the model definitions
+- MUST match the exact method signatures from context.md
 
 ## Important
 - Do NOT add any comments explaining the code is correct
@@ -402,6 +555,8 @@ def generate_impl(client: Any, pattern: dict[str, Any]) -> str:
         content = content[9:]
     elif content.startswith("```ruby"):
         content = content[7:]
+    elif content.startswith("```java"):
+        content = content[7:]
     elif content.startswith("```"):
         content = content[3:]
     if content.endswith("```"):
@@ -447,6 +602,10 @@ def generate_meta_json(pattern: dict[str, Any]) -> dict[str, Any]:
         meta["framework"] = "django"
         meta["framework_version"] = "5.0+"
         meta["python_version"] = "3.11+"
+    elif framework == "springboot":
+        meta["framework"] = "springboot"
+        meta["framework_version"] = "3.2+"
+        meta["java_version"] = "21+"
 
     return meta
 
@@ -527,7 +686,8 @@ def generate_case(
 
     for attempt in range(max_retries):
         print(f"  Generating {impl_filename} (attempt {attempt + 1}/{max_retries})...")
-        impl_content = generate_impl(client, pattern)
+        # Pass context_content to generate_impl for FP cases to ensure consistency
+        impl_content = generate_impl(client, pattern, context_content if is_fp else "")
 
         if is_fp or verify_bug_anchor(impl_content, bug_anchor):
             (case_dir / impl_filename).write_text(impl_content, encoding="utf-8")
@@ -583,7 +743,7 @@ def main() -> None:
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Model to use (default: {DEFAULT_MODEL})")
     parser.add_argument(
         "--framework",
-        choices=["rails", "django"],
+        choices=["rails", "django", "springboot"],
         default="rails",
         help="Target framework (default: rails)",
     )

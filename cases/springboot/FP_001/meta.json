@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_001",
+  "category": "false_positive",
+  "axis": null,
+  "name": "correct_discount_calculation",
+  "difficulty": "easy",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "total.multiply(BigDecimal.valueOf(0.9))",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "calculation",
+    "baseline"
+  ],
+  "framework": "springboot",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": true
+}

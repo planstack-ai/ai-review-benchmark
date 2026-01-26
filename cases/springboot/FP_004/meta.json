@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_004",
+  "category": "false_positive",
+  "axis": null,
+  "name": "correct_state_machine",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "State machine with proper transition validation",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "state",
+    "baseline"
+  ],
+  "framework": "springboot",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": true
+}

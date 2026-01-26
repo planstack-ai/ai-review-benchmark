@@ -1,0 +1,20 @@
+{
+  "case_id": "CALC_004",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "inconsistent_rounding",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Inconsistent rounding - round per item then sum vs sum then round yields different results",
+  "bug_anchor": "items.stream().map(i -> i.getSubtotal().setScale(2, RoundingMode.HALF_UP)).reduce(BigDecimal.ZERO, BigDecimal::add)",
+  "correct_implementation": "items.stream().map(Item::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP)",
+  "severity": "medium",
+  "tags": [
+    "calculation",
+    "rounding"
+  ],
+  "framework": "springboot",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": true
+}
