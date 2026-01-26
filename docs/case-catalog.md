@@ -1,8 +1,16 @@
 # Test Case Catalog
 
-*Generated: 2026-01-26 12:04:01*
+*Generated: 2026-01-26 12:12:37*
 
 This document provides a comprehensive reference for all test cases in the benchmark.
+
+### Evaluation Mode
+
+| Mode | Description |
+|------|-------------|
+| `severity` | Keyword & severity-based automatic evaluation |
+| `semantic` | LLM-based semantic evaluation vs `expected_critique.md` |
+| `dual` | Explicit + implicit context comparison (for Implicit Knowledge cases) |
 
 ## Summary
 
@@ -12,6 +20,8 @@ This document provides a comprehensive reference for all test cases in the bench
 | Laravel | 50 | 10 | 60 |
 | Rails | 86 | 13 | 99 |
 | **Total** | **161** | **28** | **189** |
+
+> Counts are derived from case metadata and updated automatically by `scripts/generate_catalog.py`.
 
 ## Rails Cases
 
