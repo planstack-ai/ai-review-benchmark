@@ -26,7 +26,7 @@ class OrderProcessingService
         end
 
         run_callbacks :payment do
-          process_payment
+          process_payment if payment_method.present?
           update_order_status
         end
 
@@ -65,16 +65,14 @@ class OrderProcessingService
   end
 
   def process_payment
-    return unless payment_method.present?
-    
     payment_result = PaymentGateway.charge(
       amount: order.total_amount,
       payment_method: payment_method,
       customer: user
     )
-    
+
     raise 'Payment processing failed' unless payment_result.success?
-    
+
     order.update!(payment_status: 'paid', payment_reference: payment_result.transaction_id)
   end
 

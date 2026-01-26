@@ -2,11 +2,10 @@
 
 class CacheWarmingService
   CACHE_KEYS = %w[
-    popular_products
-    featured_categories
-    user_preferences
-    system_settings
+    homepage_featured
     navigation_menu
+    popular_products
+    category_products
   ].freeze
 
   BATCH_SIZE = 100
@@ -16,9 +15,13 @@ class CacheWarmingService
     @logger = logger
     @warmed_keys = []
     @failed_keys = []
+    @job = nil
   end
 
   def call
+    @job = create_warming_job
+    @job.mark_as_running!
+
     @logger.info "Starting cache warming process for #{CACHE_KEYS.size} keys"
     start_time = Time.current
 
@@ -27,25 +30,42 @@ class CacheWarmingService
     end
 
     log_completion_stats(start_time)
+    complete_job
     build_result
+  rescue StandardError => e
+    @job&.mark_as_failed!(e)
+    raise
   end
 
   private
 
   attr_reader :logger, :warmed_keys, :failed_keys
 
+  def create_warming_job
+    CacheWarmingJob.create!(
+      job_type: 'homepage',
+      status: 'pending'
+    )
+  end
+
+  def complete_job
+    if failed_keys.empty?
+      @job.mark_as_completed!
+    else
+      @job.mark_as_failed!("Failed keys: #{failed_keys.join(', ')}")
+    end
+  end
+
   def warm_cache_key(cache_key)
     case cache_key
-    when 'popular_products'
-      warm_popular_products
-    when 'featured_categories'
-      warm_featured_categories
-    when 'user_preferences'
-      warm_user_preferences
-    when 'system_settings'
-      warm_system_settings
+    when 'homepage_featured'
+      warm_homepage_featured
     when 'navigation_menu'
       warm_navigation_menu
+    when 'popular_products'
+      warm_popular_products
+    when 'category_products'
+      warm_category_products
     end
 
     warmed_keys << cache_key
@@ -55,33 +75,24 @@ class CacheWarmingService
     logger.error "Failed to warm cache for #{cache_key}: #{e.message}"
   end
 
-  def warm_popular_products
-    Rails.cache.fetch('popular_products', expires_in: 1.hour) do
-      Product.popular.limit(50).includes(:category, :reviews).to_a
-    end
-  end
-
-  def warm_featured_categories
-    Rails.cache.fetch('featured_categories', expires_in: 2.hours) do
-      Category.featured.includes(:products).order(:display_order).to_a
-    end
-  end
-
-  def warm_user_preferences
-    Rails.cache.fetch('user_preferences_defaults', expires_in: 4.hours) do
-      UserPreference.default_settings
-    end
-  end
-
-  def warm_system_settings
-    Rails.cache.fetch('system_settings', expires_in: 6.hours) do
-      Setting.active.pluck(:key, :value).to_h
-    end
+  def warm_homepage_featured
+    Product.homepage_featured
   end
 
   def warm_navigation_menu
-    Rails.cache.fetch('navigation_menu', expires_in: 12.hours) do
-      NavigationItem.published.includes(:children).order(:position).to_a
+    Category.navigation_menu
+  end
+
+  def warm_popular_products
+    Rails.cache.fetch('products/popular', expires_in: 1.hour) do
+      Product.popular.includes(:category).to_a
+    end
+  end
+
+  def warm_category_products
+    Category.active.root_categories.each do |category|
+      Product.by_category_cached(category.slug)
+      category.product_count
     end
   end
 
@@ -97,7 +108,8 @@ class CacheWarmingService
       success: failed_keys.empty?,
       warmed_count: warmed_keys.size,
       failed_count: failed_keys.size,
-      failed_keys: failed_keys
+      failed_keys: failed_keys,
+      job_id: @job&.id
     }
   end
 end

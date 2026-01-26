@@ -5,19 +5,14 @@ class UserRegistrationService
   include ActiveModel::Attributes
 
   attribute :email, :string
-  attribute :password, :string
-  attribute :password_confirmation, :string
   attribute :first_name, :string
   attribute :last_name, :string
-  attribute :terms_accepted, :boolean, default: false
+  attribute :phone, :string
 
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
-  validates :password, presence: true, length: { minimum: 8 }
-  validates :password_confirmation, presence: true
   validates :first_name, presence: true, length: { minimum: 2, maximum: 50 }
   validates :last_name, presence: true, length: { minimum: 2, maximum: 50 }
-  validates :terms_accepted, acceptance: true
-  validate :passwords_match
+  validates :phone, format: { with: /\A\+?[\d\s\-\(\)]{10,15}\z/ }, allow_blank: true
   validate :email_uniqueness
 
   def initialize(attributes = {})
@@ -46,12 +41,6 @@ class UserRegistrationService
     self.last_name = last_name&.strip&.titleize
   end
 
-  def passwords_match
-    return if password.blank? || password_confirmation.blank?
-
-    errors.add(:password_confirmation, "doesn't match password") if password != password_confirmation
-  end
-
   def email_uniqueness
     return if email.blank?
 
@@ -61,10 +50,10 @@ class UserRegistrationService
   def create_user
     User.create!(
       email: email,
-      password: password,
       first_name: first_name,
       last_name: last_name,
-      confirmed_at: Time.current
+      phone: phone,
+      status: :active
     )
   end
 

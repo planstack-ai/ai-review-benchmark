@@ -55,19 +55,19 @@ class UserManagementService
   def activate
     return false unless @user
 
-    @user.update(active: true, activated_at: Time.current)
+    @user.update(active: true)
   end
 
   def deactivate
     return false unless @user
 
-    @user.update(active: false, deactivated_at: Time.current)
+    @user.update(active: false)
   end
 
   private
 
   def sanitized_params(params)
-    params.permit(:first_name, :last_name, :email, :phone, :role)
+    params.permit(:name, :email, :role)
   end
 
   def validate_user_data
@@ -101,7 +101,6 @@ class UserManagementService
 
   def cleanup_user_data
     @user.posts.destroy_all
-    @user.comments.destroy_all
   end
 
   def log_user_creation

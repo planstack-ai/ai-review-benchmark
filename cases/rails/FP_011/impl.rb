@@ -1,102 +1,116 @@
 # frozen_string_literal: true
 
-class CodeReviewBenchmarkService
-  attr_reader :repository, :pull_request, :admin_user
+class AdminBypassService
+  class UnauthorizedBypassError < StandardError; end
+  class BypassDisabledError < StandardError; end
 
-  def initialize(repository:, pull_request:, admin_user: nil)
-    @repository = repository
-    @pull_request = pull_request
+  attr_reader :admin_user, :errors
+
+  def initialize(admin_user)
     @admin_user = admin_user
+    @errors = []
   end
 
-  def execute
-    return create_benchmark_result unless should_validate?
+  def create_user(user_params, options = {})
+    validate_bypass_permissions!
 
-    validation_result = validate_pull_request
-    return validation_result unless validation_result.success?
+    skip_validation = options[:skip_validation] && admin_user.bypass_enabled?
 
-    create_benchmark_result
+    user = User.new(sanitized_user_params(user_params))
+
+    if skip_validation
+      log_bypass_usage(:create_user, user_params)
+      user.save(validate: false)
+    else
+      user.save
+    end
+
+    if user.persisted?
+      user
+    else
+      @errors = user.errors.full_messages
+      nil
+    end
+  end
+
+  def create_test_account(user:, account_type:, test_data: nil, expires_in: 30.days)
+    validate_bypass_permissions!
+
+    test_account = TestAccount.new(
+      user: user,
+      account_type: account_type,
+      test_data: test_data || default_test_data(account_type),
+      expires_at: expires_in.from_now
+    )
+
+    if test_account.save
+      log_bypass_usage(:create_test_account, { user_id: user.id, account_type: account_type })
+      test_account
+    else
+      @errors = test_account.errors.full_messages
+      nil
+    end
+  end
+
+  def bulk_create_users(users_params, options = {})
+    validate_bypass_permissions!
+
+    created_users = []
+    failed_users = []
+
+    ActiveRecord::Base.transaction do
+      users_params.each do |params|
+        user = create_user(params, options)
+        if user
+          created_users << user
+        else
+          failed_users << { params: params, errors: @errors.dup }
+        end
+      end
+
+      raise ActiveRecord::Rollback if failed_users.any? && !options[:allow_partial]
+    end
+
+    { created: created_users, failed: failed_users }
+  end
+
+  def enable_bypass
+    return false unless admin_user.admin?
+
+    admin_user.update(admin_bypass_enabled: true)
+  end
+
+  def disable_bypass
+    admin_user.update(admin_bypass_enabled: false)
   end
 
   private
 
-  def should_validate?
-    return false if admin_bypass_enabled?
-    return false if testing_environment?
-    
-    repository.validation_enabled?
+  def validate_bypass_permissions!
+    raise UnauthorizedBypassError, "Only admins can use bypass features" unless admin_user&.admin?
   end
 
-  def admin_bypass_enabled?
-    admin_user&.has_role?(:admin) && admin_user.bypass_validation?
+  def sanitized_user_params(params)
+    params.permit(:email, :first_name, :last_name, :role, :status)
   end
 
-  def testing_environment?
-    Rails.env.test? || Rails.env.development?
+  def default_test_data(account_type)
+    case account_type
+    when 'demo'
+      { features: %w[basic], limitations: { max_projects: 3 } }
+    when 'sandbox'
+      { features: %w[basic advanced], limitations: { max_projects: 10 } }
+    when 'staging'
+      { features: %w[basic advanced premium], limitations: {} }
+    else
+      {}
+    end
   end
 
-  def validate_pull_request
-    validator = PullRequestValidator.new(pull_request)
-    validator.validate
-  end
-
-  def create_benchmark_result
-    benchmark_data = collect_benchmark_metrics
-    
-    result = BenchmarkResult.create!(
-      repository: repository,
-      pull_request: pull_request,
-      metrics: benchmark_data,
-      created_by: admin_user,
-      status: determine_status(benchmark_data)
+  def log_bypass_usage(action, details)
+    Rails.logger.info(
+      "[ADMIN_BYPASS] User: #{admin_user.email} (ID: #{admin_user.id}), " \
+      "Action: #{action}, Details: #{details.to_json}, Time: #{Time.current}"
     )
-
-    notify_stakeholders(result) if result.persisted?
-    
-    ServiceResult.success(data: result)
-  rescue StandardError => e
-    ServiceResult.failure(error: e.message)
-  end
-
-  def collect_benchmark_metrics
-    {
-      lines_of_code: calculate_lines_of_code,
-      complexity_score: calculate_complexity,
-      test_coverage: calculate_test_coverage,
-      performance_score: calculate_performance_score,
-      security_score: calculate_security_score
-    }
-  end
-
-  def calculate_lines_of_code
-    pull_request.changed_files.sum(&:additions)
-  end
-
-  def calculate_complexity
-    ComplexityAnalyzer.new(pull_request.diff).analyze
-  end
-
-  def calculate_test_coverage
-    CoverageCalculator.new(pull_request).calculate
-  end
-
-  def calculate_performance_score
-    PerformanceAnalyzer.new(pull_request).score
-  end
-
-  def calculate_security_score
-    SecurityScanner.new(pull_request).scan_score
-  end
-
-  def determine_status(metrics)
-    return 'excellent' if metrics.values.all? { |score| score >= 90 }
-    return 'good' if metrics.values.all? { |score| score >= 70 }
-    return 'needs_improvement' if metrics.values.any? { |score| score < 50 }
-    
-    'acceptable'
-  end
-
-  def notify_stakeholders(result)
-    BenchmarkNotificationJob.perform_later(result.id)
   end
 end
