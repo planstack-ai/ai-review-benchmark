@@ -1,6 +1,6 @@
 # AI Review Benchmark
 
-Benchmark for evaluating AI code review quality on Rails and Django applications.
+Benchmark for evaluating AI code review quality on Rails, Django, and Laravel applications.
 
 > Full specification: [docs/benchmark-spec-v3.md](docs/benchmark-spec-v3.md)
 
@@ -9,6 +9,7 @@ Benchmark for evaluating AI code review quality on Rails and Django applications
 - Use **English** for all code, comments, commits, and documentation
 - Python: 3.11+, type hints, black, ruff, Google-style docstrings
 - Ruby: 3.2+ / Rails 7.1+, rubocop compliant
+- PHP: 8.2+ / Laravel 11+, PSR-12 compliant
 
 ### Planning Workflow
 
@@ -26,14 +27,16 @@ Benchmark for evaluating AI code review quality on Rails and Django applications
 # Generate test case (Rails - default)
 python scripts/generator.py --pattern CALC_001
 
-# Generate test case (Django)
+# Generate test case (Django / Laravel)
 python scripts/generator.py --framework django --pattern CALC_001
+python scripts/generator.py --framework laravel --pattern CALC_001
 
 # Run benchmark (Rails - default)
 python scripts/runner.py --model claude-sonnet --cases cases/rails/
 
-# Run benchmark (Django)
+# Run benchmark (Django / Laravel)
 python scripts/runner.py --model claude-sonnet --framework django
+python scripts/runner.py --model claude-sonnet --framework laravel
 
 # Score results
 python scripts/evaluator.py --run-dir results/2025xxxx_run/
@@ -56,6 +59,7 @@ cases/{framework}/{CASE_ID}/
 ├── context.md   # Existing codebase info
 ├── impl.rb      # Code under review (Rails)
 ├── impl.py      # Code under review (Django)
+├── impl.php     # Code under review (Laravel)
 └── meta.json    # Ground truth
 ```
 
@@ -65,6 +69,7 @@ cases/{framework}/{CASE_ID}/
 |-----------|--------------|-----------|----------------|
 | Rails | patterns.yaml | cases/rails/ | impl.rb |
 | Django | patterns_django.yaml | cases/django/ | impl.py |
+| Laravel | patterns_laravel.yaml | cases/laravel/ | impl.php |
 
 ## Test Cases
 
@@ -83,6 +88,14 @@ cases/{framework}/{CASE_ID}/
 | Spec Alignment | CALC, AUTH | 17 |
 | Implicit Knowledge | DJANGO | 8 |
 | False Positive | FP | 5 |
+
+### Laravel (60)
+
+| Axis | Categories | Cases |
+|------|------------|-------|
+| Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 41 |
+| Implicit Knowledge | PERF | 9 |
+| False Positive | FP | 10 |
 
 ## Evaluation Targets
 
@@ -107,8 +120,9 @@ cases/{framework}/{CASE_ID}/
   "correct_implementation": "...",
   "severity": "critical | high | medium | low",
   "tags": ["calculation", "discount"],
-  "framework": "django",           // Django only
-  "framework_version": "5.0+",     // Django only
-  "python_version": "3.11+"        // Django only
+  "framework": "django | laravel", // Django/Laravel only
+  "framework_version": "5.0+",     // Django/Laravel only
+  "python_version": "3.11+",       // Django only
+  "php_version": "8.2+"            // Laravel only
 }
 ```

@@ -1,0 +1,755 @@
+# AI Code Review Benchmark - Laravel Bug Pattern Definitions
+# 60 patterns (50 bugs + 10 false positives) for Laravel e-commerce order processing
+# Version: 1.0
+
+# =============================================================================
+# Price Calculation (10 patterns) - Spec Alignment
+# =============================================================================
+
+- id: CALC_001
+  category: calculation
+  axis: spec_alignment
+  name: discount_rate_direction
+  plan: "Apply 10% discount for members"
+  bug_description: "Discount rate direction wrong, becomes 90% off"
+  correct: "$total * 0.9"
+  incorrect: "$total * 0.1"
+  severity: critical
+  difficulty: easy
+  tags: [calculation, discount, member]
+
+- id: CALC_002
+  category: calculation
+  axis: spec_alignment
+  name: tax_calculation_order
+  plan: "Calculate total with 10% tax after discount"
+  bug_description: "Tax calculation order wrong - applying tax before discount yields different amount"
+  correct: "($subtotal - $discount) * 1.1"
+  incorrect: "($subtotal * 1.1) - $discount"
+  severity: high
+  difficulty: medium
+  tags: [calculation, tax, discount]
+
+- id: CALC_003
+  category: calculation
+  axis: spec_alignment
+  name: floating_point_currency
+  plan: "Calculate price with decimal precision"
+  bug_description: "Floating point precision error - 0.1 + 0.2 != 0.3 problem"
+  correct: "bcadd('0.1', '0.2', 2)"
+  incorrect: "0.1 + 0.2"
+  severity: high
+  difficulty: medium
+  tags: [calculation, currency, precision]
+
+- id: CALC_004
+  category: calculation
+  axis: spec_alignment
+  name: inconsistent_rounding
+  plan: "Calculate order total with consistent rounding"
+  bug_description: "Inconsistent rounding - round per item then sum vs sum then round yields different results"
+  correct: "round($items->sum('subtotal'), 2)"
+  incorrect: "$items->sum(fn($i) => round($i->subtotal, 2))"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, rounding]
+
+- id: CALC_005
+  category: calculation
+  axis: spec_alignment
+  name: hardcoded_tax_rate
+  plan: "Apply current tax rate (10%)"
+  bug_description: "Hardcoded old tax rate - still using 8% instead of 10%"
+  correct: "$subtotal * TaxRate::current()->rate"
+  incorrect: "$subtotal * 0.08"
+  severity: high
+  difficulty: easy
+  tags: [calculation, tax, hardcode]
+
+- id: CALC_006
+  category: calculation
+  axis: spec_alignment
+  name: free_shipping_boundary
+  plan: "Free shipping for orders of 5000 yen or more"
+  bug_description: "Boundary condition error - >= 5000 vs > 5000"
+  correct: "$total >= 5000 ? 0 : $shippingFee"
+  incorrect: "$total > 5000 ? 0 : $shippingFee"
+  severity: medium
+  difficulty: easy
+  tags: [calculation, shipping, boundary]
+
+- id: CALC_007
+  category: calculation
+  axis: spec_alignment
+  name: points_calculation_order
+  plan: "Award points based on payment amount after discount"
+  bug_description: "Points calculated on pre-discount amount instead of post-discount"
+  correct: "(int)(($total - $discount) * $pointRate)"
+  incorrect: "(int)($total * $pointRate)"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, points, discount]
+
+- id: CALC_008
+  category: calculation
+  axis: spec_alignment
+  name: coupon_stacking_logic
+  plan: "Apply single coupon per order"
+  bug_description: "Coupon stacking allowed - multiple coupons can be applied"
+  correct: "if ($order->coupon_applied) return; $this->applyCoupon($coupon)"
+  incorrect: "$this->applyCoupon($coupon)"
+  severity: high
+  difficulty: medium
+  tags: [calculation, coupon, validation]
+
+- id: CALC_009
+  category: calculation
+  axis: spec_alignment
+  name: minimum_order_amount
+  plan: "Minimum order amount is 1000 yen after discounts"
+  bug_description: "Minimum check on pre-discount amount instead of post-discount"
+  correct: "($subtotal - $discount) >= 1000"
+  incorrect: "$subtotal >= 1000"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, validation, minimum]
+
+- id: CALC_010
+  category: calculation
+  axis: spec_alignment
+  name: quantity_overflow
+  plan: "Calculate total for bulk orders"
+  bug_description: "Integer overflow on unit_price * quantity for large orders"
+  correct: "bcmul((string)$unitPrice, (string)$quantity, 2)"
+  incorrect: "$unitPrice * $quantity"
+  severity: critical
+  difficulty: hard
+  tags: [calculation, overflow, bulk]
+
+# =============================================================================
+# User & Authorization (7 patterns) - Spec Alignment
+# =============================================================================
+
+- id: AUTH_001
+  category: authorization
+  axis: spec_alignment
+  name: access_other_user_order
+  plan: "Users can only view their own orders"
+  bug_description: "IDOR vulnerability - can access other user's order by changing ID"
+  correct: "auth()->user()->orders()->findOrFail($orderId)"
+  incorrect: "Order::findOrFail($orderId)"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, idor, security]
+
+- id: AUTH_002
+  category: authorization
+  axis: spec_alignment
+  name: manipulate_other_cart
+  plan: "Users can only modify their own cart"
+  bug_description: "Can manipulate other user's cart by specifying cart_id"
+  correct: "auth()->user()->cart->addItem($item)"
+  incorrect: "Cart::findOrFail($cartId)->addItem($item)"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, cart, security]
+
+- id: AUTH_003
+  category: authorization
+  axis: spec_alignment
+  name: deleted_user_data
+  plan: "Hide orders of deleted users"
+  bug_description: "Deleted user's order data still accessible"
+  correct: "Order::whereHas('user', fn($q) => $q->whereNull('deleted_at'))"
+  incorrect: "Order::all()"
+  severity: high
+  difficulty: medium
+  tags: [authorization, deleted, privacy]
+
+- id: AUTH_004
+  category: authorization
+  axis: spec_alignment
+  name: admin_permission_missing
+  plan: "Only admins can modify product prices"
+  bug_description: "Regular users can change prices - admin check missing"
+  correct: "$this->authorize('update-price', $product)"
+  incorrect: "// no authorization check"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, admin, permission]
+
+- id: AUTH_005
+  category: authorization
+  axis: spec_alignment
+  name: guest_member_pricing
+  plan: "Member pricing only for logged-in members"
+  bug_description: "Guest users getting member pricing - membership check hole"
+  correct: "auth()->user()?->is_member ? $memberPrice : $regularPrice"
+  incorrect: "$memberPrice"
+  severity: high
+  difficulty: medium
+  tags: [authorization, membership, pricing]
+
+- id: AUTH_006
+  category: authorization
+  axis: spec_alignment
+  name: access_other_points
+  plan: "Users can only view their own points"
+  bug_description: "Can access other user's points via API"
+  correct: "auth()->user()->points"
+  incorrect: "User::findOrFail($userId)->points"
+  severity: high
+  difficulty: easy
+  tags: [authorization, points, api]
+
+- id: AUTH_007
+  category: authorization
+  axis: spec_alignment
+  name: coupon_owner_missing
+  plan: "Users can only use their own coupons"
+  bug_description: "Can use another user's coupon code"
+  correct: "auth()->user()->coupons()->where('code', $code)->first()"
+  incorrect: "Coupon::where('code', $code)->first()"
+  severity: high
+  difficulty: medium
+  tags: [authorization, coupon, ownership]
+
+# =============================================================================
+# Inventory & Quantity (8 patterns) - Spec Alignment
+# =============================================================================
+
+- id: STOCK_001
+  category: inventory
+  axis: spec_alignment
+  name: stock_allocation_timing
+  plan: "Reserve stock at checkout, not cart addition"
+  bug_description: "Stock allocated at cart addition instead of payment confirmation"
+  correct: "reserve stock on checkout with lockForUpdate()"
+  incorrect: "reserve stock on addToCart"
+  severity: high
+  difficulty: medium
+  tags: [inventory, timing, reservation]
+
+- id: STOCK_002
+  category: inventory
+  axis: spec_alignment
+  name: non_atomic_stock_update
+  plan: "Atomically check and decrement stock"
+  bug_description: "Race condition between stock check and update"
+  correct: "Product::where('stock', '>', 0)->decrement('stock')"
+  incorrect: "if ($product->stock > 0) { $product->stock--; $product->save(); }"
+  severity: critical
+  difficulty: hard
+  tags: [inventory, race_condition, atomic]
+
+- id: STOCK_003
+  category: inventory
+  axis: spec_alignment
+  name: cart_stock_divergence
+  plan: "Validate stock availability at checkout"
+  bug_description: "Cart quantity not revalidated - stock may deplete while cart abandoned"
+  correct: "validateStockAvailability before checkout"
+  incorrect: "skip stock validation at checkout"
+  severity: high
+  difficulty: medium
+  tags: [inventory, cart, validation]
+
+- id: STOCK_004
+  category: inventory
+  axis: spec_alignment
+  name: reserved_actual_confusion
+  plan: "Track reserved and available stock separately"
+  bug_description: "Reserved stock counted as available - double counting"
+  correct: "$available = $totalStock - $reservedStock"
+  incorrect: "$available = $totalStock"
+  severity: critical
+  difficulty: medium
+  tags: [inventory, reservation, counting]
+
+- id: STOCK_005
+  category: inventory
+  axis: spec_alignment
+  name: zero_quantity_order
+  plan: "Validate item quantity is positive"
+  bug_description: "Zero quantity orders allowed through validation gap"
+  correct: "'quantity' => 'required|integer|min:1'"
+  incorrect: "'quantity' => 'required|integer|min:0'"
+  severity: medium
+  difficulty: easy
+  tags: [inventory, validation, quantity]
+
+- id: STOCK_006
+  category: inventory
+  axis: spec_alignment
+  name: negative_stock_allowed
+  plan: "Prevent negative stock levels"
+  bug_description: "Cancellation processing can drive stock negative"
+  correct: "$stock = min($stock + $cancelledQty, $maxStock)"
+  incorrect: "$stock += $cancelledQty"
+  severity: high
+  difficulty: medium
+  tags: [inventory, cancellation, negative]
+
+- id: STOCK_007
+  category: inventory
+  axis: spec_alignment
+  name: duplicate_stock_restoration
+  plan: "Restore stock once per cancellation"
+  bug_description: "Cancel spam increases stock - no idempotency check"
+  correct: "if ($order->stock_restored) return; restoreStock(); $order->stock_restored = true"
+  incorrect: "restoreStock()"
+  severity: critical
+  difficulty: medium
+  tags: [inventory, cancellation, idempotency]
+
+- id: STOCK_008
+  category: inventory
+  axis: spec_alignment
+  name: bundle_stock_calculation
+  plan: "Bundle availability is minimum of component stocks"
+  bug_description: "Bundle stock not calculated as minimum of components"
+  correct: "$bundle->components->min('stock')"
+  incorrect: "$bundle->components->sum('stock')"
+  severity: high
+  difficulty: hard
+  tags: [inventory, bundle, calculation]
+
+# =============================================================================
+# State Transitions (6 patterns) - Spec Alignment
+# =============================================================================
+
+- id: STATE_001
+  category: state
+  axis: spec_alignment
+  name: invalid_state_transition
+  plan: "Enforce valid order state transitions"
+  bug_description: "Invalid transition allowed - shipped can go back to pending"
+  correct: "validateTransition($fromStatus, $toStatus) before update"
+  incorrect: "$order->status = $newStatus without validation"
+  severity: critical
+  difficulty: medium
+  tags: [state, transition, validation]
+
+- id: STATE_002
+  category: state
+  axis: spec_alignment
+  name: cancel_window_missing
+  plan: "Allow cancellation only before shipment"
+  bug_description: "Cancellation succeeds even after shipment"
+  correct: "if ($order->status === 'shipped') throw new CannotCancelException"
+  incorrect: "$order->cancel() without status check"
+  severity: high
+  difficulty: easy
+  tags: [state, cancellation, validation]
+
+- id: STATE_003
+  category: state
+  axis: spec_alignment
+  name: payment_timeout
+  plan: "Reject payment after order expiration"
+  bug_description: "Payment accepted after order expiration time"
+  correct: "if ($order->expires_at < now()) throw new OrderExpiredException"
+  incorrect: "processPayment() without expiry check"
+  severity: critical
+  difficulty: medium
+  tags: [state, payment, timeout]
+
+- id: STATE_004
+  category: state
+  axis: spec_alignment
+  name: duplicate_payment
+  plan: "Accept payment only once per order"
+  bug_description: "Double-click charges twice - no duplicate check"
+  correct: "DB::transaction(fn() => $order->lockForUpdate()->where('is_paid', false)->...)"
+  incorrect: "processPayment() without paid check"
+  severity: critical
+  difficulty: hard
+  tags: [state, payment, duplicate]
+
+- id: STATE_005
+  category: state
+  axis: spec_alignment
+  name: partial_cancel_integrity
+  plan: "Update total correctly on partial cancellation"
+  bug_description: "Total amount wrong after partial item cancellation"
+  correct: "recalculateTotal() after partialCancel"
+  incorrect: "partialCancel() without recalculation"
+  severity: high
+  difficulty: medium
+  tags: [state, cancellation, calculation]
+
+- id: STATE_006
+  category: state
+  axis: spec_alignment
+  name: refund_status_missing
+  plan: "Update payment status after refund"
+  bug_description: "Payment shows paid despite refund completion"
+  correct: "$order->payment_status = 'refunded' after processRefund"
+  incorrect: "processRefund() without status update"
+  severity: high
+  difficulty: easy
+  tags: [state, refund, status]
+
+# =============================================================================
+# Time & Duration (6 patterns) - Spec Alignment
+# =============================================================================
+
+- id: TIME_001
+  category: time
+  axis: spec_alignment
+  name: timezone_not_considered
+  plan: "Display times in user's timezone"
+  bug_description: "Timezone not considered - UTC saved, displayed incorrectly as local time"
+  correct: "$createdAt->setTimezone($user->timezone)"
+  incorrect: "$createdAt displayed without timezone conversion"
+  severity: medium
+  difficulty: medium
+  tags: [time, timezone, display]
+
+- id: TIME_002
+  category: time
+  axis: spec_alignment
+  name: sale_period_boundary
+  plan: "Sale starts at midnight on start date"
+  bug_description: "Sale period boundary error - datetime comparison without time component"
+  correct: "Carbon::parse($startDate)->startOfDay()"
+  incorrect: "$startDate compared as datetime without startOfDay"
+  severity: high
+  difficulty: medium
+  tags: [time, boundary, sale]
+
+- id: TIME_003
+  category: time
+  axis: spec_alignment
+  name: coupon_expiry_comparison
+  plan: "Coupon valid until end of expiry date"
+  bug_description: "Off-by-one on expiry - using < instead of <="
+  correct: "now()->lte($expiresAt->endOfDay())"
+  incorrect: "now()->lt($expiresAt)"
+  severity: medium
+  difficulty: easy
+  tags: [time, expiry, comparison]
+
+- id: TIME_004
+  category: time
+  axis: spec_alignment
+  name: date_only_comparison
+  plan: "Compare dates ignoring time component"
+  bug_description: "Time truncation causes next-day treatment"
+  correct: "$deliveryDate->toDateString() === $targetDate->toDateString()"
+  incorrect: "$deliveryDate == $targetDate"
+  severity: medium
+  difficulty: medium
+  tags: [time, date, comparison]
+
+- id: TIME_005
+  category: time
+  axis: spec_alignment
+  name: business_day_calculation
+  plan: "Calculate delivery in business days"
+  bug_description: "Weekends and holidays not excluded from business days"
+  correct: "Carbon::addWeekdays(3)"
+  incorrect: "Carbon::addDays(3)"
+  severity: medium
+  difficulty: medium
+  tags: [time, business_day, holiday]
+
+- id: TIME_006
+  category: time
+  axis: spec_alignment
+  name: past_delivery_date
+  plan: "Delivery date must be in the future"
+  bug_description: "Past delivery dates accepted"
+  correct: "'delivery_date' => 'required|date|after:today'"
+  incorrect: "'delivery_date' => 'required|date'"
+  severity: medium
+  difficulty: easy
+  tags: [time, validation, future]
+
+# =============================================================================
+# Notifications & Email (4 patterns) - Spec Alignment
+# =============================================================================
+
+- id: NOTIFY_001
+  category: notification
+  axis: spec_alignment
+  name: duplicate_email
+  plan: "Send order confirmation email once"
+  bug_description: "Retry logic sends duplicate confirmation emails"
+  correct: "if ($order->email_sent) return; Mail::send(); $order->email_sent = true"
+  incorrect: "Mail::send() without checking email_sent flag"
+  severity: high
+  difficulty: medium
+  tags: [notification, email, duplicate]
+
+- id: NOTIFY_002
+  category: notification
+  axis: spec_alignment
+  name: async_error_swallowed
+  plan: "Handle background job failures"
+  bug_description: "Background job fails silently - user not notified"
+  correct: "public function failed(Throwable $e) { NotifyAdmin::dispatch($e); }"
+  incorrect: "job fails without notification"
+  severity: high
+  difficulty: medium
+  tags: [notification, async, error]
+
+- id: NOTIFY_003
+  category: notification
+  axis: spec_alignment
+  name: notification_timing
+  plan: "Send confirmation after payment confirmed"
+  bug_description: "Order complete email sent before payment confirmation"
+  correct: "dispatch in PaymentConfirmed listener"
+  incorrect: "dispatch on OrderCreated event"
+  severity: high
+  difficulty: medium
+  tags: [notification, timing, order]
+
+- id: NOTIFY_004
+  category: notification
+  axis: spec_alignment
+  name: recipient_mixup
+  plan: "Send email to correct recipient"
+  bug_description: "Email sent to wrong user due to variable scope"
+  correct: "Mail::to($order->user->email)"
+  incorrect: "Mail::to($user->email) with wrong $user variable"
+  severity: critical
+  difficulty: medium
+  tags: [notification, recipient, privacy]
+
+# =============================================================================
+# Performance (9 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: PERF_001
+  category: performance
+  axis: implicit_knowledge
+  name: n_plus_one_query
+  plan: "Eager load order items with products"
+  bug_description: "N+1 query on order items accessing product names"
+  correct: "Order::with('items.product')->get()"
+  incorrect: "Order::all() then loop accessing $item->product"
+  severity: high
+  difficulty: easy
+  tags: [performance, n_plus_one, eager_load]
+
+- id: PERF_002
+  category: performance
+  axis: implicit_knowledge
+  name: full_table_load
+  plan: "Process orders in batches"
+  bug_description: "Loading all orders into memory - Order::all() on 1M records"
+  correct: "Order::chunk(100, fn($orders) => ...)"
+  incorrect: "Order::all()->each(...)"
+  severity: critical
+  difficulty: easy
+  tags: [performance, memory, batch]
+
+- id: PERF_003
+  category: performance
+  axis: implicit_knowledge
+  name: unnecessary_eager_loading
+  plan: "Only load needed associations"
+  bug_description: "Eager loading unused associations wastes resources"
+  correct: "Order::with('user')"
+  incorrect: "Order::with(['user', 'items', 'payments', 'shipments'])"
+  severity: medium
+  difficulty: medium
+  tags: [performance, eager_load, waste]
+
+- id: PERF_004
+  category: performance
+  axis: implicit_knowledge
+  name: inefficient_count
+  plan: "Use COUNT query for totals"
+  bug_description: "Loading all records just to count - count($items) vs $items->count()"
+  correct: "$order->items()->count()"
+  incorrect: "count($order->items)"
+  severity: medium
+  difficulty: easy
+  tags: [performance, count, query]
+
+- id: PERF_005
+  category: performance
+  axis: implicit_knowledge
+  name: index_not_used
+  plan: "Query on indexed columns"
+  bug_description: "Search condition on non-indexed column causes full scan"
+  correct: "$table->index('status')"
+  incorrect: "Order::where('status', ...) without index"
+  severity: high
+  difficulty: medium
+  tags: [performance, index, query]
+
+- id: PERF_006
+  category: performance
+  axis: implicit_knowledge
+  name: cache_key_design
+  plan: "Use user-specific cache keys"
+  bug_description: "Same cache key for all users - cache collision"
+  correct: "Cache::remember('orders_' . auth()->id(), ...)"
+  incorrect: "Cache::remember('orders', ...)"
+  severity: high
+  difficulty: medium
+  tags: [performance, cache, key]
+
+- id: PERF_007
+  category: performance
+  axis: implicit_knowledge
+  name: lazy_vs_cursor
+  plan: "Use cursor for memory-efficient iteration"
+  bug_description: "lazy() still hydrates models in batches, cursor() streams one at a time"
+  correct: "Order::cursor()->each(...)"
+  incorrect: "Order::lazy()->each(...) for very large datasets"
+  severity: medium
+  difficulty: medium
+  tags: [performance, memory, cursor]
+
+- id: PERF_008
+  category: performance
+  axis: implicit_knowledge
+  name: select_star
+  plan: "Select only needed columns"
+  bug_description: "SELECT * loads unnecessary data"
+  correct: "Order::select(['id', 'total', 'status'])->get()"
+  incorrect: "Order::get()"
+  severity: medium
+  difficulty: easy
+  tags: [performance, select, columns]
+
+- id: PERF_009
+  category: performance
+  axis: implicit_knowledge
+  name: queue_sync_driver
+  plan: "Use async queue driver in production"
+  bug_description: "sync queue driver blocks request"
+  correct: "QUEUE_CONNECTION=redis"
+  incorrect: "QUEUE_CONNECTION=sync in production"
+  severity: high
+  difficulty: easy
+  tags: [performance, queue, async]
+
+# =============================================================================
+# False Positive (10 patterns)
+# =============================================================================
+
+- id: FP_001
+  category: false_positive
+  name: standard_crud
+  plan: "Standard CRUD implementation with Laravel resources"
+  bug_description: null
+  correct: "Standard resource controller"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, crud, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_002
+  category: false_positive
+  name: standard_validation
+  plan: "Standard Laravel form request validations"
+  bug_description: null
+  correct: "FormRequest with rules, validators"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, validation, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_003
+  category: false_positive
+  name: standard_eloquent
+  plan: "Standard Eloquent operations"
+  bug_description: null
+  correct: "where, with, scopes correctly used"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, eloquent, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_004
+  category: false_positive
+  name: intentional_raw_query
+  plan: "Performance-critical raw query"
+  bug_description: null
+  correct: "DB::select with bindings"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, sql, intentional]
+  misleading_points: "Raw SQL looks dangerous but uses bindings"
+
+- id: FP_005
+  category: false_positive
+  name: intentional_update_mass
+  plan: "Mass update without model events"
+  bug_description: null
+  correct: "Intentional update() for performance"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, mass_update, intentional]
+  misleading_points: "update() looks wrong but events not needed"
+
+- id: FP_006
+  category: false_positive
+  name: complex_pipeline
+  plan: "Complex query with pipeline pattern"
+  bug_description: null
+  correct: "Pipeline with multiple filters"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, pipeline, complex]
+  misleading_points: "Complex query but correctly structured"
+
+- id: FP_007
+  category: false_positive
+  name: complex_event_chain
+  plan: "Multiple event listeners in correct order"
+  bug_description: null
+  correct: "Event listeners with proper priority"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, event, complex]
+  misleading_points: "Many listeners look fragile but order is correct"
+
+- id: FP_008
+  category: false_positive
+  name: intentional_no_soft_delete
+  plan: "Hard delete for compliance"
+  bug_description: null
+  correct: "forceDelete() for GDPR compliance"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, delete, intentional]
+  misleading_points: "Hard delete looks wrong but required for compliance"
+
+- id: FP_009
+  category: false_positive
+  name: intentional_eager_load
+  plan: "Preload for known N+1 prevention"
+  bug_description: null
+  correct: "Extra with() for downstream use"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, eager_load, intentional]
+  misleading_points: "Extra with() looks wasteful but used later"
+
+- id: FP_010
+  category: false_positive
+  name: optimized_batch_insert
+  plan: "Bulk insert for performance"
+  bug_description: null
+  correct: "insert() or upsert() with proper data"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, batch]
+  misleading_points: "Bypassing model events but intentional for bulk"
