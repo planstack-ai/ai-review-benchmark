@@ -1,159 +1,137 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from decimal import Decimal
-from django.db import connection
+from datetime import datetime
+from django.db import connection, DatabaseError
 from django.core.cache import cache
 from django.conf import settings
-from datetime import datetime, timedelta
 
 
 class PerformanceAnalyticsService:
-    
+    MAX_RESULTS = 1000
+    CACHE_TIMEOUT = 3600
+
     def __init__(self):
-        self.cache_timeout = getattr(settings, 'ANALYTICS_CACHE_TIMEOUT', 3600)
-        self.batch_size = 10000
-    
-    def get_user_engagement_metrics(self, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
-        cache_key = f"engagement_metrics_{start_date.date()}_{end_date.date()}"
-        cached_result = cache.get(cache_key)
-        
-        if cached_result:
-            return cached_result
-        
-        with connection.cursor() as cursor:
-            query = """
-                SELECT 
-                    DATE(created_at) as date,
-                    COUNT(DISTINCT user_id) as active_users,
-                    COUNT(*) as total_actions,
-                    AVG(session_duration) as avg_session_duration,
-                    SUM(CASE WHEN action_type = 'purchase' THEN 1 ELSE 0 END) as purchases
-                FROM user_activities ua
-                LEFT JOIN user_sessions us ON ua.session_id = us.id
-                WHERE ua.created_at BETWEEN %s AND %s
-                    AND ua.user_id IS NOT NULL
-                GROUP BY DATE(created_at)
-                ORDER BY date DESC
-            """
-            cursor.execute(query, [start_date, end_date])
-            results = self._dictfetchall(cursor)
-        
-        processed_metrics = self._process_engagement_data(results)
-        cache.set(cache_key, processed_metrics, self.cache_timeout)
-        
-        return processed_metrics
-    
-    def get_revenue_breakdown_by_category(self, user_segment: str, days: int = 30) -> List[Dict[str, Any]]:
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days)
-        
-        segment_filter = self._build_segment_filter(user_segment)
-        
-        with connection.cursor() as cursor:
-            query = f"""
-                SELECT 
-                    pc.name as category_name,
-                    pc.id as category_id,
-                    COUNT(DISTINCT o.id) as order_count,
-                    SUM(oi.quantity * oi.unit_price) as total_revenue,
-                    AVG(oi.quantity * oi.unit_price) as avg_order_value,
-                    COUNT(DISTINCT o.user_id) as unique_customers
-                FROM orders o
-                INNER JOIN order_items oi ON o.id = oi.order_id
-                INNER JOIN products p ON oi.product_id = p.id
-                INNER JOIN product_categories pc ON p.category_id = pc.id
-                INNER JOIN users u ON o.user_id = u.id
-                WHERE o.created_at BETWEEN %s AND %s
-                    AND o.status = 'completed'
-                    {segment_filter}
-                GROUP BY pc.id, pc.name
-                HAVING total_revenue > 0
-                ORDER BY total_revenue DESC
-            """
-            cursor.execute(query, [start_date, end_date])
-            return self._dictfetchall(cursor)
-    
-    def calculate_customer_lifetime_value(self, cohort_months: int = 12) -> Dict[str, Decimal]:
-        with connection.cursor() as cursor:
-            query = """
-                WITH customer_cohorts AS (
-                    SELECT 
-                        user_id,
-                        DATE_TRUNC('month', MIN(created_at)) as cohort_month,
-                        SUM(total_amount) as total_spent,
-                        COUNT(*) as order_count,
-                        MAX(created_at) as last_order_date
-                    FROM orders
-                    WHERE status = 'completed'
-                        AND created_at >= NOW() - INTERVAL '%s months'
-                    GROUP BY user_id
-                ),
-                cohort_analysis AS (
-                    SELECT 
-                        cohort_month,
-                        COUNT(DISTINCT user_id) as cohort_size,
-                        AVG(total_spent) as avg_revenue_per_customer,
-                        AVG(order_count) as avg_orders_per_customer,
-                        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY total_spent) as median_clv
-                    FROM customer_cohorts
-                    GROUP BY cohort_month
-                )
-                SELECT 
-                    cohort_month,
-                    cohort_size,
-                    avg_revenue_per_customer,
-                    avg_orders_per_customer,
-                    median_clv
-                FROM cohort_analysis
-                ORDER BY cohort_month DESC
-            """
-            cursor.execute(query, [cohort_months])
-            results = self._dictfetchall(cursor)
-        
-        return self._aggregate_clv_metrics(results)
-    
+        self.cache_timeout = getattr(settings, 'ANALYTICS_CACHE_TIMEOUT', self.CACHE_TIMEOUT)
+
+    def get_event_counts_by_date(self, start_date: datetime,
+                                  end_date: datetime) -> List[Dict[str, Any]]:
+        if not self._validate_date_range(start_date, end_date):
+            raise ValueError("Invalid date range: start_date must be before end_date")
+
+        try:
+            with connection.cursor() as cursor:
+                query = """
+                    SELECT
+                        DATE(ae.timestamp) as event_date,
+                        ae.event_type,
+                        COUNT(*) as event_count
+                    FROM analytics_event ae
+                    WHERE ae.timestamp BETWEEN %s AND %s
+                    GROUP BY DATE(ae.timestamp), ae.event_type
+                    ORDER BY event_date DESC, event_count DESC
+                    LIMIT %s
+                """
+                cursor.execute(query, [start_date, end_date, self.MAX_RESULTS])
+                return self._dictfetchall(cursor)
+
+        except DatabaseError as e:
+            raise RuntimeError(f"Database error while fetching event counts: {e}")
+
+    def get_event_type_summary(self, start_date: datetime,
+                               end_date: datetime) -> List[Dict[str, Any]]:
+        if not self._validate_date_range(start_date, end_date):
+            raise ValueError("Invalid date range: start_date must be before end_date")
+
+        try:
+            with connection.cursor() as cursor:
+                query = """
+                    SELECT
+                        ae.event_type,
+                        COUNT(*) as total_events,
+                        COUNT(DISTINCT ae.user_id) as unique_users,
+                        COUNT(DISTINCT ae.session_id) as unique_sessions,
+                        MIN(ae.timestamp) as first_event,
+                        MAX(ae.timestamp) as last_event
+                    FROM analytics_event ae
+                    WHERE ae.timestamp BETWEEN %s AND %s
+                    GROUP BY ae.event_type
+                    ORDER BY total_events DESC
+                    LIMIT %s
+                """
+                cursor.execute(query, [start_date, end_date, self.MAX_RESULTS])
+                return self._dictfetchall(cursor)
+
+        except DatabaseError as e:
+            raise RuntimeError(f"Database error while fetching event summary: {e}")
+
+    def get_user_activity_summary(self, start_date: datetime,
+                                  end_date: datetime) -> Dict[str, Any]:
+        if not self._validate_date_range(start_date, end_date):
+            raise ValueError("Invalid date range: start_date must be before end_date")
+
+        try:
+            with connection.cursor() as cursor:
+                query = """
+                    SELECT
+                        COUNT(*) as total_events,
+                        COUNT(DISTINCT user_id) as unique_users,
+                        COUNT(DISTINCT session_id) as unique_sessions,
+                        COUNT(DISTINCT DATE(timestamp)) as active_days
+                    FROM analytics_event
+                    WHERE timestamp BETWEEN %s AND %s
+                """
+                cursor.execute(query, [start_date, end_date])
+                result = self._dictfetchall(cursor)
+                return result[0] if result else self._empty_activity_summary()
+
+        except DatabaseError as e:
+            raise RuntimeError(f"Database error while fetching activity summary: {e}")
+
+    def get_conversion_funnel(self, start_date: datetime,
+                              end_date: datetime) -> Dict[str, int]:
+        if not self._validate_date_range(start_date, end_date):
+            raise ValueError("Invalid date range: start_date must be before end_date")
+
+        try:
+            with connection.cursor() as cursor:
+                query = """
+                    SELECT
+                        COUNT(DISTINCT CASE WHEN event_type = 'page_view' THEN user_id END) as page_viewers,
+                        COUNT(DISTINCT CASE WHEN event_type = 'click' THEN user_id END) as clickers,
+                        COUNT(DISTINCT CASE WHEN event_type = 'form_submit' THEN user_id END) as form_submitters,
+                        COUNT(DISTINCT CASE WHEN event_type = 'purchase' THEN user_id END) as purchasers
+                    FROM analytics_event
+                    WHERE timestamp BETWEEN %s AND %s
+                        AND user_id IS NOT NULL
+                """
+                cursor.execute(query, [start_date, end_date])
+                result = self._dictfetchall(cursor)
+                return result[0] if result else self._empty_funnel()
+
+        except DatabaseError as e:
+            raise RuntimeError(f"Database error while calculating conversion funnel: {e}")
+
+    def _validate_date_range(self, start_date: datetime, end_date: datetime) -> bool:
+        if start_date is None or end_date is None:
+            return False
+        return start_date <= end_date
+
     def _dictfetchall(self, cursor) -> List[Dict[str, Any]]:
         columns = [col[0] for col in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
-    
-    def _process_engagement_data(self, raw_data: List[Dict[str, Any]]) -> Dict[str, Any]:
-        if not raw_data:
-            return {'daily_metrics': [], 'summary': {}}
-        
-        total_users = sum(row['active_users'] for row in raw_data)
-        total_actions = sum(row['total_actions'] for row in raw_data)
-        total_purchases = sum(row['purchases'] for row in raw_data)
-        
+
+    def _empty_activity_summary(self) -> Dict[str, Any]:
         return {
-            'daily_metrics': raw_data,
-            'summary': {
-                'total_active_users': total_users,
-                'total_actions': total_actions,
-                'total_purchases': total_purchases,
-                'conversion_rate': (total_purchases / total_actions * 100) if total_actions > 0 else 0
-            }
+            'total_events': 0,
+            'unique_users': 0,
+            'unique_sessions': 0,
+            'active_days': 0
         }
-    
-    def _build_segment_filter(self, segment: str) -> str:
-        segment_conditions = {
-            'premium': "AND u.subscription_tier = 'premium'",
-            'new': "AND u.created_at >= NOW() - INTERVAL '30 days'",
-            'returning': "AND u.created_at < NOW() - INTERVAL '30 days'",
-            'high_value': "AND u.total_spent > 1000"
-        }
-        return segment_conditions.get(segment, "")
-    
-    def _aggregate_clv_metrics(self, cohort_data: List[Dict[str, Any]]) -> Dict[str, Decimal]:
-        if not cohort_data:
-            return {}
-        
-        total_customers = sum(row['cohort_size'] for row in cohort_data)
-        weighted_avg_clv = sum(
-            row['avg_revenue_per_customer'] * row['cohort_size'] 
-            for row in cohort_data
-        ) / total_customers if total_customers > 0 else Decimal('0')
-        
+
+    def _empty_funnel(self) -> Dict[str, int]:
         return {
-            'overall_clv': Decimal(str(weighted_avg_clv)).quantize(Decimal('0.01')),
-            'total_customers_analyzed': total_customers,
-            'cohort_count': len(cohort_data)
+            'page_viewers': 0,
+            'clickers': 0,
+            'form_submitters': 0,
+            'purchasers': 0
         }

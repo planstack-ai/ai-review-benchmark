@@ -1,31 +1,27 @@
-# Performance-Critical Analytics Dashboard Query Implementation
+# Analytics Event Query Service
 
 ## Overview
 
-The analytics dashboard requires a complex aggregation query that joins multiple tables with custom calculations, date range filtering, and performance optimizations. Due to the complexity of the required SQL operations and performance requirements for large datasets, this feature necessitates the use of raw SQL queries rather than Django ORM to achieve acceptable response times.
+A service to query analytics event data for reporting and dashboard purposes. Due to performance requirements for aggregating large datasets, the service uses raw SQL queries with proper parameterization.
 
 ## Requirements
 
-1. Implement a dashboard analytics endpoint that retrieves sales performance metrics across multiple dimensions
-2. Query must aggregate data from orders, products, customers, and sales_representatives tables
-3. Include custom calculations for commission rates, profit margins, and performance rankings
-4. Support date range filtering with optimized index usage
-5. Return results grouped by sales representative with subtotals and rankings
-6. Implement proper parameterized queries to prevent SQL injection
-7. Handle database connection management appropriately
-8. Include error handling for database connectivity issues
-9. Return structured data suitable for JSON serialization
-10. Achieve query execution time under 500ms for datasets up to 100,000 records
+1. Implement methods to retrieve event counts grouped by date and event type
+2. Provide an event type summary with unique user and session counts
+3. Implement a user activity summary with overall metrics for a date range
+4. Create a conversion funnel showing user progression through event types
+5. Use parameterized SQL queries to prevent SQL injection
+6. Include proper error handling for database connectivity issues
+7. Validate date range parameters before query execution
+8. Limit results to prevent memory issues with large datasets
 
 ## Constraints
 
-1. Date range parameters must be validated before query execution
-2. Results must be limited to a maximum of 1000 records to prevent memory issues
-3. Only active sales representatives should be included in results
-4. Commission calculations must handle null values appropriately
-5. Database queries must use read-only database connections where available
-6. Query results must maintain consistent ordering across multiple executions
+1. Date range parameters must be validated (start_date must be before end_date)
+2. Results must be limited to a maximum of 1000 records
+3. All user inputs must be passed through parameterized queries
+4. Database errors must be caught and re-raised with descriptive messages
 
 ## References
 
-See context.md for existing database schema, model definitions, and related query patterns used elsewhere in the application.
+See context.md for existing database schema and model definitions.

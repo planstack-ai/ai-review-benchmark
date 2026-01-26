@@ -1,110 +1,105 @@
-from typing import List, Optional, Dict, Any
-from decimal import Decimal
-from django.db import transaction
+from typing import Optional
+from django.db import models
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django import forms
 from django.core.exceptions import ValidationError
-from django.db.models import QuerySet
-from django.utils import timezone
-from django.contrib.auth.models import User
-from .models import CodeReview, ReviewComment, ReviewMetrics
 
 
-class CodeReviewService:
-    
-    def __init__(self):
-        self.default_metrics = {
-            'complexity_score': Decimal('0.0'),
-            'maintainability_score': Decimal('0.0'),
-            'security_score': Decimal('0.0')
-        }
-    
-    def create_review(self, user: User, repository_url: str, branch_name: str, 
-                     commit_hash: str, **kwargs) -> CodeReview:
-        with transaction.atomic():
-            review_data = self._prepare_review_data(
-                user, repository_url, branch_name, commit_hash, **kwargs
-            )
-            review = CodeReview.objects.create(**review_data)
-            self._initialize_review_metrics(review)
-            return review
-    
-    def get_review_by_id(self, review_id: int) -> Optional[CodeReview]:
-        try:
-            return CodeReview.objects.select_related('author', 'metrics').get(id=review_id)
-        except CodeReview.DoesNotExist:
-            return None
-    
-    def update_review_status(self, review_id: int, status: str, 
-                           updated_by: User) -> Optional[CodeReview]:
-        review = self.get_review_by_id(review_id)
-        if not review:
-            return None
-        
-        if not self._validate_status_transition(review.status, status):
-            raise ValidationError(f"Invalid status transition from {review.status} to {status}")
-        
-        review.status = status
-        review.updated_by = updated_by
-        review.updated_at = timezone.now()
-        review.save(update_fields=['status', 'updated_by', 'updated_at'])
-        return review
-    
-    def add_comment(self, review_id: int, author: User, content: str, 
-                   line_number: Optional[int] = None, file_path: Optional[str] = None) -> ReviewComment:
-        review = self.get_review_by_id(review_id)
-        if not review:
-            raise ValidationError("Review not found")
-        
-        comment_data = {
-            'review': review,
-            'author': author,
-            'content': content,
-            'line_number': line_number,
-            'file_path': file_path,
-            'created_at': timezone.now()
-        }
-        return ReviewComment.objects.create(**comment_data)
-    
-    def get_reviews_by_user(self, user: User, status: Optional[str] = None) -> QuerySet:
-        queryset = CodeReview.objects.filter(author=user).select_related('metrics')
-        if status:
-            queryset = queryset.filter(status=status)
-        return queryset.order_by('-created_at')
-    
-    def delete_review(self, review_id: int, user: User) -> bool:
-        review = self.get_review_by_id(review_id)
-        if not review or review.author != user:
-            return False
-        
-        with transaction.atomic():
-            ReviewComment.objects.filter(review=review).delete()
-            ReviewMetrics.objects.filter(review=review).delete()
-            review.delete()
-        return True
-    
-    def _prepare_review_data(self, user: User, repository_url: str, 
-                           branch_name: str, commit_hash: str, **kwargs) -> Dict[str, Any]:
-        return {
-            'author': user,
-            'repository_url': repository_url,
-            'branch_name': branch_name,
-            'commit_hash': commit_hash,
-            'title': kwargs.get('title', f"Review for {branch_name}"),
-            'description': kwargs.get('description', ''),
-            'status': kwargs.get('status', 'pending'),
-            'created_at': timezone.now()
-        }
-    
-    def _initialize_review_metrics(self, review: CodeReview) -> ReviewMetrics:
-        return ReviewMetrics.objects.create(
-            review=review,
-            **self.default_metrics
-        )
-    
-    def _validate_status_transition(self, current_status: str, new_status: str) -> bool:
-        valid_transitions = {
-            'pending': ['in_progress', 'cancelled'],
-            'in_progress': ['completed', 'pending', 'cancelled'],
-            'completed': ['in_progress'],
-            'cancelled': ['pending']
-        }
-        return new_status in valid_transitions.get(current_status, [])
+class TaskStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending'
+    IN_PROGRESS = 'in_progress', 'In Progress'
+    COMPLETED = 'completed', 'Completed'
+
+
+class Task(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, max_length=1000)
+    status = models.CharField(
+        max_length=20,
+        choices=TaskStatus.choices,
+        default=TaskStatus.PENDING
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return self.title
+
+    def clean(self) -> None:
+        if len(self.title) < 1:
+            raise ValidationError({'title': 'Title must be at least 1 character.'})
+        if len(self.title) > 200:
+            raise ValidationError({'title': 'Title must not exceed 200 characters.'})
+        if self.description and len(self.description) > 1000:
+            raise ValidationError({'description': 'Description must not exceed 1000 characters.'})
+
+
+class TaskForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['title', 'description', 'status']
+
+    def clean_title(self) -> str:
+        title = self.cleaned_data.get('title', '')
+        if len(title) < 1:
+            raise forms.ValidationError('Title is required.')
+        if len(title) > 200:
+            raise forms.ValidationError('Title must not exceed 200 characters.')
+        return title
+
+    def clean_description(self) -> str:
+        description = self.cleaned_data.get('description', '')
+        if description and len(description) > 1000:
+            raise forms.ValidationError('Description must not exceed 1000 characters.')
+        return description
+
+
+class TaskListView(ListView):
+    model = Task
+    template_name = 'tasks/task_list.html'
+    context_object_name = 'tasks'
+    paginate_by = 10
+
+
+class TaskDetailView(DetailView):
+    model = Task
+    template_name = 'tasks/task_detail.html'
+    context_object_name = 'task'
+
+
+class TaskCreateView(CreateView):
+    model = Task
+    form_class = TaskForm
+    template_name = 'tasks/task_form.html'
+    success_url = reverse_lazy('tasks:task_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Task created successfully.')
+        return super().form_valid(form)
+
+
+class TaskUpdateView(UpdateView):
+    model = Task
+    form_class = TaskForm
+    template_name = 'tasks/task_form.html'
+    success_url = reverse_lazy('tasks:task_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Task updated successfully.')
+        return super().form_valid(form)
+
+
+class TaskDeleteView(DeleteView):
+    model = Task
+    template_name = 'tasks/task_confirm_delete.html'
+    success_url = reverse_lazy('tasks:task_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Task deleted successfully.')
+        return super().delete(request, *args, **kwargs)

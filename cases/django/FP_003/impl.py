@@ -1,97 +1,142 @@
-from typing import List, Optional, Dict, Any
-from decimal import Decimal
-from django.db import transaction
-from django.db.models import QuerySet, Q, Count, Avg, Sum
-from django.core.exceptions import ValidationError
-from django.utils import timezone
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
+from django.db import models
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from django.contrib.auth.models import User
+from django.utils import timezone
+from django.core.paginator import Paginator, Page
 
-from .models import CodeReview, ReviewMetric, Reviewer
 
+class UserActivityManager(models.Manager):
+    def for_user(self, user: User, start_date: Optional[datetime] = None,
+                 end_date: Optional[datetime] = None):
+        queryset = self.filter(user=user)
+        if start_date:
+            queryset = queryset.filter(created_at__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(created_at__lte=end_date)
+        return queryset.order_by('-created_at')
 
-class CodeReviewBenchmarkService:
-    
-    def __init__(self):
-        self.default_metrics = ['complexity', 'maintainability', 'security', 'performance']
-    
-    def get_reviews_by_status(self, status: str) -> QuerySet[CodeReview]:
-        return CodeReview.objects.filter(status=status).select_related('reviewer')
-    
-    def get_pending_reviews(self, reviewer_id: Optional[int] = None) -> QuerySet[CodeReview]:
-        queryset = CodeReview.objects.filter(status='pending')
-        if reviewer_id:
-            queryset = queryset.filter(reviewer_id=reviewer_id)
-        return queryset.order_by('created_at')
-    
-    def calculate_reviewer_statistics(self, reviewer_id: int, days: int = 30) -> Dict[str, Any]:
+    def recent(self, page: int = 1, per_page: int = 20) -> Page:
+        queryset = self.select_related('user').order_by('-created_at')
+        paginator = Paginator(queryset, per_page)
+        return paginator.get_page(page)
+
+    def by_action_type(self, action_type: str):
+        return self.filter(action_type=action_type).order_by('-created_at')
+
+    def last_n_days(self, days: int):
         cutoff_date = timezone.now() - timedelta(days=days)
-        
-        reviews = CodeReview.objects.filter(
-            reviewer_id=reviewer_id,
-            completed_at__gte=cutoff_date
-        ).aggregate(
-            total_reviews=Count('id'),
-            avg_score=Avg('overall_score'),
-            total_lines_reviewed=Sum('lines_of_code')
+        return self.filter(created_at__gte=cutoff_date).order_by('-created_at')
+
+    def grouped_by_date(self, start_date: Optional[datetime] = None,
+                        end_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
+        queryset = self.all()
+        if start_date:
+            queryset = queryset.filter(created_at__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(created_at__lte=end_date)
+
+        return list(
+            queryset
+            .annotate(date=TruncDate('created_at'))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('-date')
         )
-        
-        return {
-            'reviewer_id': reviewer_id,
-            'period_days': days,
-            'total_reviews': reviews['total_reviews'] or 0,
-            'average_score': reviews['avg_score'] or Decimal('0.00'),
-            'total_lines_reviewed': reviews['total_lines_reviewed'] or 0
-        }
-    
-    def get_high_priority_reviews(self, min_complexity: int = 8) -> QuerySet[CodeReview]:
-        return CodeReview.objects.filter(
-            Q(priority='high') | Q(complexity_score__gte=min_complexity),
-            status__in=['pending', 'in_progress']
-        ).select_related('reviewer').prefetch_related('metrics')
-    
-    @transaction.atomic
-    def assign_review_batch(self, reviewer_id: int, max_reviews: int = 5) -> List[CodeReview]:
-        reviewer = Reviewer.objects.select_for_update().get(id=reviewer_id)
-        
-        if not self._can_assign_reviews(reviewer, max_reviews):
-            raise ValidationError(f"Reviewer {reviewer_id} cannot be assigned more reviews")
-        
-        pending_reviews = self._get_assignable_reviews(max_reviews)
-        assigned_reviews = []
-        
-        for review in pending_reviews:
-            review.reviewer = reviewer
-            review.status = 'assigned'
-            review.assigned_at = timezone.now()
-            review.save()
-            assigned_reviews.append(review)
-        
-        return assigned_reviews
-    
-    def get_benchmark_metrics(self, project_id: Optional[int] = None) -> Dict[str, Decimal]:
-        queryset = ReviewMetric.objects.all()
-        if project_id:
-            queryset = queryset.filter(review__project_id=project_id)
-        
-        metrics = {}
-        for metric_type in self.default_metrics:
-            avg_value = queryset.filter(metric_type=metric_type).aggregate(
-                avg_score=Avg('score')
-            )['avg_score']
-            metrics[metric_type] = avg_value or Decimal('0.00')
-        
-        return metrics
-    
-    def _can_assign_reviews(self, reviewer: Reviewer, requested_count: int) -> bool:
-        current_assigned = CodeReview.objects.filter(
-            reviewer=reviewer,
-            status__in=['assigned', 'in_progress']
-        ).count()
-        
-        return current_assigned + requested_count <= reviewer.max_concurrent_reviews
-    
-    def _get_assignable_reviews(self, limit: int) -> QuerySet[CodeReview]:
-        return CodeReview.objects.filter(
-            status='pending',
-            reviewer__isnull=True
-        ).order_by('priority', 'created_at')[:limit]
+
+    def unique_action_types(self) -> List[str]:
+        return list(
+            self.values_list('action_type', flat=True)
+            .distinct()
+            .order_by('action_type')
+        )
+
+
+class UserActivity(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='activities',
+        db_index=True
+    )
+    action_type = models.CharField(max_length=100, db_index=True)
+    description = models.TextField(blank=True, default='')
+    metadata = models.JSONField(default=dict, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    objects = UserActivityManager()
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'User Activity'
+        verbose_name_plural = 'User Activities'
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['action_type', 'created_at']),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.username}: {self.action_type} at {self.created_at}"
+
+
+class UserActivityService:
+    def record_activity(self, user: User, action_type: str,
+                        description: str = '', metadata: Optional[Dict[str, Any]] = None,
+                        ip_address: Optional[str] = None,
+                        user_agent: str = '') -> UserActivity:
+        return UserActivity.objects.create(
+            user=user,
+            action_type=action_type,
+            description=description,
+            metadata=metadata or {},
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+
+    def bulk_record_activities(self, activities_data: List[Dict[str, Any]]) -> List[UserActivity]:
+        activities = []
+        for data in activities_data:
+            activity = UserActivity(
+                user=data['user'],
+                action_type=data['action_type'],
+                description=data.get('description', ''),
+                metadata=data.get('metadata', {}),
+                ip_address=data.get('ip_address'),
+                user_agent=data.get('user_agent', '')
+            )
+            activities.append(activity)
+
+        return UserActivity.objects.bulk_create(activities)
+
+    def get_user_activities(self, user: User, start_date: Optional[datetime] = None,
+                            end_date: Optional[datetime] = None):
+        return UserActivity.objects.for_user(user, start_date, end_date)
+
+    def get_recent_activities(self, page: int = 1, per_page: int = 20) -> Page:
+        return UserActivity.objects.recent(page, per_page)
+
+    def filter_by_action_type(self, action_type: str):
+        return UserActivity.objects.by_action_type(action_type)
+
+    def get_activity_count(self, user: Optional[User] = None,
+                           action_type: Optional[str] = None) -> int:
+        queryset = UserActivity.objects.all()
+        if user:
+            queryset = queryset.filter(user=user)
+        if action_type:
+            queryset = queryset.filter(action_type=action_type)
+        return queryset.count()
+
+    def get_activities_last_n_days(self, days: int):
+        return UserActivity.objects.last_n_days(days)
+
+    def get_unique_action_types(self) -> List[str]:
+        return UserActivity.objects.unique_action_types()
+
+    def get_activities_grouped_by_date(self, start_date: Optional[datetime] = None,
+                                       end_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
+        return UserActivity.objects.grouped_by_date(start_date, end_date)

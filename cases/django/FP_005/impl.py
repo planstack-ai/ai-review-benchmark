@@ -1,91 +1,150 @@
-from typing import List, Dict, Any, Optional
+import logging
+from typing import List, Optional
 from decimal import Decimal
-from django.db import transaction
-from django.db.models import QuerySet
-from django.core.exceptions import ValidationError
+from django.db import transaction, DatabaseError
 from django.utils import timezone
-from myapp.models import Product, Category, Inventory
+from myapp.models import Product
+
+logger = logging.getLogger(__name__)
 
 
 class ProductBulkUpdateService:
-    
-    def __init__(self):
-        self.batch_size = 1000
-        self.updated_count = 0
-    
-    def bulk_update_prices(self, price_updates: Dict[int, Decimal]) -> int:
-        if not price_updates:
+    DEFAULT_BATCH_SIZE = 1000
+
+    def __init__(self, batch_size: Optional[int] = None):
+        self.batch_size = batch_size or self.DEFAULT_BATCH_SIZE
+
+    def bulk_update_prices(self, product_ids: List[int], new_price: Decimal) -> int:
+        if not product_ids:
+            logger.info("bulk_update_prices called with empty product_ids list")
             return 0
-        
-        product_ids = list(price_updates.keys())
-        products = self._get_products_for_update(product_ids)
-        
-        if len(products) != len(product_ids):
-            missing_ids = set(product_ids) - {p.id for p in products}
-            raise ValidationError(f"Products not found: {missing_ids}")
-        
-        updated_products = self._prepare_price_updates(products, price_updates)
-        return self._execute_bulk_update(updated_products, ['price', 'updated_at'])
-    
-    def bulk_update_inventory(self, inventory_data: List[Dict[str, Any]]) -> int:
-        if not inventory_data:
+
+        if not self._validate_price(new_price):
+            raise ValueError("Price must be a positive number greater than zero")
+
+        if not self._validate_product_ids(product_ids):
+            raise ValueError("Product IDs must be valid positive integers")
+
+        try:
+            with transaction.atomic():
+                products = list(
+                    Product.objects.filter(id__in=product_ids).select_for_update()
+                )
+
+                existing_ids = {p.id for p in products}
+                missing_ids = set(product_ids) - existing_ids
+
+                if missing_ids:
+                    logger.warning(
+                        f"bulk_update_prices: {len(missing_ids)} product IDs not found: {missing_ids}"
+                    )
+
+                if not products:
+                    logger.info("bulk_update_prices: No valid products found to update")
+                    return 0
+
+                now = timezone.now()
+                for product in products:
+                    product.price = new_price
+                    product.updated_at = now
+
+                updated_count = Product.objects.bulk_update(
+                    products,
+                    fields=['price', 'updated_at'],
+                    batch_size=self.batch_size
+                )
+
+                logger.info(
+                    f"bulk_update_prices: Successfully updated {updated_count} products "
+                    f"to price {new_price}"
+                )
+
+                return updated_count
+
+        except DatabaseError as e:
+            logger.error(f"bulk_update_prices failed with database error: {e}")
+            raise RuntimeError(f"Failed to update product prices: {e}")
+
+    def bulk_update_stock(self, product_ids: List[int], quantity_delta: int) -> int:
+        if not product_ids:
             return 0
-        
-        product_ids = [item['product_id'] for item in inventory_data]
-        products = self._get_products_for_update(product_ids)
-        product_map = {p.id: p for p in products}
-        
-        updated_products = []
-        for item in inventory_data:
-            product_id = item['product_id']
-            if product_id not in product_map:
-                continue
-            
-            product = product_map[product_id]
-            product.stock_quantity = item.get('quantity', product.stock_quantity)
-            product.low_stock_threshold = item.get('threshold', product.low_stock_threshold)
-            product.updated_at = timezone.now()
-            updated_products.append(product)
-        
-        return self._execute_bulk_update(updated_products, 
-                                       ['stock_quantity', 'low_stock_threshold', 'updated_at'])
-    
-    def bulk_update_categories(self, category_assignments: Dict[int, int]) -> int:
-        product_ids = list(category_assignments.keys())
-        category_ids = list(category_assignments.values())
-        
-        products = self._get_products_for_update(product_ids)
-        valid_categories = set(Category.objects.filter(id__in=category_ids).values_list('id', flat=True))
-        
-        updated_products = []
-        for product in products:
-            new_category_id = category_assignments.get(product.id)
-            if new_category_id and new_category_id in valid_categories:
-                product.category_id = new_category_id
-                product.updated_at = timezone.now()
-                updated_products.append(product)
-        
-        return self._execute_bulk_update(updated_products, ['category_id', 'updated_at'])
-    
-    def _get_products_for_update(self, product_ids: List[int]) -> List[Product]:
-        return list(Product.objects.filter(id__in=product_ids).select_for_update())
-    
-    def _prepare_price_updates(self, products: List[Product], 
-                             price_updates: Dict[int, Decimal]) -> List[Product]:
-        updated_products = []
-        for product in products:
-            new_price = price_updates.get(product.id)
-            if new_price and new_price != product.price:
-                product.price = new_price
-                product.updated_at = timezone.now()
-                updated_products.append(product)
-        return updated_products
-    
-    @transaction.atomic
-    def _execute_bulk_update(self, products: List[Product], fields: List[str]) -> int:
-        if not products:
+
+        if not self._validate_product_ids(product_ids):
+            raise ValueError("Product IDs must be valid positive integers")
+
+        try:
+            with transaction.atomic():
+                products = list(
+                    Product.objects.filter(id__in=product_ids).select_for_update()
+                )
+
+                if not products:
+                    return 0
+
+                now = timezone.now()
+                for product in products:
+                    new_quantity = product.stock_quantity + quantity_delta
+                    if new_quantity < 0:
+                        raise ValueError(
+                            f"Cannot reduce stock below zero for product {product.id}"
+                        )
+                    product.stock_quantity = new_quantity
+                    product.updated_at = now
+
+                updated_count = Product.objects.bulk_update(
+                    products,
+                    fields=['stock_quantity', 'updated_at'],
+                    batch_size=self.batch_size
+                )
+
+                logger.info(
+                    f"bulk_update_stock: Updated {updated_count} products by {quantity_delta}"
+                )
+
+                return updated_count
+
+        except DatabaseError as e:
+            logger.error(f"bulk_update_stock failed with database error: {e}")
+            raise RuntimeError(f"Failed to update product stock: {e}")
+
+    def bulk_deactivate(self, product_ids: List[int]) -> int:
+        if not product_ids:
             return 0
-        
-        Product.objects.bulk_update(products, fields, batch_size=self.batch_size)
-        self.updated_count += len(products)
-        return len(products)
+
+        if not self._validate_product_ids(product_ids):
+            raise ValueError("Product IDs must be valid positive integers")
+
+        try:
+            with transaction.atomic():
+                updated_count = Product.objects.filter(
+                    id__in=product_ids,
+                    is_active=True
+                ).update(
+                    is_active=False,
+                    updated_at=timezone.now()
+                )
+
+                logger.info(f"bulk_deactivate: Deactivated {updated_count} products")
+
+                return updated_count
+
+        except DatabaseError as e:
+            logger.error(f"bulk_deactivate failed with database error: {e}")
+            raise RuntimeError(f"Failed to deactivate products: {e}")
+
+    def _validate_price(self, price: Decimal) -> bool:
+        if price is None:
+            return False
+        try:
+            decimal_price = Decimal(str(price))
+            return decimal_price > Decimal('0')
+        except (ValueError, TypeError):
+            return False
+
+    def _validate_product_ids(self, product_ids: List[int]) -> bool:
+        if not product_ids:
+            return True
+        return all(
+            isinstance(pid, int) and pid > 0
+            for pid in product_ids
+        )

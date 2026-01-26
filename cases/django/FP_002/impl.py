@@ -1,122 +1,120 @@
-from decimal import Decimal
-from typing import Optional, Dict, Any, List
+import re
+from typing import Optional
+from django.db import models
+from django.contrib.auth.models import User
+from django.core.validators import (
+    MinLengthValidator,
+    MaxLengthValidator,
+    RegexValidator,
+    MinValueValidator,
+    MaxValueValidator
+)
 from django.core.exceptions import ValidationError
-from django.db import transaction
-from django.utils import timezone
-from datetime import datetime
-
-from .models import CodeReview, ReviewMetric, BenchmarkResult
 
 
-class CodeReviewBenchmarkService:
-    
-    def __init__(self):
-        self.min_score_threshold = Decimal('0.0')
-        self.max_score_threshold = Decimal('100.0')
-        self.required_metrics = ['complexity', 'maintainability', 'security']
-    
-    def create_benchmark_review(self, code_snippet: str, language: str, 
-                              reviewer_id: int) -> CodeReview:
-        self._validate_code_snippet(code_snippet)
-        self._validate_language(language)
-        
-        with transaction.atomic():
-            review = CodeReview.objects.create(
-                code_snippet=code_snippet,
-                language=language,
-                reviewer_id=reviewer_id,
-                status='pending',
-                created_at=timezone.now()
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+    username = models.CharField(
+        max_length=30,
+        unique=True,
+        validators=[
+            MinLengthValidator(3, message='Username must be at least 3 characters long.'),
+            MaxLengthValidator(30, message='Username must not exceed 30 characters.'),
+            RegexValidator(
+                regex=r'^[a-zA-Z0-9_]+$',
+                message='Username can only contain letters, numbers, and underscores.'
             )
-            
-            self._initialize_default_metrics(review)
-            return review
-    
-    def calculate_overall_score(self, review_id: int) -> Decimal:
-        review = self._get_review_by_id(review_id)
-        metrics = ReviewMetric.objects.filter(review=review)
-        
-        if not metrics.exists():
-            raise ValidationError("No metrics found for review")
-        
-        total_weight = Decimal('0.0')
-        weighted_score = Decimal('0.0')
-        
-        for metric in metrics:
-            self._validate_metric_score(metric.score)
-            weighted_score += metric.score * metric.weight
-            total_weight += metric.weight
-        
-        if total_weight == 0:
-            return Decimal('0.0')
-        
-        overall_score = weighted_score / total_weight
-        review.overall_score = overall_score
-        review.save(update_fields=['overall_score'])
-        
-        return overall_score
-    
-    def generate_benchmark_result(self, review_id: int, 
-                                expected_score: Decimal) -> BenchmarkResult:
-        review = self._get_review_by_id(review_id)
-        actual_score = self.calculate_overall_score(review_id)
-        
-        accuracy = self._calculate_accuracy(actual_score, expected_score)
-        
-        result = BenchmarkResult.objects.create(
-            review=review,
-            expected_score=expected_score,
-            actual_score=actual_score,
-            accuracy=accuracy,
-            is_passed=accuracy >= Decimal('0.8'),
-            generated_at=timezone.now()
-        )
-        
-        return result
-    
-    def _validate_code_snippet(self, code_snippet: str) -> None:
-        if not code_snippet or not code_snippet.strip():
-            raise ValidationError("Code snippet cannot be empty")
-        
-        if len(code_snippet) > 10000:
-            raise ValidationError("Code snippet too long")
-    
-    def _validate_language(self, language: str) -> None:
-        supported_languages = ['python', 'javascript', 'java', 'cpp', 'go']
-        if language.lower() not in supported_languages:
-            raise ValidationError(f"Unsupported language: {language}")
-    
-    def _validate_metric_score(self, score: Decimal) -> None:
-        if score < self.min_score_threshold or score > self.max_score_threshold:
-            raise ValidationError(
-                f"Score must be between {self.min_score_threshold} and {self.max_score_threshold}"
-            )
-    
-    def _get_review_by_id(self, review_id: int) -> CodeReview:
-        try:
-            return CodeReview.objects.get(id=review_id)
-        except CodeReview.DoesNotExist:
-            raise ValidationError(f"Review with id {review_id} not found")
-    
-    def _initialize_default_metrics(self, review: CodeReview) -> None:
-        default_metrics = [
-            {'name': 'complexity', 'weight': Decimal('0.3')},
-            {'name': 'maintainability', 'weight': Decimal('0.4')},
-            {'name': 'security', 'weight': Decimal('0.3')}
         ]
-        
-        for metric_data in default_metrics:
-            ReviewMetric.objects.create(
-                review=review,
-                metric_name=metric_data['name'],
-                score=Decimal('0.0'),
-                weight=metric_data['weight']
+    )
+    email = models.EmailField(
+        unique=True,
+        error_messages={
+            'unique': 'A user with this email address already exists.'
+        }
+    )
+    age = models.PositiveIntegerField(
+        validators=[
+            MinValueValidator(13, message='You must be at least 13 years old.'),
+            MaxValueValidator(120, message='Please enter a valid age.')
+        ]
+    )
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        validators=[
+            RegexValidator(
+                regex=r'^\+?[\d\s\-()]+$',
+                message='Please enter a valid phone number format.'
             )
-    
-    def _calculate_accuracy(self, actual: Decimal, expected: Decimal) -> Decimal:
-        if expected == 0:
-            return Decimal('1.0') if actual == 0 else Decimal('0.0')
-        
-        difference = abs(actual - expected)
-        accuracy = max(Decimal('0.0'), Decimal('1.0') - (difference / expected))
-        return accuracy
+        ]
+    )
+    bio = models.TextField(
+        max_length=500,
+        blank=True,
+        default='',
+        validators=[
+            MaxLengthValidator(500, message='Bio must not exceed 500 characters.')
+        ]
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'User Profile'
+        verbose_name_plural = 'User Profiles'
+
+    def __str__(self) -> str:
+        return f"{self.username} ({self.email})"
+
+    def clean(self) -> None:
+        super().clean()
+
+        if self.username:
+            if len(self.username) < 3:
+                raise ValidationError({
+                    'username': 'Username must be at least 3 characters long.'
+                })
+            if len(self.username) > 30:
+                raise ValidationError({
+                    'username': 'Username must not exceed 30 characters.'
+                })
+            if not re.match(r'^[a-zA-Z0-9_]+$', self.username):
+                raise ValidationError({
+                    'username': 'Username can only contain letters, numbers, and underscores.'
+                })
+
+        if self.age is not None:
+            if self.age < 13:
+                raise ValidationError({
+                    'age': 'You must be at least 13 years old to create a profile.'
+                })
+            if self.age > 120:
+                raise ValidationError({
+                    'age': 'Please enter a valid age (maximum 120 years).'
+                })
+
+        if self.phone:
+            cleaned_phone = re.sub(r'[\s\-()]+', '', self.phone)
+            if not re.match(r'^\+?\d+$', cleaned_phone):
+                raise ValidationError({
+                    'phone': 'Please enter a valid phone number containing only digits, spaces, hyphens, and parentheses.'
+                })
+
+        if self.bio and len(self.bio) > 500:
+            raise ValidationError({
+                'bio': 'Bio must not exceed 500 characters.'
+            })
+
+    def save(self, *args, **kwargs) -> None:
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    @property
+    def display_name(self) -> str:
+        return self.username or self.email.split('@')[0]
