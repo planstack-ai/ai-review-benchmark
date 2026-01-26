@@ -1,0 +1,21 @@
+{
+  "case_id": "PERF_002",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "full_table_load",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Loading all orders into memory - Order.objects.all() on 1M records",
+  "bug_anchor": "list(Order.objects.all())",
+  "correct_implementation": "Order.objects.iterator() or Paginator",
+  "severity": "critical",
+  "tags": [
+    "performance",
+    "memory",
+    "batch"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

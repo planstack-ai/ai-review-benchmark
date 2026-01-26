@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_002",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "unique_constraint_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Unique constraint missing - duplicate emails allowed",
+  "bug_anchor": "email field without unique constraint",
+  "correct_implementation": "unique=True on email field",
+  "severity": "critical",
+  "tags": [
+    "data",
+    "unique",
+    "constraint"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": false
+}

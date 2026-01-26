@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_019",
+  "category": "false_positive",
+  "axis": null,
+  "name": "optimized_denormalization",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Materialized data pattern correctly implemented",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "denormalization"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

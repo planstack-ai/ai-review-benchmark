@@ -23,15 +23,15 @@ Bug Cases                         Clean Cases
 │ TIME,NOTIFY              │     │ Tests       │
 ├──────────────────────────┤     │ over-       │
 │ Implicit Knowledge       │     │ detection   │
-│ EXT,PERF,DATA,RAILS,     │     │             │
-│ DJANGO                   │     │             │
+│ PERF,EXT,DATA,           │     │             │
+│ RAILS,DJANGO             │     │             │
 └──────────────────────────┘     └─────────────┘
 ```
 
-| Axis | What it measures | Categories |
-|------|------------------|------------|
+| Axis | What it measures | Common Categories |
+|------|------------------|-------------------|
 | **Spec Alignment** | Can AI detect Plan vs Code mismatches? | CALC, STOCK, STATE, AUTH, TIME, NOTIFY |
-| **Implicit Knowledge** | Can AI detect issues not in Plan? | EXT, PERF, DATA, RAILS, DJANGO |
+| **Implicit Knowledge** | Can AI detect issues not in Plan? | PERF (+ EXT, DATA, RAILS, DJANGO by framework) |
 
 ## File Structure
 
@@ -103,20 +103,27 @@ Each case specifies its evaluation mode in `meta.json`:
 
 ## Naming Conventions
 
+### Common Categories (All Frameworks)
+
 | Prefix | Category | Axis |
 |--------|----------|------|
 | `CALC` | Price Calculation | Spec Alignment |
+| `AUTH` | Authorization | Spec Alignment |
 | `STOCK` | Inventory & Quantity | Spec Alignment |
 | `STATE` | State Transitions | Spec Alignment |
-| `AUTH` | Authorization | Spec Alignment |
 | `TIME` | Time & Duration | Spec Alignment |
 | `NOTIFY` | Notifications | Spec Alignment |
-| `EXT` | External Integration | Implicit Knowledge |
 | `PERF` | Performance | Implicit Knowledge |
-| `DATA` | Data Integrity | Implicit Knowledge |
-| `RAILS` | Rails-Specific | Implicit Knowledge |
-| `DJANGO` | Django-Specific | Implicit Knowledge |
 | `FP` | False Positive | - |
+
+### Framework-Specific Categories
+
+| Prefix | Framework | Category |
+|--------|-----------|----------|
+| `EXT` | Rails | External Integration |
+| `DATA` | Rails | Data Integrity |
+| `RAILS` | Rails | Rails-Specific Patterns |
+| `DJANGO` | Django | Django-Specific Patterns |
 
 ## What Makes a Good Case
 
@@ -134,6 +141,29 @@ Each case specifies its evaluation mode in `meta.json`:
 | Laravel | 50 | 10 | 60 |
 | Django | 25 | 5 | 30 |
 | **Total** | **161** | **28** | **189** |
+
+### Category Breakdown by Framework
+
+**Rails (99 cases)**
+| Axis | Categories | Cases |
+|------|------------|-------|
+| Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 47 |
+| Implicit Knowledge | EXT, PERF, DATA, RAILS | 39 |
+| False Positive | FP | 13 |
+
+**Laravel (60 cases)**
+| Axis | Categories | Cases |
+|------|------------|-------|
+| Spec Alignment | CALC, AUTH, STOCK, STATE, TIME, NOTIFY | 41 |
+| Implicit Knowledge | PERF | 9 |
+| False Positive | FP | 10 |
+
+**Django (30 cases - MVP)**
+| Axis | Categories | Cases |
+|------|------------|-------|
+| Spec Alignment | CALC, AUTH | 17 |
+| Implicit Knowledge | DJANGO | 8 |
+| False Positive | FP | 5 |
 
 ## Quick Links
 

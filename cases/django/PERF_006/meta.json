@@ -1,0 +1,21 @@
+{
+  "case_id": "PERF_006",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "cache_key_design",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Same cache key for all users - cache collision",
+  "bug_anchor": "cache.get('orders')",
+  "correct_implementation": "cache.get(f'orders_{user.id}')",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "cache",
+    "key"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

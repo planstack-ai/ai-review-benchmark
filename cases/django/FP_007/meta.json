@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_007",
+  "category": "false_positive",
+  "axis": null,
+  "name": "complex_callback_chain",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Ordered signal handlers with proper dependencies",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "signal",
+    "complex"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

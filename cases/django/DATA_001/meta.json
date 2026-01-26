@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_001",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "no_foreign_key",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "No foreign key constraint - orphan records on parent delete",
+  "bug_anchor": "IntegerField storing related id",
+  "correct_implementation": "ForeignKey with on_delete=CASCADE",
+  "severity": "high",
+  "tags": [
+    "data",
+    "foreign_key",
+    "integrity"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": false
+}

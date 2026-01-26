@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_004",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "soft_delete_in_query",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Deleted records appear in search results",
+  "bug_anchor": "Model.objects.all() without deleted filter",
+  "correct_implementation": "custom manager with deleted_at__isnull=True",
+  "severity": "high",
+  "tags": [
+    "data",
+    "soft_delete",
+    "query"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}
