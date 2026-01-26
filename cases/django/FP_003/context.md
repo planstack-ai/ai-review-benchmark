@@ -39,8 +39,8 @@ CREATE INDEX idx_blog_post_author ON blog_post(author_id);
 ## Models
 
 ```python
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
 from django.utils import timezone
 from typing import Optional
 
@@ -118,4 +118,24 @@ class Post(models.Model):
         return Post.published.filter(
             categories__in=self.categories.all()
         ).exclude(pk=self.pk).distinct()[:limit]
+
+
+class PostQuerySet(models.QuerySet):
+    def published(self):
+        return self.filter(
+            status=PostStatus.PUBLISHED,
+            published_at__lte=timezone.now()
+        )
+
+    def by_author(self, author: User):
+        return self.filter(author=author)
+
+    def featured(self):
+        return self.filter(is_featured=True)
+
+    def with_categories(self):
+        return self.prefetch_related('categories')
+
+    def with_author(self):
+        return self.select_related('author')
 ```

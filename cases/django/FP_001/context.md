@@ -91,7 +91,11 @@ class Post(models.Model):
     def get_absolute_url(self) -> str:
         return reverse('blog:post_detail', kwargs={'slug': self.slug})
 
-    @property
+    def can_edit(self, user: User) -> bool:
+        return user.is_authenticated and (
+            user == self.author or user.is_staff
+        )
+
     def is_published(self) -> bool:
         return (
             self.status == PostStatus.PUBLISHED and
@@ -99,14 +103,7 @@ class Post(models.Model):
             self.published_at <= timezone.now()
         )
 
-    def can_edit(self, user: User) -> bool:
-        return user.is_authenticated and (
-            user == self.author or user.is_staff
-        )
-
-    def get_edit_url(self) -> str:
-        return reverse('blog:post_edit', kwargs={'pk': self.pk})
-
-    def get_delete_url(self) -> str:
-        return reverse('blog:post_delete', kwargs={'pk': self.pk})
+    @property
+    def excerpt(self) -> str:
+        return self.content[:200] + '...' if len(self.content) > 200 else self.content
 ```

@@ -2,105 +2,114 @@
 
 ## Schema
 
-```python
-# migrations/0001_initial.py
-from django.db import migrations, models
-import django.core.validators
+```sql
+CREATE TABLE users_user (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(254) UNIQUE NOT NULL,
+    username VARCHAR(150) UNIQUE NOT NULL,
+    first_name VARCHAR(30) NOT NULL,
+    last_name VARCHAR(30) NOT NULL,
+    phone_number VARCHAR(20),
+    date_of_birth DATE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 
-
-class Migration(migrations.Migration):
-    initial = True
-    
-    dependencies = []
-    
-    operations = [
-        migrations.CreateModel(
-            name='User',
-            fields=[
-                ('id', models.AutoField(primary_key=True)),
-                ('email', models.EmailField(unique=True, max_length=254)),
-                ('username', models.CharField(max_length=150, unique=True)),
-                ('first_name', models.CharField(max_length=30)),
-                ('last_name', models.CharField(max_length=30)),
-                ('age', models.PositiveIntegerField()),
-                ('phone', models.CharField(max_length=15, blank=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-            ],
-        ),
-    ]
+CREATE TABLE products_product (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    slug VARCHAR(200) UNIQUE NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    stock_quantity INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
 ```
 
 ## Models
 
 ```python
-# models.py
 from django.db import models
-from django.core.validators import RegexValidator, MinLengthValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.core.exceptions import ValidationError
-from typing import Any
+from django.utils import timezone
+from decimal import Decimal
+import re
 
 
-class UserManager(models.Manager):
-    def active_users(self):
-        return self.filter(is_active=True)
-    
-    def by_age_range(self, min_age: int, max_age: int):
-        return self.filter(age__gte=min_age, age__lte=max_age)
-
-
-class User(models.Model):
-    email = models.EmailField(unique=True, max_length=254)
-    username = models.CharField(
-        max_length=150, 
-        unique=True,
-        validators=[
-            MinLengthValidator(3),
-            RegexValidator(
-                regex=r'^[a-zA-Z0-9_]+$',
-                message='Username can only contain letters, numbers, and underscores.'
-            )
-        ]
-    )
-    first_name = models.CharField(max_length=30)
-    last_name = models.CharField(max_length=30)
-    age = models.PositiveIntegerField()
-    phone = models.CharField(max_length=15, blank=True)
-    is_active = models.BooleanField(default=True)
+class TimestampedModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    objects = UserManager()
-    
     class Meta:
-        db_table = 'users'
-        ordering = ['-created_at']
+        abstract = True
+
+
+class ActiveManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True)
+
+
+class User(TimestampedModel):
+    email = models.EmailField(unique=True)
+    username = models.CharField(max_length=150, unique=True)
+    first_name = models.CharField(max_length=30)
+    last_name = models.CharField(max_length=30)
+    phone_number = models.CharField(
+        max_length=20, 
+        blank=True,
+        validators=[RegexValidator(r'^\+?1?\d{9,15}$')]
+    )
+    date_of_birth = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
     
-    def __str__(self) -> str:
-        return f"{self.username} ({self.email})"
+    objects = models.Manager()
+    active = ActiveManager()
     
-    @property
-    def full_name(self) -> str:
+    def clean(self):
+        super().clean()
+        if self.date_of_birth and self.date_of_birth > timezone.now().date():
+            raise ValidationError({'date_of_birth': 'Date of birth cannot be in the future.'})
+        
+        if self.email:
+            self.email = self.email.lower()
+    
+    def get_full_name(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()
     
-    def clean(self) -> None:
-        super().clean()
-        if self.age and self.age < 13:
-            raise ValidationError({'age': 'Users must be at least 13 years old.'})
-        
-        if self.phone and not self.phone.replace('+', '').replace('-', '').replace(' ', '').isdigit():
-            raise ValidationError({'phone': 'Phone number must contain only digits, spaces, hyphens, and plus signs.'})
+    def __str__(self) -> str:
+        return self.username
+
+
+class Product(TimestampedModel):
+    name = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, unique=True)
+    price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    stock_quantity = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
     
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-
-# constants.py
-MIN_USER_AGE = 13
-MAX_USER_AGE = 120
-PHONE_REGEX = r'^\+?[\d\s\-]+$'
-USERNAME_MIN_LENGTH = 3
-USERNAME_MAX_LENGTH = 150
+    objects = models.Manager()
+    active = ActiveManager()
+    
+    def clean(self):
+        super().clean()
+        if self.name:
+            self.name = self.name.strip()
+        
+        if self.slug and not re.match(r'^[-a-zA-Z0-9_]+$', self.slug):
+            raise ValidationError({'slug': 'Slug can only contain letters, numbers, hyphens, and underscores.'})
+    
+    def is_in_stock(self) -> bool:
+        return self.stock_quantity > 0
+    
+    def __str__(self) -> str:
+        return self.name
+    
+    class Meta:
+        ordering = ['name']
 ```

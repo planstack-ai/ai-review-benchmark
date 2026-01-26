@@ -14,7 +14,7 @@ class OrderProcessingService:
         self.bulk_discount_threshold = 10
     
     def process_bulk_order_status_update(self, order_ids: List[int], new_status: str) -> Dict[str, Any]:
-        """Process bulk status updates for multiple orders efficiently."""
+        """Process status updates for multiple orders efficiently."""
         if not order_ids:
             raise ValidationError("Order IDs list cannot be empty")
         
@@ -26,98 +26,90 @@ class OrderProcessingService:
         initial_count = orders_queryset.count()
         
         if initial_count == 0:
-            return {'updated_count': 0, 'skipped_count': len(order_ids)}
+            return {'updated_count': 0, 'errors': ['No valid orders found']}
         
         with transaction.atomic():
-            self._validate_status_transition(orders_queryset, new_status)
-            
-            updated_count = orders_queryset.update(
-                status=new_status,
-                updated_at=timezone.now(),
-                last_modified_by='system'
-            )
+            updated_count = self._update_order_statuses(orders_queryset, new_status)
+            self._log_bulk_status_change(order_ids, new_status, updated_count)
             
             if new_status == 'archived':
-                self._handle_archived_orders_cleanup(order_ids)
-            
-            self._log_bulk_status_change(order_ids, new_status, updated_count)
+                self._handle_archived_orders_cleanup(orders_queryset)
         
         return {
             'updated_count': updated_count,
-            'skipped_count': len(order_ids) - updated_count,
-            'processing_timestamp': timezone.now()
+            'total_processed': initial_count,
+            'status': new_status,
+            'timestamp': timezone.now()
         }
     
-    def archive_completed_orders(self, days_threshold: int = 30) -> int:
-        """Archive orders that have been completed for specified days."""
-        cutoff_date = timezone.now() - timezone.timedelta(days=days_threshold)
+    def _update_order_statuses(self, orders_queryset, new_status: str) -> int:
+        """Update order statuses using efficient bulk operations."""
+        update_data = {
+            'status': new_status,
+            'updated_at': timezone.now()
+        }
         
-        completed_orders = Order.objects.filter(
-            status='delivered',
-            completed_at__lt=cutoff_date,
+        if new_status == 'shipped':
+            update_data['shipped_at'] = timezone.now()
+        elif new_status == 'delivered':
+            update_data['delivered_at'] = timezone.now()
+        elif new_status == 'cancelled':
+            update_data['cancelled_at'] = timezone.now()
+        
+        return orders_queryset.update(**update_data)
+    
+    def _handle_archived_orders_cleanup(self, orders_queryset) -> None:
+        """Handle cleanup operations for archived orders."""
+        archived_orders = orders_queryset.filter(status='archived')
+        
+        for order in archived_orders:
+            self._cleanup_order_references(order)
+            self._update_customer_statistics(order.customer_id)
+    
+    def _cleanup_order_references(self, order) -> None:
+        """Clean up related references for archived orders."""
+        OrderItem.objects.filter(order=order, is_temporary=True).delete()
+        
+        if hasattr(order, 'tracking_info'):
+            order.tracking_info.is_active = False
+            order.tracking_info.save()
+    
+    def _update_customer_statistics(self, customer_id: int) -> None:
+        """Update customer order statistics after archiving."""
+        from .models import Customer
+        
+        customer = Customer.objects.get(id=customer_id)
+        active_orders_count = Order.objects.filter(
+            customer=customer,
             is_active=True
-        )
+        ).exclude(status='archived').count()
         
-        archived_count = completed_orders.update(
-            status='archived',
-            archived_at=timezone.now(),
-            is_active=False
-        )
-        
-        return archived_count
-    
-    def _validate_status_transition(self, orders_queryset, target_status: str) -> None:
-        """Validate that status transitions are allowed for all orders."""
-        invalid_transitions = []
-        
-        for order in orders_queryset.select_related():
-            if not self._is_valid_transition(order.status, target_status):
-                invalid_transitions.append(f"Order {order.id}: {order.status} -> {target_status}")
-        
-        if invalid_transitions:
-            raise ValidationError(f"Invalid status transitions: {', '.join(invalid_transitions)}")
-    
-    def _is_valid_transition(self, current_status: str, target_status: str) -> bool:
-        """Check if status transition is valid according to business rules."""
-        transition_rules = {
-            'pending': ['processing', 'cancelled'],
-            'processing': ['shipped', 'cancelled'],
-            'shipped': ['delivered', 'cancelled'],
-            'delivered': ['archived'],
-            'cancelled': ['archived'],
-            'archived': []
-        }
-        
-        return target_status in transition_rules.get(current_status, [])
-    
-    def _handle_archived_orders_cleanup(self, order_ids: List[int]) -> None:
-        """Handle cleanup tasks when orders are archived."""
-        OrderItem.objects.filter(order_id__in=order_ids).update(is_active=False)
-        
-        self._update_product_inventory_tracking(order_ids)
-    
-    def _update_product_inventory_tracking(self, order_ids: List[int]) -> None:
-        """Update product inventory tracking for archived orders."""
-        order_items = OrderItem.objects.filter(
-            order_id__in=order_ids
-        ).select_related('product')
-        
-        for item in order_items:
-            if item.product:
-                item.product.reserved_quantity -= item.quantity
-                item.product.save()
+        customer.active_orders_count = active_orders_count
+        customer.last_order_update = timezone.now()
+        customer.save()
     
     def _log_bulk_status_change(self, order_ids: List[int], status: str, count: int) -> None:
-        """Log bulk status change operation for audit purposes."""
-        from django.contrib.admin.models import LogEntry, CHANGE
-        from django.contrib.contenttypes.models import ContentType
+        """Log bulk status change operations for audit purposes."""
+        from .models import OrderStatusLog
         
-        content_type = ContentType.objects.get_for_model(Order)
-        
-        LogEntry.objects.create(
-            content_type=content_type,
-            object_id=None,
-            object_repr=f"Bulk update: {count} orders to {status}",
-            action_flag=CHANGE,
-            change_message=f"Bulk status update for orders: {order_ids[:10]}"
+        OrderStatusLog.objects.create(
+            operation_type='bulk_update',
+            order_ids=order_ids,
+            new_status=status,
+            affected_count=count,
+            timestamp=timezone.now()
         )
+    
+    def calculate_processing_metrics(self, order_ids: List[int]) -> Dict[str, Any]:
+        """Calculate processing metrics for given orders."""
+        orders = Order.objects.filter(id__in=order_ids)
+        
+        total_value = sum(order.total_amount for order in orders)
+        average_value = total_value / len(orders) if orders else Decimal('0')
+        
+        return {
+            'total_orders': len(orders),
+            'total_value': total_value,
+            'average_value': average_value,
+            'processing_fee_total': self.processing_fee * len(orders)
+        }

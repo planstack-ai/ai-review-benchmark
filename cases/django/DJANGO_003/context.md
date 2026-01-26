@@ -47,8 +47,7 @@ from decimal import Decimal
 from typing import Any
 from django.db import models
 from django.utils import timezone
-from django.core.mail import send_mail
-from django.conf import settings
+from django.core.cache import cache
 
 
 class ProductQuerySet(models.QuerySet):
@@ -87,6 +86,7 @@ class ProductManager(models.Manager):
 
 class Product(models.Model):
     LOW_STOCK_THRESHOLD = 10
+    CACHE_KEY_PREFIX = 'product_stock'
     
     name = models.CharField(max_length=200)
     price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -98,57 +98,76 @@ class Product(models.Model):
     
     objects = ProductManager()
     
+    class Meta:
+        indexes = [
+            models.Index(fields=['stock_count', 'is_active']),
+            models.Index(fields=['updated_at']),
+        ]
+    
+    def __str__(self) -> str:
+        return self.name
+    
     def save(self, *args, **kwargs) -> None:
-        is_new = self.pk is None
         old_stock = None
-        
-        if not is_new:
+        if self.pk:
             try:
-                old_instance = Product.objects.get(pk=self.pk)
-                old_stock = old_instance.stock_count
+                old_stock = Product.objects.get(pk=self.pk).stock_count
             except Product.DoesNotExist:
                 pass
         
         super().save(*args, **kwargs)
         
         if old_stock is not None and old_stock != self.stock_count:
-            self._handle_stock_change(old_stock)
-        elif is_new and self.stock_count <= self.LOW_STOCK_THRESHOLD:
-            self._create_stock_alert()
+            self._handle_stock_change(old_stock, self.stock_count)
+        
+        self._invalidate_cache()
     
-    def _handle_stock_change(self, old_stock: int) -> None:
+    def _handle_stock_change(self, old_stock: int, new_stock: int) -> None:
         """Handle stock level changes and create alerts if needed."""
         self.last_stock_check = timezone.now()
         self.save(update_fields=['last_stock_check'])
         
-        if self.stock_count <= self.LOW_STOCK_THRESHOLD and old_stock > self.LOW_STOCK_THRESHOLD:
-            self._create_stock_alert()
-        elif self.stock_count == 0 and old_stock > 0:
-            self._create_stock_alert(alert_type='OUT_OF_STOCK')
+        if new_stock == 0 and old_stock > 0:
+            StockAlert.objects.create(
+                product=self,
+                alert_type=StockAlert.AlertType.OUT_OF_STOCK
+            )
+        elif new_stock <= self.LOW_STOCK_THRESHOLD and old_stock > self.LOW_STOCK_THRESHOLD:
+            StockAlert.objects.create(
+                product=self,
+                alert_type=StockAlert.AlertType.LOW_STOCK
+            )
     
-    def _create_stock_alert(self, alert_type: str = 'LOW_STOCK') -> None:
-        """Create a stock alert for this product."""
-        StockAlert.objects.create(product=self, alert_type=alert_type)
-        self._send_stock_notification(alert_type)
+    def _invalidate_cache(self) -> None:
+        """Clear cached stock information."""
+        cache_key = f"{self.CACHE_KEY_PREFIX}_{self.pk}"
+        cache.delete(cache_key)
     
-    def _send_stock_notification(self, alert_type: str) -> None:
-        """Send email notification for stock alerts."""
-        subject = f"Stock Alert: {self.name}"
-        message = f"Product {self.name} is {'out of stock' if alert_type == 'OUT_OF_STOCK' else 'low on stock'}"
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [settings.INVENTORY_EMAIL])
+    @property
+    def is_low_stock(self) -> bool:
+        return self.stock_count <= self.LOW_STOCK_THRESHOLD
+    
+    @property
+    def is_out_of_stock(self) -> bool:
+        return self.stock_count == 0
 
 
 class StockAlert(models.Model):
-    ALERT_TYPES = [
-        ('LOW_STOCK', 'Low Stock'),
-        ('OUT_OF_STOCK', 'Out of Stock'),
-    ]
+    class AlertType(models.TextChoices):
+        LOW_STOCK = 'LOW_STOCK', 'Low Stock'
+        OUT_OF_STOCK = 'OUT_OF_STOCK', 'Out of Stock'
     
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    alert_type = models.CharField(max_length=20, choices=ALERT_TYPES)
+    alert_type = models.CharField(max_length=20, choices=AlertType.choices)
     created_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
-        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['product', 'resolved_at']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.get_alert_type_display()} - {self.product.name}"
 ```
