@@ -27,125 +27,108 @@ CREATE TABLE transactions (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "accounts")
-public class Account {
+class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    var id: Long? = null
+
     @Column(name = "account_number", unique = true, nullable = false)
-    private String accountNumber;
-    
+    var accountNumber: String = ""
+
     @Column(name = "balance", nullable = false, precision = 19, scale = 2)
-    private BigDecimal balance = BigDecimal.ZERO;
-    
+    var balance: BigDecimal = BigDecimal.ZERO
+
     @Enumerated(EnumType.STRING)
     @Column(name = "account_type", nullable = false)
-    private AccountType accountType;
-    
+    var accountType: AccountType? = null
+
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
+    var createdAt: LocalDateTime? = null
+
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
-    public Account() {}
-    
-    public Account(String accountNumber, AccountType accountType) {
-        this.accountNumber = accountNumber;
-        this.accountType = accountType;
+    var updatedAt: LocalDateTime? = null
+
+    fun credit(amount: BigDecimal) {
+        this.balance = this.balance.add(amount)
     }
-    
-    public void credit(BigDecimal amount) {
-        this.balance = this.balance.add(amount);
-    }
-    
-    public void debit(BigDecimal amount) {
+
+    fun debit(amount: BigDecimal) {
         if (this.balance.compareTo(amount) < 0) {
-            throw new InsufficientFundsException("Insufficient balance");
+            throw InsufficientFundsException("Insufficient balance")
         }
-        this.balance = this.balance.subtract(amount);
+        this.balance = this.balance.subtract(amount)
     }
-    
-    // getters and setters omitted for brevity
 }
 
 @Entity
 @Table(name = "transactions")
-public class Transaction {
+class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    var id: Long? = null
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "from_account_id")
-    private Account fromAccount;
-    
+    var fromAccount: Account? = null
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "to_account_id")
-    private Account toAccount;
-    
+    var toAccount: Account? = null
+
     @Column(name = "amount", nullable = false, precision = 19, scale = 2)
-    private BigDecimal amount;
-    
+    var amount: BigDecimal = BigDecimal.ZERO
+
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)
-    private TransactionType transactionType;
-    
+    var transactionType: TransactionType? = null
+
     @Column(name = "description")
-    private String description;
-    
+    var description: String? = null
+
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
-    // constructors, getters, setters omitted for brevity
+    var createdAt: LocalDateTime? = null
 }
 
-public enum AccountType {
+enum class AccountType {
     CHECKING, SAVINGS, BUSINESS
 }
 
-public enum TransactionType {
+enum class TransactionType {
     TRANSFER, DEPOSIT, WITHDRAWAL
 }
 ```
 
-```java
+```kotlin
 @Repository
-public interface AccountRepository extends JpaRepository<Account, Long> {
-    Optional<Account> findByAccountNumber(String accountNumber);
-    
+interface AccountRepository : JpaRepository<Account, Long> {
+    fun findByAccountNumber(accountNumber: String): Optional<Account>
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Account a WHERE a.id = :id")
-    Optional<Account> findByIdWithLock(Long id);
-    
+    fun findByIdWithLock(id: Long): Optional<Account>
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Account a WHERE a.accountNumber = :accountNumber")
-    Optional<Account> findByAccountNumberWithLock(String accountNumber);
+    fun findByAccountNumberWithLock(accountNumber: String): Optional<Account>
 }
 
 @Repository
-public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    List<Transaction> findByFromAccountOrToAccountOrderByCreatedAtDesc(Account fromAccount, Account toAccount);
+interface TransactionRepository : JpaRepository<Transaction, Long> {
+    fun findByFromAccountOrToAccountOrderByCreatedAtDesc(
+        fromAccount: Account,
+        toAccount: Account
+    ): List<Transaction>
 }
 ```
 
-```java
-public class InsufficientFundsException extends RuntimeException {
-    public InsufficientFundsException(String message) {
-        super(message);
-    }
-}
+```kotlin
+class InsufficientFundsException(message: String) : RuntimeException(message)
 
-public class AccountNotFoundException extends RuntimeException {
-    public AccountNotFoundException(String message) {
-        super(message);
-    }
-}
+class AccountNotFoundException(message: String) : RuntimeException(message)
 ```

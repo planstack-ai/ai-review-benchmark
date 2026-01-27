@@ -22,36 +22,34 @@ CREATE TABLE order_status_transitions (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "orders")
-public class Order {
+class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    var id: Long? = null
+
     @Column(name = "customer_id", nullable = false)
-    private Long customerId;
-    
+    var customerId: Long? = null
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status;
-    
+    var status: OrderStatus? = null
+
     @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
-    private BigDecimal totalAmount;
-    
+    var totalAmount: BigDecimal = BigDecimal.ZERO
+
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
+    var createdAt: LocalDateTime? = null
+
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
+    var updatedAt: LocalDateTime? = null
 }
 
-public enum OrderStatus {
+enum class OrderStatus {
     PENDING,
     CONFIRMED,
     PROCESSING,
@@ -63,55 +61,52 @@ public enum OrderStatus {
 
 @Entity
 @Table(name = "order_status_transitions")
-public class OrderStatusTransition {
+class OrderStatusTransition {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    var id: Long? = null
+
     @Enumerated(EnumType.STRING)
     @Column(name = "from_status", nullable = false)
-    private OrderStatus fromStatus;
-    
+    var fromStatus: OrderStatus? = null
+
     @Enumerated(EnumType.STRING)
     @Column(name = "to_status", nullable = false)
-    private OrderStatus toStatus;
-    
+    var toStatus: OrderStatus? = null
+
     @Column(nullable = false)
-    private Boolean allowed;
-    
-    // constructors, getters, setters
+    var allowed: Boolean? = null
 }
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByCustomerId(Long customerId);
-    List<Order> findByStatus(OrderStatus status);
-    Optional<Order> findByIdAndCustomerId(Long id, Long customerId);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByCustomerId(customerId: Long): List<Order>
+    fun findByStatus(status: OrderStatus): List<Order>
+    fun findByIdAndCustomerId(id: Long, customerId: Long): Optional<Order>
 }
 
 @Repository
-public interface OrderStatusTransitionRepository extends JpaRepository<OrderStatusTransition, Long> {
-    Optional<OrderStatusTransition> findByFromStatusAndToStatus(OrderStatus fromStatus, OrderStatus toStatus);
-    List<OrderStatusTransition> findByFromStatusAndAllowedTrue(OrderStatus fromStatus);
+interface OrderStatusTransitionRepository : JpaRepository<OrderStatusTransition, Long> {
+    fun findByFromStatusAndToStatus(fromStatus: OrderStatus, toStatus: OrderStatus): Optional<OrderStatusTransition>
+    fun findByFromStatusAndAllowedTrue(fromStatus: OrderStatus): List<OrderStatusTransition>
 }
 
-@Service
-public interface OrderService {
-    Order createOrder(Long customerId, BigDecimal totalAmount);
-    Order updateOrderStatus(Long orderId, OrderStatus newStatus);
-    List<OrderStatus> getAllowedTransitions(OrderStatus currentStatus);
-    boolean isTransitionAllowed(OrderStatus fromStatus, OrderStatus toStatus);
+interface OrderService {
+    fun createOrder(customerId: Long, totalAmount: BigDecimal): Order
+    fun updateOrderStatus(orderId: Long, newStatus: OrderStatus): Order
+    fun getAllowedTransitions(currentStatus: OrderStatus): List<OrderStatus>
+    fun isTransitionAllowed(fromStatus: OrderStatus, toStatus: OrderStatus): Boolean
 }
 
-public class OrderConstants {
-    public static final Map<OrderStatus, Set<OrderStatus>> DEFAULT_TRANSITIONS = Map.of(
-        OrderStatus.PENDING, Set.of(OrderStatus.CONFIRMED, OrderStatus.CANCELLED),
-        OrderStatus.CONFIRMED, Set.of(OrderStatus.PROCESSING, OrderStatus.CANCELLED),
-        OrderStatus.PROCESSING, Set.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED),
-        OrderStatus.SHIPPED, Set.of(OrderStatus.DELIVERED),
-        OrderStatus.DELIVERED, Set.of(OrderStatus.REFUNDED),
-        OrderStatus.CANCELLED, Set.of(),
-        OrderStatus.REFUNDED, Set.of()
-    );
+object OrderConstants {
+    val DEFAULT_TRANSITIONS: Map<OrderStatus, Set<OrderStatus>> = mapOf(
+        OrderStatus.PENDING to setOf(OrderStatus.CONFIRMED, OrderStatus.CANCELLED),
+        OrderStatus.CONFIRMED to setOf(OrderStatus.PROCESSING, OrderStatus.CANCELLED),
+        OrderStatus.PROCESSING to setOf(OrderStatus.SHIPPED, OrderStatus.CANCELLED),
+        OrderStatus.SHIPPED to setOf(OrderStatus.DELIVERED),
+        OrderStatus.DELIVERED to setOf(OrderStatus.REFUNDED),
+        OrderStatus.CANCELLED to emptySet(),
+        OrderStatus.REFUNDED to emptySet()
+    )
 }
 ```

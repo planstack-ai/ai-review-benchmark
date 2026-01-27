@@ -1,91 +1,88 @@
 package com.example.service
 
+import com.example.entity.Customer
+import com.example.entity.Order
+import com.example.entity.MembershipType
+import com.example.repository.CustomerRepository
+import com.example.repository.OrderRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import com.example.model.Order
-import com.example.model.Customer
-import com.example.repository.OrderRepository
-import com.example.repository.CustomerRepository
+
 import java.math.BigDecimal
-import java.math.RoundingMode
-import java.time.LocalDateTime
 
 /**
- * This is a CORRECTLY implemented discount service.
+ * This is a CORRECTLY implemented order service.
  * No bugs - should NOT trigger any critical or major issues.
  */
 @Service
 @Transactional
-class OrderDiscountService(
+class OrderService(
+    private val customerRepository: CustomerRepository,
     private val orderRepository: OrderRepository,
-    private val customerRepository: CustomerRepository
+    private val pricingService: PricingService
 ) {
-    companion object {
-        private val MEMBER_DISCOUNT_RATE = BigDecimal("0.10") // 10% discount
-        private val MINIMUM_ORDER_AMOUNT = BigDecimal("50.00")
-        private const val CURRENCY_SCALE = 2
-    }
 
-    fun calculateFinalAmount(orderId: Long): BigDecimal {
-        val order = orderRepository.findById(orderId)
-            .orElseThrow { IllegalArgumentException("Order not found") }
+    fun createOrder(customerEmail: String, subtotal: BigDecimal): Order {
+        validateSubtotal(subtotal)
+        val customer = findCustomerByEmail(customerEmail)
 
-        val baseAmount = order.totalAmount
-        val customer = order.customer
+        val discountAmount = calculateDiscountForCustomer(customer, subtotal)
+        val totalAmount = pricingService.calculateTotalWithDiscount(subtotal, discountAmount)
 
-        return if (isEligibleForDiscount(customer, baseAmount)) {
-            applyMemberDiscount(baseAmount)
-        } else {
-            baseAmount
-        }
-    }
-
-    fun processOrderWithDiscount(orderId: Long): Order {
-        val order = orderRepository.findById(orderId)
-            .orElseThrow { IllegalArgumentException("Order not found") }
-
-        val originalAmount = order.totalAmount
-        val finalAmount = calculateFinalAmount(orderId)
-
-        order.finalAmount = finalAmount
-        order.discountApplied = finalAmount < originalAmount
-        order.processedAt = LocalDateTime.now()
+        val order = buildOrder(customer, subtotal, discountAmount, totalAmount)
 
         return orderRepository.save(order)
     }
 
-    private fun isEligibleForDiscount(customer: Customer?, orderAmount: BigDecimal): Boolean {
-        return customer != null &&
-               customer.isMembershipActive &&
-               orderAmount >= MINIMUM_ORDER_AMOUNT
+    fun getCustomerOrderHistory(customerEmail: String): List<Order> {
+        val customer = findCustomerByEmail(customerEmail)
+        val customerId = customer.id
+            ?: throw IllegalStateException("Customer ID is null")
+        return orderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId)
     }
 
-    // CORRECT: Multiplies by (1 - discount rate) = 0.9 to keep 90%
-    private fun applyMemberDiscount(total: BigDecimal): BigDecimal {
-        val keepRate = BigDecimal.ONE.subtract(MEMBER_DISCOUNT_RATE) // 0.9
-        return total.multiply(keepRate).setScale(CURRENCY_SCALE, RoundingMode.HALF_UP)
+    fun calculateOrderTotal(customerEmail: String, subtotal: BigDecimal): BigDecimal {
+        validateSubtotal(subtotal)
+        val customer = findCustomerByEmail(customerEmail)
+        val discountAmount = calculateDiscountForCustomer(customer, subtotal)
+        return pricingService.calculateTotalWithDiscount(subtotal, discountAmount)
     }
 
-    fun calculateDiscountAmount(orderId: Long): BigDecimal {
-        val order = orderRepository.findById(orderId)
-            .orElseThrow { IllegalArgumentException("Order not found") }
+    private fun findCustomerByEmail(email: String): Customer {
+        return customerRepository.findByEmail(email)
+            .orElseThrow { IllegalArgumentException("Customer not found with email: $email") }
+    }
 
-        val baseAmount = order.totalAmount
-        val customer = order.customer
-
-        return if (isEligibleForDiscount(customer, baseAmount)) {
-            baseAmount.multiply(MEMBER_DISCOUNT_RATE).setScale(CURRENCY_SCALE, RoundingMode.HALF_UP)
+    private fun calculateDiscountForCustomer(customer: Customer, subtotal: BigDecimal): BigDecimal {
+        return if (isEligibleForMemberDiscount(customer)) {
+            pricingService.calculateMemberDiscount(subtotal)
         } else {
             BigDecimal.ZERO
         }
     }
 
-    fun validateDiscountEligibility(customerId: Long, orderAmount: BigDecimal): Boolean {
-        val customer = customerRepository.findById(customerId).orElse(null)
-            ?: return false
-
-        return isEligibleForDiscount(customer, orderAmount)
+    private fun isEligibleForMemberDiscount(customer: Customer): Boolean {
+        val membershipType = customer.membershipType
+        return membershipType == MembershipType.PREMIUM || membershipType == MembershipType.VIP
     }
 
-    fun getDiscountRate(): BigDecimal = MEMBER_DISCOUNT_RATE
+    private fun buildOrder(
+        customer: Customer,
+        subtotal: BigDecimal,
+        discountAmount: BigDecimal,
+        totalAmount: BigDecimal
+    ): Order {
+        return Order().apply {
+            this.customer = customer
+            this.subtotal = subtotal
+            this.discountAmount = discountAmount
+            this.totalAmount = totalAmount
+        }
+    }
+
+    private fun validateSubtotal(subtotal: BigDecimal) {
+        if (subtotal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw IllegalArgumentException("Subtotal must be positive")
+        }
+    }
 }

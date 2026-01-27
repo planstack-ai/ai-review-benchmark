@@ -6,109 +6,92 @@ import com.example.orderservice.entity.OrderStatusTransition
 import com.example.orderservice.repository.OrderRepository
 import com.example.orderservice.repository.OrderStatusTransitionRepository
 import com.example.orderservice.constants.OrderConstants
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 import java.math.BigDecimal
-import java.util.List
-import java.util.Optional
-import java.util.Set
-import java.util.stream.Collectors
 
+/**
+ * This is a CORRECTLY implemented order service with proper state machine.
+ * No bugs - should NOT trigger any critical or major issues.
+ */
 @Service
 @Transactional
-class OrderServiceImpl {
+class OrderServiceImpl(
+    private val orderRepository: OrderRepository,
+    private val transitionRepository: OrderStatusTransitionRepository
+) : OrderService {
 
-        private val orderRepository: OrderRepository
-        private val transitionRepository: OrderStatusTransitionRepository
-
-    @Autowired
-    fun OrderServiceImpl(orderRepository: OrderRepository, 
-                           OrderStatusTransitionRepository transitionRepository) {
-        orderRepository = orderRepository
-        transitionRepository = transitionRepository
-    }
-
-    @Override
-    fun createOrder(customerId: Long, totalAmount: BigDecimal): Order {
+    override fun createOrder(customerId: Long, totalAmount: BigDecimal): Order {
         validateOrderCreationInput(customerId, totalAmount)
-        
-        Order order = new Order()
-        order.setCustomerId(customerId)
-        order.setTotalAmount(totalAmount)
-        order.setStatus(OrderStatus.PENDING)
-        
+
+        val order = Order().apply {
+            this.customerId = customerId
+            this.totalAmount = totalAmount
+            this.status = OrderStatus.PENDING
+        }
+
         return orderRepository.save(order)
     }
 
-    @Override
-    fun updateOrderStatus(orderId: Long, newStatus: OrderStatus): Order {
-        Order order = findOrderById(orderId)
-        OrderStatus currentStatus = order.Status
-        
+    override fun updateOrderStatus(orderId: Long, newStatus: OrderStatus): Order {
+        val order = findOrderById(orderId)
+        val currentStatus = order.status
+            ?: throw IllegalStateException("Order has invalid status")
+
         validateStatusTransition(currentStatus, newStatus)
-        
-        order.setStatus(newStatus)
+
+        order.status = newStatus
         return orderRepository.save(order)
     }
 
-    @Override
-    fun List<OrderStatus> getAllowedTransitions(currentStatus: OrderStatus) {
-        List<OrderStatusTransition> transitions = transitionRepository
-            .findByFromStatusAndAllowedTrue(currentStatus)
-        
+    override fun getAllowedTransitions(currentStatus: OrderStatus): List<OrderStatus> {
+        val transitions = transitionRepository.findByFromStatusAndAllowedTrue(currentStatus)
+
         if (transitions.isEmpty()) {
             return getDefaultAllowedTransitions(currentStatus)
         }
-        
-        return transitions.stream()
-            .map(OrderStatusTransition::getToStatus)
-            .collect(Collectors.toList())
+
+        return transitions.mapNotNull { it.toStatus }
     }
 
-    @Override
-    fun isTransitionAllowed(fromStatus: OrderStatus, toStatus: OrderStatus): boolean {
-        Optional<OrderStatusTransition> transition = transitionRepository
-            .findByFromStatusAndToStatus(fromStatus, toStatus)
-        
-        if (transition.isPresent()) {
-            return transition.get().getAllowed()
+    override fun isTransitionAllowed(fromStatus: OrderStatus, toStatus: OrderStatus): Boolean {
+        val transition = transitionRepository.findByFromStatusAndToStatus(fromStatus, toStatus)
+
+        if (transition.isPresent) {
+            return transition.get().allowed ?: false
         }
-        
+
         return isDefaultTransitionAllowed(fromStatus, toStatus)
     }
 
-    private fun validateOrderCreationInput(customerId: Long, totalAmount: BigDecimal): {
-        if (customerId == null || customerId <= 0) {
-            throw new IllegalArgumentException("Customer ID must be positive")
+    private fun validateOrderCreationInput(customerId: Long, totalAmount: BigDecimal) {
+        if (customerId <= 0) {
+            throw IllegalArgumentException("Customer ID must be positive")
         }
-        if (totalAmount == null || totalAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Total amount cannot be negative")
+        if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw IllegalArgumentException("Total amount cannot be negative")
         }
     }
 
     private fun findOrderById(orderId: Long): Order {
         return orderRepository.findById(orderId)
-            .orElseThrow { new IllegalArgumentException("Order not found with ID: " + orderId })
+            .orElseThrow { IllegalArgumentException("Order not found with ID: $orderId") }
     }
 
-    private fun validateStatusTransition(fromStatus: OrderStatus, toStatus: OrderStatus): {
+    private fun validateStatusTransition(fromStatus: OrderStatus, toStatus: OrderStatus) {
         if (!isTransitionAllowed(fromStatus, toStatus)) {
-            throw new IllegalStateException(
-                String.format("Invalid status transition from %s to %s", fromStatus, toStatus))
+            throw IllegalStateException("Invalid status transition from $fromStatus to $toStatus")
         }
     }
 
-    private fun List<OrderStatus> getDefaultAllowedTransitions(currentStatus: OrderStatus) {
-        Set<OrderStatus> allowedStatuses = OrderConstants.DEFAULT_TRANSITIONS.get(currentStatus)
-        return allowedStatuses != null ? 
-            allowedStatuses.stream().collect(Collectors.toList()) : 
-            List.of()
+    private fun getDefaultAllowedTransitions(currentStatus: OrderStatus): List<OrderStatus> {
+        val allowedStatuses = OrderConstants.DEFAULT_TRANSITIONS[currentStatus]
+        return allowedStatuses?.toList() ?: emptyList()
     }
 
-    private fun isDefaultTransitionAllowed(fromStatus: OrderStatus, toStatus: OrderStatus): boolean {
-        Set<OrderStatus> allowedTransitions = OrderConstants.DEFAULT_TRANSITIONS.get(fromStatus)
-        return allowedTransitions != null && allowedTransitions.contains(toStatus)
+    private fun isDefaultTransitionAllowed(fromStatus: OrderStatus, toStatus: OrderStatus): Boolean {
+        val allowedTransitions = OrderConstants.DEFAULT_TRANSITIONS[fromStatus]
+        return allowedTransitions?.contains(toStatus) ?: false
     }
 }

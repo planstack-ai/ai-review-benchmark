@@ -35,114 +35,107 @@ CREATE TABLE transactions (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "users")
-public class User {
+class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    var id: Long? = null
+
     @Column(unique = true, nullable = false)
-    private String username;
-    
+    var username: String = ""
+
     @Column(unique = true, nullable = false)
-    private String email;
-    
+    var email: String = ""
+
     @Enumerated(EnumType.STRING)
-    private Role role;
-    
+    var role: Role? = null
+
     @CreationTimestamp
-    private LocalDateTime createdAt;
-    
-    // getters and setters
+    var createdAt: LocalDateTime? = null
 }
 
 @Entity
 @Table(name = "accounts")
-public class Account {
+class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    var id: Long? = null
+
     @Column(name = "account_number", unique = true, nullable = false)
-    private String accountNumber;
-    
+    var accountNumber: String = ""
+
     @Column(name = "user_id", nullable = false)
-    private Long userId;
-    
+    var userId: Long? = null
+
     @Column(precision = 15, scale = 2)
-    private BigDecimal balance;
-    
+    var balance: BigDecimal = BigDecimal.ZERO
+
     @Enumerated(EnumType.STRING)
-    private AccountType accountType;
-    
+    var accountType: AccountType? = null
+
     @Enumerated(EnumType.STRING)
-    private AccountStatus status;
-    
+    var status: AccountStatus? = null
+
     @CreationTimestamp
-    private LocalDateTime createdAt;
-    
-    // getters and setters
+    var createdAt: LocalDateTime? = null
 }
 
 @Entity
 @Table(name = "transactions")
-public class Transaction {
+class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    var id: Long? = null
+
     @Column(name = "account_id", nullable = false)
-    private Long accountId;
-    
+    var accountId: Long? = null
+
     @Column(precision = 15, scale = 2)
-    private BigDecimal amount;
-    
+    var amount: BigDecimal = BigDecimal.ZERO
+
     @Enumerated(EnumType.STRING)
-    private TransactionType transactionType;
-    
-    private String description;
-    
+    var transactionType: TransactionType? = null
+
+    var description: String? = null
+
     @CreationTimestamp
-    private LocalDateTime createdAt;
-    
-    // getters and setters
+    var createdAt: LocalDateTime? = null
 }
 
-public enum Role {
+enum class Role {
     USER, ADMIN, MANAGER
 }
 
-public enum AccountType {
+enum class AccountType {
     CHECKING, SAVINGS, BUSINESS
 }
 
-public enum AccountStatus {
+enum class AccountStatus {
     ACTIVE, SUSPENDED, CLOSED
 }
 
-public enum TransactionType {
+enum class TransactionType {
     DEPOSIT, WITHDRAWAL, TRANSFER
 }
 
 @Repository
-public interface AccountRepository extends JpaRepository<Account, Long> {
-    List<Account> findByUserId(Long userId);
-    Optional<Account> findByAccountNumber(String accountNumber);
-    boolean existsByUserIdAndId(Long userId, Long accountId);
+interface AccountRepository : JpaRepository<Account, Long> {
+    fun findByUserId(userId: Long): List<Account>
+    fun findByAccountNumber(accountNumber: String): Optional<Account>
+    fun existsByUserIdAndId(userId: Long, accountId: Long): Boolean
 }
 
 @Repository
-public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    List<Transaction> findByAccountIdOrderByCreatedAtDesc(Long accountId);
-    Page<Transaction> findByAccountId(Long accountId, Pageable pageable);
+interface TransactionRepository : JpaRepository<Transaction, Long> {
+    fun findByAccountIdOrderByCreatedAtDesc(accountId: Long): List<Transaction>
+    fun findByAccountId(accountId: Long, pageable: Pageable): Page<Transaction>
 }
 
-@Service
-public interface AccountService {
-    List<Account> getUserAccounts(Long userId);
-    Account getAccountById(Long accountId);
-    boolean isAccountOwnedByUser(Long accountId, Long userId);
+interface AccountService {
+    fun getUserAccounts(userId: Long): List<Account>
+    fun getAccountById(accountId: Long): Account
+    fun isAccountOwnedByUser(accountId: Long, userId: Long): Boolean
 }
 ```

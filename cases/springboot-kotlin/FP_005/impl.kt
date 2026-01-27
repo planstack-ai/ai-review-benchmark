@@ -6,99 +6,96 @@ import com.example.pricing.entity.AdjustmentType
 import com.example.pricing.repository.ProductRepository
 import com.example.pricing.repository.PriceAdjustmentRepository
 import com.example.pricing.constants.PricingConstants
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDate
-import java.util.List
-import java.util.Optional
 
+/**
+ * This is a CORRECTLY implemented pricing service with proper BigDecimal usage.
+ * No bugs - should NOT trigger any critical or major issues.
+ */
 @Service
 @Transactional(readOnly = true)
-class PricingServiceImpl {
+class PricingServiceImpl(
+    private val productRepository: ProductRepository,
+    private val priceAdjustmentRepository: PriceAdjustmentRepository
+) : PricingService {
 
-        private val productRepository: ProductRepository
-        private val priceAdjustmentRepository: PriceAdjustmentRepository
+    override fun calculateFinalPrice(productId: Long, effectiveDate: LocalDate): BigDecimal {
+        val product = productRepository.findById(productId)
+            .orElseThrow { IllegalArgumentException("Product not found with id: $productId") }
 
-    @Autowired
-    fun PricingServiceImpl(productRepository: ProductRepository, 
-                             PriceAdjustmentRepository priceAdjustmentRepository) {
-        productRepository = productRepository
-        priceAdjustmentRepository = priceAdjustmentRepository
-    }
+        val basePrice = product.basePrice
 
-    @Override
-    fun calculateFinalPrice(productId: Long, effectiveDate: LocalDate): BigDecimal {
-        Optional<Product> productOpt = productRepository.findById(productId)
-        if (!productOpt.isPresent()) {
-            throw new IllegalArgumentException("Product not found with id: " + productId)
-        }
-
-        Product product = productOpt.get()
-        BigDecimal basePrice = product.BasePrice
-        
-        List<PriceAdjustment> adjustments = priceAdjustmentRepository
+        val adjustments = priceAdjustmentRepository
             .findByProductIdAndEffectiveDateLessThanEqual(productId, effectiveDate)
-        
-        BigDecimal adjustedPrice = applyPriceAdjustments(basePrice, adjustments)
-        
+
+        val adjustedPrice = applyPriceAdjustments(basePrice, adjustments)
+
         return adjustedPrice.setScale(PricingConstants.PRICE_SCALE, PricingConstants.PRICE_ROUNDING)
     }
 
-    @Override
-    fun applyTax(price: BigDecimal): BigDecimal {
-        if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Price cannot be null or negative")
+    override fun applyTax(price: BigDecimal): BigDecimal {
+        if (price.compareTo(BigDecimal.ZERO) < 0) {
+            throw IllegalArgumentException("Price cannot be negative")
         }
-        
-        BigDecimal taxAmount = price.multiply(PricingConstants.TAX_RATE)
-        BigDecimal totalWithTax = price.add(taxAmount)
-        
+
+        val taxAmount = price.multiply(PricingConstants.TAX_RATE)
+        val totalWithTax = price.add(taxAmount)
+
         return totalWithTax.setScale(PricingConstants.PRICE_SCALE, PricingConstants.PRICE_ROUNDING)
     }
 
-    @Override
-    fun calculateDiscount(basePrice: BigDecimal, discountPercentage: BigDecimal): BigDecimal {
-        if (basePrice == null || discountPercentage == null) {
-            throw new IllegalArgumentException("Base price and discount percentage cannot be null")
+    override fun calculateDiscount(basePrice: BigDecimal, discountPercentage: BigDecimal): BigDecimal {
+        val cappedPercentage = if (discountPercentage.compareTo(PricingConstants.MAX_DISCOUNT_PERCENTAGE) > 0) {
+            PricingConstants.MAX_DISCOUNT_PERCENTAGE
+        } else {
+            discountPercentage
         }
-        
-        if (discountPercentage.compareTo(PricingConstants.MAX_DISCOUNT_PERCENTAGE) > 0) {
-            discountPercentage = PricingConstants.MAX_DISCOUNT_PERCENTAGE
-        }
-        
-        BigDecimal discountAmount = basePrice.multiply(discountPercentage)
+
+        val discountAmount = basePrice.multiply(cappedPercentage)
         return discountAmount.setScale(PricingConstants.PRICE_SCALE, PricingConstants.PRICE_ROUNDING)
     }
 
-    private fun applyPriceAdjustments(basePrice: BigDecimal, List<PriceAdjustment> adjustments): BigDecimal {
-        BigDecimal currentPrice = basePrice
-        
-        for (PriceAdjustment adjustment : adjustments) {
+    private fun applyPriceAdjustments(basePrice: BigDecimal, adjustments: List<PriceAdjustment>): BigDecimal {
+        // Sort adjustments by type to ensure correct order: DISCOUNT -> MARKUP -> SEASONAL
+        val sortedAdjustments = adjustments.sortedBy { adjustment ->
+            when (adjustment.adjustmentType) {
+                AdjustmentType.DISCOUNT -> 0
+                AdjustmentType.MARKUP -> 1
+                AdjustmentType.SEASONAL -> 2
+                else -> 3
+            }
+        }
+
+        var currentPrice = basePrice
+
+        for (adjustment in sortedAdjustments) {
             currentPrice = applyIndividualAdjustment(currentPrice, adjustment)
         }
-        
+
         return currentPrice
     }
 
     private fun applyIndividualAdjustment(currentPrice: BigDecimal, adjustment: PriceAdjustment): BigDecimal {
-        BigDecimal adjustmentValue = adjustment.AdjustmentValue
-        AdjustmentType adjustmentType = adjustment.AdjustmentType
-        
-        switch (adjustmentType) {
-            case DISCOUNT:
-                BigDecimal discountAmount = calculateDiscount(currentPrice, adjustmentValue)
-                return currentPrice.subtract(discountAmount)
-            case MARKUP:
-                BigDecimal markupAmount = currentPrice.multiply(adjustmentValue)
-                return currentPrice.add(markupAmount)
-            case SEASONAL:
-                return currentPrice.add(adjustmentValue)
-            default:
-                return currentPrice
+        val adjustmentValue = adjustment.adjustmentValue
+        val adjustmentType = adjustment.adjustmentType
+
+        return when (adjustmentType) {
+            AdjustmentType.DISCOUNT -> {
+                val discountAmount = calculateDiscount(currentPrice, adjustmentValue)
+                currentPrice.subtract(discountAmount)
+            }
+            AdjustmentType.MARKUP -> {
+                val markupAmount = currentPrice.multiply(adjustmentValue)
+                currentPrice.add(markupAmount)
+            }
+            AdjustmentType.SEASONAL -> {
+                currentPrice.add(adjustmentValue)
+            }
+            else -> currentPrice
         }
     }
 }

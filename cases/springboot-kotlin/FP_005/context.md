@@ -23,113 +23,91 @@ CREATE TABLE price_adjustments (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "products")
-public class Product {
+class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    var id: Long? = null
+
     @Column(nullable = false)
-    private String name;
-    
+    var name: String = ""
+
     @Column(name = "base_price", nullable = false, precision = 19, scale = 4)
-    private BigDecimal basePrice;
-    
+    var basePrice: BigDecimal = BigDecimal.ZERO
+
     @Enumerated(EnumType.STRING)
-    private ProductCategory category;
-    
+    var category: ProductCategory? = null
+
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
-    // constructors, getters, setters
-    public Product() {}
-    
-    public Product(String name, BigDecimal basePrice, ProductCategory category) {
-        this.name = name;
-        this.basePrice = basePrice;
-        this.category = category;
-    }
-    
-    public Long getId() { return id; }
-    public String getName() { return name; }
-    public BigDecimal getBasePrice() { return basePrice; }
-    public ProductCategory getCategory() { return category; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    var createdAt: LocalDateTime? = null
 }
 
 @Entity
 @Table(name = "price_adjustments")
-public class PriceAdjustment {
+class PriceAdjustment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    var id: Long? = null
+
     @Column(name = "product_id", nullable = false)
-    private Long productId;
-    
+    var productId: Long? = null
+
     @Enumerated(EnumType.STRING)
     @Column(name = "adjustment_type")
-    private AdjustmentType adjustmentType;
-    
+    var adjustmentType: AdjustmentType? = null
+
     @Column(name = "adjustment_value", nullable = false, precision = 19, scale = 4)
-    private BigDecimal adjustmentValue;
-    
+    var adjustmentValue: BigDecimal = BigDecimal.ZERO
+
     @Column(name = "effective_date")
-    private LocalDate effectiveDate;
-    
-    // constructors, getters, setters
-    public PriceAdjustment() {}
-    
-    public Long getProductId() { return productId; }
-    public AdjustmentType getAdjustmentType() { return adjustmentType; }
-    public BigDecimal getAdjustmentValue() { return adjustmentValue; }
-    public LocalDate getEffectiveDate() { return effectiveDate; }
+    var effectiveDate: LocalDate? = null
 }
 
-public enum ProductCategory {
+enum class ProductCategory {
     ELECTRONICS, CLOTHING, BOOKS, HOME_GARDEN
 }
 
-public enum AdjustmentType {
+enum class AdjustmentType {
     DISCOUNT, MARKUP, SEASONAL
 }
 ```
 
-```java
+```kotlin
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long> {
-    List<Product> findByCategory(ProductCategory category);
-    
+interface ProductRepository : JpaRepository<Product, Long> {
+    fun findByCategory(category: ProductCategory): List<Product>
+
     @Query("SELECT p FROM Product p WHERE p.basePrice BETWEEN :minPrice AND :maxPrice")
-    List<Product> findByPriceRange(@Param("minPrice") BigDecimal minPrice, 
-                                  @Param("maxPrice") BigDecimal maxPrice);
+    fun findByPriceRange(
+        @Param("minPrice") minPrice: BigDecimal,
+        @Param("maxPrice") maxPrice: BigDecimal
+    ): List<Product>
 }
 
 @Repository
-public interface PriceAdjustmentRepository extends JpaRepository<PriceAdjustment, Long> {
-    List<PriceAdjustment> findByProductIdAndEffectiveDateLessThanEqual(
-        Long productId, LocalDate date);
+interface PriceAdjustmentRepository : JpaRepository<PriceAdjustment, Long> {
+    fun findByProductIdAndEffectiveDateLessThanEqual(
+        productId: Long,
+        date: LocalDate
+    ): List<PriceAdjustment>
 }
 ```
 
-```java
-public final class PricingConstants {
-    public static final BigDecimal TAX_RATE = new BigDecimal("0.0875");
-    public static final BigDecimal DISCOUNT_THRESHOLD = new BigDecimal("100.00");
-    public static final BigDecimal MAX_DISCOUNT_PERCENTAGE = new BigDecimal("0.30");
-    public static final int PRICE_SCALE = 4;
-    public static final RoundingMode PRICE_ROUNDING = RoundingMode.HALF_UP;
-    
-    private PricingConstants() {}
+```kotlin
+object PricingConstants {
+    val TAX_RATE: BigDecimal = BigDecimal("0.0875")
+    val DISCOUNT_THRESHOLD: BigDecimal = BigDecimal("100.00")
+    val MAX_DISCOUNT_PERCENTAGE: BigDecimal = BigDecimal("0.30")
+    const val PRICE_SCALE: Int = 4
+    val PRICE_ROUNDING: RoundingMode = RoundingMode.HALF_UP
 }
 
-@Service
-public interface PricingService {
-    BigDecimal calculateFinalPrice(Long productId, LocalDate effectiveDate);
-    BigDecimal applyTax(BigDecimal price);
-    BigDecimal calculateDiscount(BigDecimal basePrice, BigDecimal discountPercentage);
+interface PricingService {
+    fun calculateFinalPrice(productId: Long, effectiveDate: LocalDate): BigDecimal
+    fun applyTax(price: BigDecimal): BigDecimal
+    fun calculateDiscount(basePrice: BigDecimal, discountPercentage: BigDecimal): BigDecimal
 }
 ```
