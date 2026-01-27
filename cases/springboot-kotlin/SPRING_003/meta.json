@@ -1,0 +1,21 @@
+{
+  "case_id": "SPRING_003",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "field_injection_testing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Field injection makes unit testing difficult - use constructor injection",
+  "bug_anchor": "@Autowired private OrderService orderService;",
+  "correct_implementation": "private final OrderService orderService; public OrderController(OrderService orderService) { this.orderService = orderService; }",
+  "severity": "medium",
+  "tags": [
+    "spring",
+    "injection",
+    "testing"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "bug_anchor_verified": true,
+  "kotlin_version": "1.9+"
+}

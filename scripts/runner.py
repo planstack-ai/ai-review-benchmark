@@ -31,7 +31,7 @@ ModelName = Literal["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "g
 ALL_MODELS: list[ModelName] = ["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
 
 RunMode = Literal["explicit", "implicit", "dual"]
-FrameworkName = Literal["rails", "django", "laravel", "springboot"]
+FrameworkName = Literal["rails", "django", "laravel", "springboot", "springboot-kotlin"]
 
 RESULTS_DIR = Path(__file__).parent.parent / "results"
 
@@ -56,6 +56,11 @@ FRAMEWORK_CONFIG = {
         "impl_ext": ".java",
         "language": "Java",
         "code_block": "java",
+    },
+    "springboot-kotlin": {
+        "impl_ext": ".kt",
+        "language": "Kotlin",
+        "code_block": "kotlin",
     },
 }
 
@@ -271,6 +276,42 @@ Respond with ONLY the following JSON format (no other text):
 If there are no issues, set has_issues to false and issues to an empty array.
 """
 
+# Spring Boot (Kotlin) review prompt templates
+REVIEW_PROMPT_SPRINGBOOT_KOTLIN_TEMPLATE = """You are a Senior Spring Boot Developer with Kotlin expertise.
+Review the following Kotlin code against the specification.
+
+## Specification (Plan)
+{plan}
+
+## Existing Codebase Context
+{context}
+
+## Code Under Review
+```kotlin
+{impl}
+```
+
+## Output Format
+Respond with ONLY the following JSON format (no other text):
+```json
+{{
+  "has_issues": true/false,
+  "issues": [
+    {{
+      "severity": "critical/major/minor",
+      "type": "plan_mismatch/logic_bug/security/performance",
+      "location": "line number or code location",
+      "description": "description of the issue",
+      "suggestion": "suggested fix"
+    }}
+  ],
+  "summary": "overall findings"
+}}
+```
+
+If there are no issues, set has_issues to false and issues to an empty array.
+"""
+
 REVIEW_PROMPT_DIFF_RAILS_TEMPLATE = """あなたはシニアRailsエンジニアです。
 以下のPull Requestをレビューしてください。
 
@@ -411,6 +452,41 @@ Respond with ONLY the following JSON format (no other text):
 If there are no issues, set has_issues to false and issues to an empty array.
 """
 
+REVIEW_PROMPT_DIFF_SPRINGBOOT_KOTLIN_TEMPLATE = """You are a Senior Spring Boot Developer with Kotlin expertise.
+Review the following Pull Request against the specification.
+
+## Specification (Plan)
+{plan}
+
+## Existing Codebase Context
+{context}
+
+## PR Diff
+```diff
+{diff}
+```
+
+## Output Format
+Respond with ONLY the following JSON format (no other text):
+```json
+{{
+  "has_issues": true/false,
+  "issues": [
+    {{
+      "severity": "critical/major/minor",
+      "type": "plan_mismatch/logic_bug/security/performance",
+      "location": "filename:line number or code location",
+      "description": "description of the issue",
+      "suggestion": "suggested fix"
+    }}
+  ],
+  "summary": "overall findings"
+}}
+```
+
+If there are no issues, set has_issues to false and issues to an empty array.
+"""
+
 # Backward compatibility alias
 REVIEW_PROMPT_DIFF_TEMPLATE = REVIEW_PROMPT_DIFF_RAILS_TEMPLATE
 
@@ -489,6 +565,9 @@ def build_prompt(case: dict[str, Any]) -> str:
     elif framework == "springboot":
         impl_template = REVIEW_PROMPT_SPRINGBOOT_TEMPLATE
         diff_template = REVIEW_PROMPT_DIFF_SPRINGBOOT_TEMPLATE
+    elif framework == "springboot-kotlin":
+        impl_template = REVIEW_PROMPT_SPRINGBOOT_KOTLIN_TEMPLATE
+        diff_template = REVIEW_PROMPT_DIFF_SPRINGBOOT_KOTLIN_TEMPLATE
     else:
         impl_template = REVIEW_PROMPT_RAILS_TEMPLATE
         diff_template = REVIEW_PROMPT_DIFF_RAILS_TEMPLATE
@@ -876,7 +955,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--framework",
-        choices=["rails", "django", "laravel", "springboot"],
+        choices=["rails", "django", "laravel", "springboot", "springboot-kotlin"],
         default="rails",
         help="Target framework (default: rails)",
     )

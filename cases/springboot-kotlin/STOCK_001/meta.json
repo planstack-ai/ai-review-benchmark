@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_001",
+  "category": "stock",
+  "axis": "implicit_knowledge",
+  "name": "stock_reservation_race",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Race condition between stock check and decrement",
+  "bug_anchor": "if (stock.getQuantity(\") >= qty\") stock.setQuantity(stock.getQuantity(\") - qty\");",
+  "correct_implementation": "@Modifying @Query(\\\"UPDATE Stock s SET s.quantity = s.quantity - :qty WHERE s.productId = :productId AND s.quantity >= :qty\\\")",
+  "severity": "critical",
+  "tags": [
+    "stock",
+    "concurrency",
+    "atomic"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "bug_anchor_verified": true,
+  "kotlin_version": "1.9+"
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_003",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "floating_point_currency",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Using double instead of BigDecimal for monetary calculations",
+  "bug_anchor": "0.1 + 0.2",
+  "correct_implementation": "new BigDecimal(\\\"0.1\\\").add(new BigDecimal(\\\"0.2\\\"))",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "currency",
+    "precision"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "bug_anchor_verified": true,
+  "kotlin_version": "1.9+"
+}

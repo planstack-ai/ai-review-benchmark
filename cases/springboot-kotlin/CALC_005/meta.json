@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_005",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "hardcoded_tax_rate",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Hardcoded old tax rate - still using 8% instead of 10%",
+  "bug_anchor": "subtotal.multiply(BigDecimal(\"0.08\")\")",
+  "correct_implementation": "subtotal.multiply(taxRateRepository.findCurrentRate())",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "tax",
+    "hardcode"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "bug_anchor_verified": true,
+  "kotlin_version": "1.9+"
+}

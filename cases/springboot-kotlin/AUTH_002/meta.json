@@ -1,0 +1,21 @@
+{
+  "case_id": "AUTH_002",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "manipulate_other_cart",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Can manipulate other user's cart by specifying cart_id",
+  "bug_anchor": "cartRepository.findById(cartId\")",
+  "correct_implementation": "cartRepository.findByUserId(currentUser.getId())",
+  "severity": "critical",
+  "tags": [
+    "authorization",
+    "cart",
+    "security"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "bug_anchor_verified": true,
+  "kotlin_version": "1.9+"
+}
