@@ -5,7 +5,6 @@ import com.example.banking.entity.Transaction;
 import com.example.banking.entity.TransactionType;
 import com.example.banking.repository.AccountRepository;
 import com.example.banking.repository.TransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,14 +18,17 @@ import java.util.List;
 @Transactional
 public class TransactionService {
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    private final TransactionRepository transactionRepository;
+    private final AccountRepository accountRepository;
+    private final AccountService accountService;
 
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
-    private AccountService accountService;
+    public TransactionService(TransactionRepository transactionRepository,
+                             AccountRepository accountRepository,
+                             AccountService accountService) {
+        this.transactionRepository = transactionRepository;
+        this.accountRepository = accountRepository;
+        this.accountService = accountService;
+    }
 
     @PreAuthorize("@accountService.isAccountOwnedByUser(#accountId, authentication.principal.id) or hasRole('ADMIN')")
     public List<Transaction> getAccountTransactions(Long accountId) {

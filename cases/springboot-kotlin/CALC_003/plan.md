@@ -1,32 +1,30 @@
-# Floating Point Currency Price Calculator
+# Pricing Calculation Service
 
 ## Overview
 
-This service provides precise currency calculations for e-commerce pricing operations. The system must handle monetary values with exact decimal precision to ensure accurate financial transactions and prevent rounding errors that could impact business operations or customer billing.
+This service provides precise currency calculations for e-commerce pricing operations including subtotals, discounts, taxes, and processing fees. The system must handle all monetary values with exact decimal precision using BigDecimal to ensure accurate financial transactions and prevent floating-point rounding errors.
 
 ## Requirements
 
-1. Create a REST endpoint that accepts a base price and calculates the final price including tax
-2. Accept input parameters for base price (as decimal) and tax rate (as percentage)
-3. Return the calculated total price with proper decimal precision for currency
-4. Implement proper validation for input parameters to ensure they are positive values
-5. Use appropriate data types that maintain precision for monetary calculations
-6. Handle tax calculation by multiplying base price by (1 + tax rate)
-7. Format the response to include both the original base price and calculated total
-8. Ensure all monetary values are rounded to exactly 2 decimal places
-9. Return appropriate HTTP status codes for successful calculations and validation errors
-10. Log calculation operations for audit purposes
+1. Calculate total price from a list of price items with customer tier-based discounts
+2. Calculate subtotal by summing item prices (unit price × quantity)
+3. Apply discount based on customer tier (PREMIUM: 15%, STANDARD: 10%) when subtotal exceeds threshold
+4. Calculate tax on the discounted price using the configured tax rate
+5. Calculate processing fee as a percentage of the discounted amount
+6. Provide a price breakdown showing subtotal, discount, tax, processing fee, and total
+7. Support bulk discount calculation for large quantity orders
+8. All monetary calculations must use BigDecimal to avoid floating-point precision errors
+9. Round final amounts to 2 decimal places using HALF_UP rounding
 
 ## Constraints
 
-1. Base price must be greater than zero
-2. Tax rate must be between 0 and 100 (inclusive)
-3. All currency values must maintain exactly 2 decimal places
-4. Maximum supported price value should not exceed 999,999.99
-5. Input validation errors should return HTTP 400 with descriptive error messages
-6. The service must handle edge cases like very small decimal values
-7. Calculations must be deterministic and produce consistent results
+1. All monetary values must be represented using BigDecimal for precision
+2. NEVER use double or float for monetary calculations - this causes precision errors
+3. Processing fee rate calculations must also use BigDecimal, not primitive doubles
+4. Discount threshold is $100.00
+5. Tax rate is 8%
+6. All intermediate and final calculations must maintain decimal precision
 
 ## References
 
-See context.md for existing currency handling patterns and decimal precision implementations used elsewhere in the codebase.
+See context.md for existing pricing patterns and BigDecimal usage examples.

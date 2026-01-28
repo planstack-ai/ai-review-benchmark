@@ -242,7 +242,7 @@ If there are no issues, set has_issues to false and issues to an empty array.
 
 # Spring Boot review prompt templates
 REVIEW_PROMPT_SPRINGBOOT_TEMPLATE = """You are a Senior Spring Boot Developer performing a focused bug review.
-Your task is to identify ONLY functional bugs that violate the specification requirements.
+Your task is to identify functional bugs that violate the specification requirements.
 
 ## Specification (Plan)
 {plan}
@@ -257,17 +257,32 @@ Your task is to identify ONLY functional bugs that violate the specification req
 
 ## Review Guidelines
 ONLY report issues that meet ALL of these criteria:
-1. The code produces INCORRECT RESULTS or violates explicit requirements in the specification
+1. The code produces INCORRECT RESULTS or violates EXPLICIT requirements in the specification
 2. The issue causes functional failure, data corruption, security vulnerability, or wrong business logic
 3. The bug would affect end users or system behavior
 
+### Spring Boot Anti-Patterns (report ONLY when specification explicitly requires them)
+
+**Dependency Injection:**
+- Report field injection (@Autowired on fields) ONLY when the specification explicitly mentions "best practices", "testability", "dependency injection patterns", or "constructor injection"
+- If specification doesn't mention injection patterns, do NOT report field injection as an issue
+
+**JPA/Hibernate Performance:**
+- Report N+1 query problems ONLY when the specification explicitly mentions "performance", "efficient loading", "optimized queries", or "database optimization"
+- N+1 occurs when: findAll() followed by accessing lazy collections (e.g., order.getItems()) in a loop
+- If specification doesn't mention performance requirements, do NOT report N+1 as an issue
+
+**Transaction Management:**
+- Report @Transactional issues ONLY when the specification mentions "atomic", "transaction", or "consistency"
+
 DO NOT report:
-- Code style issues (naming conventions, formatting, annotation preferences)
+- Code style issues (naming conventions, formatting, annotation style preferences)
 - Unused imports, unused methods, or dead code
-- Performance optimizations unless they cause functional problems
-- Missing validation unless explicitly required in specification
+- Exception type choices (IllegalArgumentException vs custom exceptions) unless specification requires specific types
+- Method naming or validation approach differences unless they cause functional bugs
+- Performance optimizations unless specification explicitly requires them
 - Suggestions for "better" approaches that don't fix actual bugs
-- Constructor injection style preferences (@Autowired vs implicit)
+- Issues that are just preferences, not violations of the specification
 
 ## Output Format
 Respond with ONLY the following JSON format (no other text):
@@ -292,7 +307,7 @@ If there are no functional bugs, set has_issues to false and issues to an empty 
 
 # Spring Boot (Kotlin) review prompt templates
 REVIEW_PROMPT_SPRINGBOOT_KOTLIN_TEMPLATE = """You are a Senior Spring Boot Developer with Kotlin expertise performing a focused bug review.
-Your task is to identify ONLY functional bugs that violate the specification requirements.
+Your task is to identify functional bugs that violate the specification requirements.
 
 ## Specification (Plan)
 {plan}
@@ -307,18 +322,34 @@ Your task is to identify ONLY functional bugs that violate the specification req
 
 ## Review Guidelines
 ONLY report issues that meet ALL of these criteria:
-1. The code produces INCORRECT RESULTS or violates explicit requirements in the specification
+1. The code produces INCORRECT RESULTS or violates EXPLICIT requirements in the specification
 2. The issue causes functional failure, data corruption, security vulnerability, or wrong business logic
 3. The bug would affect end users or system behavior
 
+### Spring Boot Anti-Patterns (report ONLY when specification explicitly requires them)
+
+**Dependency Injection:**
+- Report field injection (@Autowired on fields) ONLY when the specification explicitly mentions "best practices", "testability", "dependency injection patterns", or "constructor injection"
+- In Kotlin, prefer constructor-based injection with val properties
+- If specification doesn't mention injection patterns, do NOT report field injection as an issue
+
+**JPA/Hibernate Performance:**
+- Report N+1 query problems ONLY when the specification explicitly mentions "performance", "efficient loading", "optimized queries", or "database optimization"
+- N+1 occurs when: findAll() followed by accessing lazy collections (e.g., order.items) in a loop
+- If specification doesn't mention performance requirements, do NOT report N+1 as an issue
+
+**Transaction Management:**
+- Report @Transactional issues ONLY when the specification mentions "atomic", "transaction", or "consistency"
+
 DO NOT report:
-- Code style issues (naming conventions, formatting, annotation preferences)
+- Code style issues (naming conventions, formatting, annotation style preferences)
 - Unused imports, unused methods, or dead code
-- Performance optimizations unless they cause functional problems
-- Missing validation unless explicitly required in specification
-- Suggestions for "better" approaches that don't fix actual bugs
-- Constructor injection style preferences (@Autowired vs implicit)
+- Exception type choices (IllegalArgumentException vs custom exceptions) unless specification requires specific types
 - Kotlin idiom suggestions that don't affect functionality
+- Method naming or validation approach differences unless they cause functional bugs
+- Performance optimizations unless specification explicitly requires them
+- Suggestions for "better" approaches that don't fix actual bugs
+- Issues that are just preferences, not violations of the specification
 
 ## Output Format
 Respond with ONLY the following JSON format (no other text):

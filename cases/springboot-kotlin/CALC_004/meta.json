@@ -5,13 +5,14 @@
   "name": "inconsistent_rounding",
   "difficulty": "medium",
   "expected_detection": true,
-  "bug_description": "Inconsistent rounding - round per item then sum vs sum then round yields different results",
-  "bug_anchor": "items.stream(\").map(i -> i.getSubtotal(\").setScale(2, RoundingMode.HALF_UP\")\").reduce(BigDecimal.ZERO, BigDecimal::add\")",
-  "correct_implementation": "items.stream().map(Item::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP)",
+  "bug_description": "Rounds each item subtotal before summing instead of summing first then rounding - causes penny discrepancies",
+  "bug_anchor": ".setScale(2, RoundingMode.HALF_UP)).reduce",
+  "correct_implementation": "items.stream().map(item -> calculateItemSubtotal(item)).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP)",
   "severity": "medium",
   "tags": [
     "calculation",
-    "rounding"
+    "rounding",
+    "order-of-operations"
   ],
   "framework": "springboot-kotlin",
   "framework_version": "3.2+",
