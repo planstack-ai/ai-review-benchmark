@@ -5,13 +5,11 @@ import com.example.entity.Order;
 import com.example.entity.MembershipType;
 import com.example.repository.CustomerRepository;
 import com.example.repository.OrderRepository;
-import com.example.constants.DiscountConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,7 +72,7 @@ public class OrderService {
         return membershipType == MembershipType.PREMIUM || membershipType == MembershipType.VIP;
     }
 
-    private Order buildOrder(Customer customer, BigDecimal subtotal, 
+    private Order buildOrder(Customer customer, BigDecimal subtotal,
                            BigDecimal discountAmount, BigDecimal totalAmount) {
         Order order = new Order();
         order.setCustomer(customer);
@@ -82,17 +80,5 @@ public class OrderService {
         order.setDiscountAmount(discountAmount);
         order.setTotalAmount(totalAmount);
         return order;
-    }
-
-    private void validateOrderAmounts(BigDecimal subtotal, BigDecimal discountAmount) {
-        if (subtotal.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Subtotal must be positive");
-        }
-        if (discountAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Discount amount cannot be negative");
-        }
-        if (discountAmount.compareTo(subtotal) > 0) {
-            throw new IllegalArgumentException("Discount cannot exceed subtotal");
-        }
     }
 }

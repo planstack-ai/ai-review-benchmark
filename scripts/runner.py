@@ -241,8 +241,8 @@ If there are no issues, set has_issues to false and issues to an empty array.
 """
 
 # Spring Boot review prompt templates
-REVIEW_PROMPT_SPRINGBOOT_TEMPLATE = """You are a Senior Spring Boot Developer.
-Review the following Java code against the specification.
+REVIEW_PROMPT_SPRINGBOOT_TEMPLATE = """You are a Senior Spring Boot Developer performing a focused bug review.
+Your task is to identify ONLY functional bugs that violate the specification requirements.
 
 ## Specification (Plan)
 {plan}
@@ -255,6 +255,20 @@ Review the following Java code against the specification.
 {impl}
 ```
 
+## Review Guidelines
+ONLY report issues that meet ALL of these criteria:
+1. The code produces INCORRECT RESULTS or violates explicit requirements in the specification
+2. The issue causes functional failure, data corruption, security vulnerability, or wrong business logic
+3. The bug would affect end users or system behavior
+
+DO NOT report:
+- Code style issues (naming conventions, formatting, annotation preferences)
+- Unused imports, unused methods, or dead code
+- Performance optimizations unless they cause functional problems
+- Missing validation unless explicitly required in specification
+- Suggestions for "better" approaches that don't fix actual bugs
+- Constructor injection style preferences (@Autowired vs implicit)
+
 ## Output Format
 Respond with ONLY the following JSON format (no other text):
 ```json
@@ -273,12 +287,12 @@ Respond with ONLY the following JSON format (no other text):
 }}
 ```
 
-If there are no issues, set has_issues to false and issues to an empty array.
+If there are no functional bugs, set has_issues to false and issues to an empty array.
 """
 
 # Spring Boot (Kotlin) review prompt templates
-REVIEW_PROMPT_SPRINGBOOT_KOTLIN_TEMPLATE = """You are a Senior Spring Boot Developer with Kotlin expertise.
-Review the following Kotlin code against the specification.
+REVIEW_PROMPT_SPRINGBOOT_KOTLIN_TEMPLATE = """You are a Senior Spring Boot Developer with Kotlin expertise performing a focused bug review.
+Your task is to identify ONLY functional bugs that violate the specification requirements.
 
 ## Specification (Plan)
 {plan}
@@ -291,6 +305,21 @@ Review the following Kotlin code against the specification.
 {impl}
 ```
 
+## Review Guidelines
+ONLY report issues that meet ALL of these criteria:
+1. The code produces INCORRECT RESULTS or violates explicit requirements in the specification
+2. The issue causes functional failure, data corruption, security vulnerability, or wrong business logic
+3. The bug would affect end users or system behavior
+
+DO NOT report:
+- Code style issues (naming conventions, formatting, annotation preferences)
+- Unused imports, unused methods, or dead code
+- Performance optimizations unless they cause functional problems
+- Missing validation unless explicitly required in specification
+- Suggestions for "better" approaches that don't fix actual bugs
+- Constructor injection style preferences (@Autowired vs implicit)
+- Kotlin idiom suggestions that don't affect functionality
+
 ## Output Format
 Respond with ONLY the following JSON format (no other text):
 ```json
@@ -309,7 +338,7 @@ Respond with ONLY the following JSON format (no other text):
 }}
 ```
 
-If there are no issues, set has_issues to false and issues to an empty array.
+If there are no functional bugs, set has_issues to false and issues to an empty array.
 """
 
 REVIEW_PROMPT_DIFF_RAILS_TEMPLATE = """あなたはシニアRailsエンジニアです。

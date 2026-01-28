@@ -18,8 +18,8 @@ This service manages order lifecycle including creation and status updates. Stat
 ## Constraints
 
 1. All operations must be transactional (@Transactional at class level)
-2. Customer ID must be positive (throw IllegalArgumentException if null or <= 0)
-3. Total amount cannot be negative (throw IllegalArgumentException if null or < 0)
+2. Customer ID must be positive (throw IllegalArgumentException if <= 0); null-safety is enforced by Kotlin's type system using non-nullable Long
+3. Total amount cannot be negative (throw IllegalArgumentException if < 0); null-safety is enforced by Kotlin's type system using non-nullable BigDecimal
 4. Order must exist for status update (throw IllegalArgumentException if not found)
 5. New orders start with PENDING status
 6. getAllowedTransitions returns empty list if no transitions are configured

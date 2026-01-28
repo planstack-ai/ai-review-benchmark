@@ -7,7 +7,7 @@ This service handles product pricing calculations including base price adjustmen
 ## Requirements
 
 1. Calculate final product price by retrieving the product and applying all effective price adjustments
-2. Apply price adjustments in order: DISCOUNT (percentage reduction), MARKUP (percentage increase), SEASONAL (fixed amount)
+2. Apply price adjustments in the order they are returned from the repository (which handles ordering internally)
 3. Implement tax calculation that adds the configured tax rate to a given price
 4. Implement discount calculation that computes discount amount from base price and percentage
 5. Cap discount percentage at MAX_DISCOUNT_PERCENTAGE from PricingConstants

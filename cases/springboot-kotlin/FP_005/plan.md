@@ -17,8 +17,8 @@ This service handles product pricing calculations including base price adjustmen
 ## Constraints
 
 1. Product must exist for price calculation (throw exception if not found)
-2. Price for tax calculation cannot be null or negative (throw exception)
-3. Base price and discount percentage for discount calculation cannot be null (throw exception)
+2. Price for tax calculation cannot be negative (throw exception); null-safety is enforced by Kotlin's type system using non-nullable BigDecimal
+3. Base price and discount percentage for discount calculation use non-nullable BigDecimal (null-safety enforced by Kotlin's type system)
 4. Discount percentage exceeding maximum is capped to MAX_DISCOUNT_PERCENTAGE (not rejected)
 5. All final prices use setScale with PricingConstants values
 6. Service is read-only transactional by default

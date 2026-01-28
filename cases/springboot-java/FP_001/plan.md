@@ -2,13 +2,13 @@
 
 ## Overview
 
-The system needs to provide an order service for an e-commerce platform that offers tiered membership benefits. Premium and VIP members should receive discounts on their purchases, while Regular members pay full price. The service handles order creation, order history retrieval, and price calculation.
+The system needs to provide an order service for an e-commerce platform that offers tiered membership benefits. Premium and VIP members should receive discounts on their purchases, while STANDARD members pay full price. The service handles order creation, order history retrieval, and price calculation.
 
 ## Requirements
 
 1. Create an order service that manages order creation and retrieval
 2. Apply member discount only to PREMIUM and VIP membership types
-3. Regular membership type customers pay full price without discount
+3. STANDARD membership type customers pay full price without discount
 4. Look up customers by email address
 5. Calculate discount using the existing PricingService
 6. Store orders with subtotal, discount amount, and total amount

@@ -7,11 +7,11 @@ This application provides banking transaction management functionality where use
 ## Requirements
 
 1. Implement a method to retrieve all transactions for a specific account, ordered by creation date descending
-2. Implement paginated transaction retrieval for accounts
+2. Implement paginated transaction retrieval for accounts (ordering is controlled by the Pageable parameter provided by the caller)
 3. Implement deposit functionality that adds funds to an account and records the transaction
 4. Implement withdrawal functionality that deducts funds from an account after validating sufficient balance
-5. Implement transfer functionality between two accounts with proper transaction recording
-6. Apply @PreAuthorize checks to ensure users can only access their own accounts (or any account if ADMIN)
+5. Implement internal transfer functionality between two accounts owned by the same user (regular users can only transfer between their own accounts; ADMINs can transfer between any accounts)
+6. Apply @PreAuthorize checks: regular users must own both source and destination accounts for transfers; ADMIN role bypasses all ownership checks and can operate on any accounts
 7. Use the existing AccountService.isAccountOwnedByUser() method for ownership verification
 8. Validate that transaction amounts are positive
 9. Update account balances atomically within the transaction
