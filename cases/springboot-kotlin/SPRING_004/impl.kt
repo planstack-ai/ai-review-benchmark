@@ -1,4 +1,4 @@
-package com.example.service
+package com.example.controller
 
 import com.example.dto.OrderRequest
 import com.example.dto.OrderResponse
@@ -6,11 +6,12 @@ import com.example.entity.Order
 import com.example.entity.OrderItem
 import com.example.repository.OrderRepository
 import com.example.repository.ProductRepository
+import com.example.service.InventoryService
+import com.example.service.PaymentService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.bind.annotation.*
 
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -18,23 +19,25 @@ import java.util.List
 import java.util.Optional
 import java.util.stream.Collectors
 
-@Service
-@Transactional
-class OrderService {
+@RestController
+@RequestMapping("/api/orders")
+class OrderController {
 
     @Autowired
-    private OrderRepository orderRepository
+    private lateinit var orderRepository: OrderRepository
 
     @Autowired
-    private ProductRepository productRepository
+    private lateinit var productRepository: ProductRepository
 
     @Autowired
-    private InventoryService inventoryService
+    private lateinit var inventoryService: InventoryService
 
     @Autowired
-    private PaymentService paymentService
+    private lateinit var paymentService: PaymentService
 
-    fun ResponseEntity<OrderResponse> createOrder(@RequestBody request: OrderRequest) {
+    // BUG: Missing @Valid annotation - validation annotations on OrderRequest will be ignored
+    @PostMapping
+    fun createOrder(@RequestBody request: OrderRequest): ResponseEntity<OrderResponse> {
         if (!isValidCustomerId(request.CustomerId)) {
             return ResponseEntity.badRequest().build()
         }

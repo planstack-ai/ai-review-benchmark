@@ -55,12 +55,9 @@ class OrderDiscountService(
                orderAmount >= MINIMUM_ORDER_AMOUNT
     }
 
-    // BUG: Should multiply by 0.9 (keeping 90%), not subtract the 10%
-    // This implementation subtracts 10% correctly, but the rate constant is misleading
-    // The actual bug is in the constant name vs usage - total.multiply(0.1) gives 10% of total
+    // BUG: Returns 10% of total (90% off!) instead of 90% of total (10% off)
     private fun applyMemberDiscount(total: BigDecimal): BigDecimal {
-        val discountAmount = total.multiply(MEMBER_DISCOUNT_RATE)
-        return total.subtract(discountAmount).setScale(2, RoundingMode.HALF_UP)
+        return total.multiply(MEMBER_DISCOUNT_RATE).setScale(2, RoundingMode.HALF_UP)
     }
 
     fun calculateDiscountAmount(orderId: Long): BigDecimal {

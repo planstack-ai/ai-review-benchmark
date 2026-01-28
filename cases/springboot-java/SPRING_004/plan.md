@@ -1,32 +1,32 @@
-# User Registration API with Request Validation
+# Order Creation API with Request Validation
 
 ## Overview
 
-The system needs to provide a REST API endpoint for user registration that accepts user details and validates the incoming request data. The API should ensure that all required user information is properly validated before processing the registration request. This is a critical security and data integrity feature that prevents invalid or malicious data from being processed by the application.
+The system needs to provide a REST API endpoint for creating orders that accepts order details and validates the incoming request data. The API should ensure that all required order information is properly validated before processing. This is a critical feature for data integrity and preventing invalid orders from being processed.
 
 ## Requirements
 
-1. Create a REST controller with a POST endpoint at `/api/users/register` for user registration
-2. Accept a request body containing user registration data including username, email, and password
-3. Implement comprehensive validation for all incoming request fields
-4. Ensure username is not null, not empty, and meets minimum length requirements
-5. Validate email format using standard email validation rules
-6. Enforce password strength requirements including minimum length and complexity
-7. Return appropriate HTTP status codes for successful registration (201 Created)
-8. Return validation error responses with detailed field-level error messages when validation fails
-9. Use proper Spring Boot validation annotations to enforce data integrity
-10. Handle validation errors gracefully and return structured error responses
+1. Create a REST controller with a POST endpoint for order creation
+2. Accept a request body containing order data including customer ID, items, and addresses
+3. Implement comprehensive validation for all incoming request fields using Spring validation
+4. Ensure customer ID is valid and not null
+5. Validate that order items are not empty and contain valid product information
+6. Return appropriate HTTP status codes (201 Created for success, 400/422 for validation errors)
+7. Use proper Spring Boot validation annotations (@Valid, @NotNull, @NotEmpty, etc.) to enforce data integrity
+8. Handle validation errors gracefully and return structured error responses
+9. Process inventory reservation and payment after validation
+10. Follow Spring Boot best practices for REST controller implementation
 
 ## Constraints
 
-1. Username must be at least 3 characters long and contain only alphanumeric characters
-2. Email must follow standard RFC 5322 email format specification
-3. Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one digit
-4. All fields are mandatory and cannot be null or empty
-5. Validation should occur before any business logic processing
-6. Error responses must include field names and specific validation failure reasons
-7. The API should not expose sensitive information in error messages
+1. Customer ID must be a positive number
+2. Order must contain at least one item
+3. Each item must have valid product ID, positive quantity, and positive unit price
+4. Shipping and billing addresses are required
+5. Validation should occur automatically via Spring's validation framework before business logic
+6. The controller should use @Valid annotation on @RequestBody to trigger validation
+7. Total amount should be calculated from order items
 
 ## References
 
-See context.md for existing codebase structure and related implementations.
+See context.md for existing entity definitions and service implementations.

@@ -59,9 +59,9 @@ public class OrderDiscountService {
                orderAmount.compareTo(MINIMUM_ORDER_AMOUNT) >= 0;
     }
 
+    // BUG: Returns 10% of total (90% off!) instead of 90% of total (10% off)
     private BigDecimal applyMemberDiscount(BigDecimal total) {
-        BigDecimal discountAmount = total.multiply(MEMBER_DISCOUNT_RATE);
-        return total.subtract(discountAmount).setScale(2, RoundingMode.HALF_UP);
+        return total.multiply(MEMBER_DISCOUNT_RATE).setScale(2, RoundingMode.HALF_UP);
     }
 
     public BigDecimal calculateDiscountAmount(Long orderId) {

@@ -6,8 +6,8 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "@Valid missing on @RequestBody - validation annotations ignored",
-  "bug_anchor": "public ResponseEntity<?> create(@RequestBody OrderRequest request)",
-  "correct_implementation": "public ResponseEntity<?> create(@Valid @RequestBody OrderRequest request)",
+  "bug_anchor": "public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderRequest request)",
+  "correct_implementation": "public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderRequest request)",
   "severity": "high",
   "tags": [
     "spring",
@@ -17,5 +17,5 @@
   "framework": "springboot-java",
   "framework_version": "3.2+",
   "java_version": "21+",
-  "bug_anchor_verified": false
+  "bug_anchor_verified": true
 }

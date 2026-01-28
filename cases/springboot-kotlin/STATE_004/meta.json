@@ -6,7 +6,7 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Using == for enum comparison in stream - works but comparing by name fails",
-  "bug_anchor": "completedStatuses.stream(\").anyMatch(s -> s.name(\").equals(order.getStatus(\").name(\")\")\")",
+  "bug_anchor": "completedStatuses.stream().anyMatch(s -> s.name().equals(order.Status.name()))",
   "correct_implementation": "completedStatuses.contains(order.getStatus())",
   "severity": "medium",
   "tags": [

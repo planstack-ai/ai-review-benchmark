@@ -1,28 +1,29 @@
-# Field Injection Testing for Order Processing Service
+# Code Review Benchmark Service
 
 ## Overview
 
-This test case validates the proper implementation of field injection in a Spring Boot application for order processing functionality. The system requires dependency injection of an OrderService to handle business logic operations. The test should verify that the OrderService dependency is correctly injected and accessible for order processing operations.
+This service processes code review requests and calculates quality metrics for an AI code review benchmark platform. The service handles review processing, metrics calculation, and optional premium order creation for complex code analysis.
 
 ## Requirements
 
-1. Create a test class that demonstrates field injection of OrderService dependency
-2. The OrderService dependency must be injected using Spring's dependency injection mechanism
-3. The test class must be properly configured to work within Spring's test context
-4. Include a test method that verifies the OrderService dependency is not null after injection
-5. Include a test method that demonstrates the OrderService can be used to perform basic operations
-6. The test class must use appropriate Spring Boot testing annotations
-7. The OrderService dependency must be available for use in test methods without manual instantiation
-8. The test should validate that the injected service maintains its expected behavior
+1. Create a service class that processes code review requests
+2. The service must integrate with OrderService, CodeReviewRepository, MetricsCalculationService, and NotificationService
+3. Implement a method to process code reviews that validates input, calculates metrics, and saves results
+4. Implement a method to retrieve benchmark results for a specific user
+5. Implement a method to get a single review by ID
+6. The service should create premium analysis orders when code complexity exceeds thresholds
+7. Send notifications when reviews are completed
+8. Use proper Spring dependency injection patterns following best practices
 
 ## Constraints
 
-1. The OrderService dependency must not be manually instantiated within the test class
-2. The test must not use constructor injection or setter injection - only field injection
-3. The test class must not contain any @Autowired annotations on constructors or setter methods
-4. All test methods must pass when the dependency is properly injected
-5. The test should fail gracefully if the dependency injection is not configured correctly
+1. Code snippets cannot be empty or null
+2. User ID is required for all review requests
+3. Premium orders should be created when complexity score > 8.0 or bug count > 5
+4. All monetary calculations must use BigDecimal for precision
+5. The service must be transactional
+6. Follow Spring Boot best practices for dependency injection and testability
 
 ## References
 
-See context.md for existing OrderService implementation and related Spring Boot configuration details.
+See context.md for existing entity definitions and related Spring Boot configuration details.
