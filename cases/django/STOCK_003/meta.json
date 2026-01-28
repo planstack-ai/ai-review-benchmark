@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_003",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "cart_stock_divergence",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Cart quantity not revalidated - stock may deplete while cart abandoned",
+  "bug_anchor": "if item.quantity <= 0:",
+  "correct_implementation": "validate_stock_availability before checkout",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "cart",
+    "validation"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

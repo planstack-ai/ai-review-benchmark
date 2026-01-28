@@ -1,0 +1,21 @@
+{
+  "case_id": "PERF_003",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "unnecessary_eager_loading",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Eager loading unused associations wastes resources",
+  "bug_anchor": "Order.objects.select_related('user', 'items', 'payments', 'shipments')",
+  "correct_implementation": "Order.objects.select_related('user')",
+  "severity": "medium",
+  "tags": [
+    "performance",
+    "eager_load",
+    "waste"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

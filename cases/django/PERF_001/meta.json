@@ -1,0 +1,21 @@
+{
+  "case_id": "PERF_001",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "n_plus_one_query",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "N+1 query on order items accessing product names",
+  "bug_anchor": "Order.objects.all() then loop accessing item.product",
+  "correct_implementation": "Order.objects.prefetch_related('items__product')",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "n_plus_one",
+    "eager_load"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

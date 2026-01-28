@@ -1,0 +1,21 @@
+{
+  "case_id": "STATE_007",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "delivery_status_regression",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Delivered can regress to shipping status",
+  "bug_anchor": "order.delivery_status = new_status without check",
+  "correct_implementation": "if current_status_order > new_status_order: raise error",
+  "severity": "medium",
+  "tags": [
+    "state",
+    "delivery",
+    "regression"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

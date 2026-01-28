@@ -377,3 +377,779 @@
   difficulty: medium
   tags: [false_positive, bulk_update, intentional]
   misleading_points: "bulk_update looks wrong but signals not needed"
+
+# =============================================================================
+# Inventory & Quantity (8 patterns) - Spec Alignment
+# =============================================================================
+
+- id: STOCK_001
+  category: inventory
+  axis: spec_alignment
+  name: stock_allocation_timing
+  plan: "Reserve stock at checkout, not cart addition"
+  bug_description: "Stock allocated at cart addition instead of payment confirmation"
+  correct: "reserve_stock on checkout with select_for_update()"
+  incorrect: "reserve_stock on add_to_cart"
+  severity: high
+  difficulty: medium
+  tags: [inventory, timing, reservation]
+
+- id: STOCK_002
+  category: inventory
+  axis: spec_alignment
+  name: non_atomic_stock_update
+  plan: "Atomically check and decrement stock"
+  bug_description: "Race condition between stock check and update"
+  correct: "Product.objects.filter(stock__gt=0).update(stock=F('stock')-1)"
+  incorrect: "if product.stock > 0: product.stock -= 1; product.save()"
+  severity: critical
+  difficulty: hard
+  tags: [inventory, race_condition, atomic]
+
+- id: STOCK_003
+  category: inventory
+  axis: spec_alignment
+  name: cart_stock_divergence
+  plan: "Validate stock availability at checkout"
+  bug_description: "Cart quantity not revalidated - stock may deplete while cart abandoned"
+  correct: "validate_stock_availability before checkout"
+  incorrect: "skip stock validation at checkout"
+  severity: high
+  difficulty: medium
+  tags: [inventory, cart, validation]
+
+- id: STOCK_004
+  category: inventory
+  axis: spec_alignment
+  name: reserved_actual_confusion
+  plan: "Track reserved and available stock separately"
+  bug_description: "Reserved stock counted as available - double counting"
+  correct: "available = total_stock - reserved_stock"
+  incorrect: "available = total_stock"
+  severity: critical
+  difficulty: medium
+  tags: [inventory, reservation, counting]
+
+- id: STOCK_005
+  category: inventory
+  axis: spec_alignment
+  name: zero_quantity_order
+  plan: "Validate item quantity is positive"
+  bug_description: "Zero quantity orders allowed through validation gap"
+  correct: "MinValueValidator(1) on quantity field"
+  incorrect: "MinValueValidator(0) on quantity field"
+  severity: medium
+  difficulty: easy
+  tags: [inventory, validation, quantity]
+
+- id: STOCK_006
+  category: inventory
+  axis: spec_alignment
+  name: negative_stock_allowed
+  plan: "Prevent negative stock levels"
+  bug_description: "Cancellation processing can drive stock negative"
+  correct: "stock = min(stock + cancelled_qty, max_stock)"
+  incorrect: "stock += cancelled_qty"
+  severity: high
+  difficulty: medium
+  tags: [inventory, cancellation, negative]
+
+- id: STOCK_007
+  category: inventory
+  axis: spec_alignment
+  name: duplicate_stock_restoration
+  plan: "Restore stock once per cancellation"
+  bug_description: "Cancel spam increases stock - no idempotency check"
+  correct: "return if already_restored; restore_stock; mark_restored"
+  incorrect: "restore_stock"
+  severity: critical
+  difficulty: medium
+  tags: [inventory, cancellation, idempotency]
+
+- id: STOCK_008
+  category: inventory
+  axis: spec_alignment
+  name: bundle_stock_calculation
+  plan: "Bundle availability is minimum of component stocks"
+  bug_description: "Bundle stock not calculated as minimum of components"
+  correct: "min(component.stock for component in bundle.components)"
+  incorrect: "sum(component.stock for component in bundle.components)"
+  severity: high
+  difficulty: hard
+  tags: [inventory, bundle, calculation]
+
+# =============================================================================
+# State Transitions (7 patterns) - Spec Alignment
+# =============================================================================
+
+- id: STATE_001
+  category: state
+  axis: spec_alignment
+  name: invalid_state_transition
+  plan: "Enforce valid order state transitions"
+  bug_description: "Invalid transition allowed - shipped can go back to pending"
+  correct: "validate_transition(from_status, to_status) before update"
+  incorrect: "order.status = new_status without validation"
+  severity: critical
+  difficulty: medium
+  tags: [state, transition, validation]
+
+- id: STATE_002
+  category: state
+  axis: spec_alignment
+  name: cancel_window_missing
+  plan: "Allow cancellation only before shipment"
+  bug_description: "Cancellation succeeds even after shipment"
+  correct: "if order.status == 'shipped': raise ValidationError"
+  incorrect: "order.cancel() without status check"
+  severity: high
+  difficulty: easy
+  tags: [state, cancellation, validation]
+
+- id: STATE_003
+  category: state
+  axis: spec_alignment
+  name: payment_timeout
+  plan: "Reject payment after order expiration"
+  bug_description: "Payment accepted after order expiration time"
+  correct: "if order.expires_at < timezone.now(): raise OrderExpired"
+  incorrect: "process_payment() without expiry check"
+  severity: critical
+  difficulty: medium
+  tags: [state, payment, timeout]
+
+- id: STATE_004
+  category: state
+  axis: spec_alignment
+  name: duplicate_payment
+  plan: "Accept payment only once per order"
+  bug_description: "Double-click charges twice - no duplicate check"
+  correct: "select_for_update() with if order.is_paid: return"
+  incorrect: "process_payment() without paid check"
+  severity: critical
+  difficulty: hard
+  tags: [state, payment, duplicate]
+
+- id: STATE_005
+  category: state
+  axis: spec_alignment
+  name: partial_cancel_integrity
+  plan: "Update total correctly on partial cancellation"
+  bug_description: "Total amount wrong after partial item cancellation"
+  correct: "recalculate_total() after partial_cancel"
+  incorrect: "partial_cancel() without recalculation"
+  severity: high
+  difficulty: medium
+  tags: [state, cancellation, calculation]
+
+- id: STATE_006
+  category: state
+  axis: spec_alignment
+  name: refund_status_missing
+  plan: "Update payment status after refund"
+  bug_description: "Payment shows paid despite refund completion"
+  correct: "order.payment_status = 'refunded' after process_refund"
+  incorrect: "process_refund() without status update"
+  severity: high
+  difficulty: easy
+  tags: [state, refund, status]
+
+- id: STATE_007
+  category: state
+  axis: spec_alignment
+  name: delivery_status_regression
+  plan: "Delivery status can only move forward"
+  bug_description: "Delivered can regress to shipping status"
+  correct: "if current_status_order > new_status_order: raise error"
+  incorrect: "order.delivery_status = new_status without check"
+  severity: medium
+  difficulty: medium
+  tags: [state, delivery, regression]
+
+# =============================================================================
+# Time & Duration (8 patterns) - Spec Alignment
+# =============================================================================
+
+- id: TIME_001
+  category: time
+  axis: spec_alignment
+  name: timezone_not_considered
+  plan: "Display times in user's timezone"
+  bug_description: "Timezone not considered - UTC saved, displayed incorrectly as local time"
+  correct: "localtime(created_at) or timezone.activate(user.timezone)"
+  incorrect: "created_at displayed without timezone conversion"
+  severity: medium
+  difficulty: medium
+  tags: [time, timezone, display]
+
+- id: TIME_002
+  category: time
+  axis: spec_alignment
+  name: sale_period_boundary
+  plan: "Sale starts at midnight on start date"
+  bug_description: "Sale period boundary error - datetime comparison without time component"
+  correct: "datetime.combine(start_date, time.min)"
+  incorrect: "start_date compared as datetime without time.min"
+  severity: high
+  difficulty: medium
+  tags: [time, boundary, sale]
+
+- id: TIME_003
+  category: time
+  axis: spec_alignment
+  name: coupon_expiry_comparison
+  plan: "Coupon valid until end of expiry date"
+  bug_description: "Off-by-one on expiry - using < instead of <="
+  correct: "timezone.now() <= expires_at or expires_at.date() >= timezone.now().date()"
+  incorrect: "timezone.now() < expires_at"
+  severity: medium
+  difficulty: easy
+  tags: [time, expiry, comparison]
+
+- id: TIME_004
+  category: time
+  axis: spec_alignment
+  name: date_only_comparison
+  plan: "Compare dates ignoring time component"
+  bug_description: "Time truncation causes next-day treatment"
+  correct: "delivery_date.date() == target_date.date()"
+  incorrect: "delivery_date == target_date"
+  severity: medium
+  difficulty: medium
+  tags: [time, date, comparison]
+
+- id: TIME_005
+  category: time
+  axis: spec_alignment
+  name: month_end_processing
+  plan: "Handle month-end dates correctly"
+  bug_description: "Invalid date error - February 30 doesn't exist"
+  correct: "relativedelta(months=1) or date + timedelta then clamp"
+  incorrect: "date.replace(month=month+1)"
+  severity: high
+  difficulty: hard
+  tags: [time, month_end, validation]
+
+- id: TIME_006
+  category: time
+  axis: spec_alignment
+  name: year_crossing
+  plan: "Handle year boundary correctly"
+  bug_description: "Year crossing logic error - 12/31 to 1/1 fails"
+  correct: "date + timedelta(days=1)"
+  incorrect: "date.replace(day=day+1)"
+  severity: high
+  difficulty: hard
+  tags: [time, year_end, boundary]
+
+- id: TIME_007
+  category: time
+  axis: spec_alignment
+  name: business_day_calculation
+  plan: "Calculate delivery in business days"
+  bug_description: "Weekends and holidays not excluded from business days"
+  correct: "np.busday_offset or custom business_days_add"
+  incorrect: "date + timedelta(days=n)"
+  severity: medium
+  difficulty: medium
+  tags: [time, business_day, holiday]
+
+- id: TIME_008
+  category: time
+  axis: spec_alignment
+  name: past_delivery_date
+  plan: "Delivery date must be in the future"
+  bug_description: "Past delivery dates accepted"
+  correct: "if delivery_date <= timezone.now().date(): raise ValidationError"
+  incorrect: "delivery_date validated only for presence"
+  severity: medium
+  difficulty: easy
+  tags: [time, validation, future]
+
+# =============================================================================
+# Notifications & Email (6 patterns) - Spec Alignment
+# =============================================================================
+
+- id: NOTIFY_001
+  category: notification
+  axis: spec_alignment
+  name: duplicate_email
+  plan: "Send order confirmation email once"
+  bug_description: "Retry logic sends duplicate confirmation emails"
+  correct: "if order.email_sent: return; send_email(); order.email_sent = True"
+  incorrect: "send_email() without checking email_sent flag"
+  severity: high
+  difficulty: medium
+  tags: [notification, email, duplicate]
+
+- id: NOTIFY_002
+  category: notification
+  axis: spec_alignment
+  name: async_error_swallowed
+  plan: "Handle background job failures"
+  bug_description: "Background job fails silently - user not notified"
+  correct: "on_failure callback to notify admin"
+  incorrect: "task fails without notification"
+  severity: high
+  difficulty: medium
+  tags: [notification, async, error]
+
+- id: NOTIFY_003
+  category: notification
+  axis: spec_alignment
+  name: notification_timing
+  plan: "Send confirmation after payment confirmed"
+  bug_description: "Order complete email sent before payment confirmation"
+  correct: "send_confirmation in payment_success handler"
+  incorrect: "send_confirmation on order_create"
+  severity: high
+  difficulty: medium
+  tags: [notification, timing, order]
+
+- id: NOTIFY_004
+  category: notification
+  axis: spec_alignment
+  name: template_variable_nil
+  plan: "Handle nil values in email templates"
+  bug_description: "Template variable user.name is None causing error"
+  correct: "user.name or 'Valued Customer'"
+  incorrect: "user.name without default"
+  severity: medium
+  difficulty: easy
+  tags: [notification, template, nil]
+
+- id: NOTIFY_005
+  category: notification
+  axis: spec_alignment
+  name: recipient_mixup
+  plan: "Send email to correct recipient"
+  bug_description: "Email sent to wrong user due to variable scope"
+  correct: "send_email(order.user.email)"
+  incorrect: "send_email(user.email) with wrong user variable"
+  severity: critical
+  difficulty: medium
+  tags: [notification, recipient, privacy]
+
+- id: NOTIFY_006
+  category: notification
+  axis: spec_alignment
+  name: bulk_rate_limit
+  plan: "Respect email provider rate limits"
+  bug_description: "Mass email send gets blocked by rate limit"
+  correct: "for user in users: send_email_task.delay(user.id)"
+  incorrect: "for user in users: send_email(user)"
+  severity: medium
+  difficulty: medium
+  tags: [notification, bulk, rate_limit]
+
+# =============================================================================
+# External Integration (6 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: EXT_001
+  category: external
+  axis: implicit_knowledge
+  name: payment_timeout_unhandled
+  plan: "Handle payment API timeout gracefully"
+  bug_description: "Payment timeout leaves order in unknown state"
+  correct: "except requests.Timeout: mark_pending_verification"
+  incorrect: "except requests.Timeout: raise"
+  severity: critical
+  difficulty: hard
+  tags: [external, payment, timeout]
+
+- id: EXT_002
+  category: external
+  axis: implicit_knowledge
+  name: webhook_not_idempotent
+  plan: "Process webhooks idempotently"
+  bug_description: "Same webhook processed multiple times"
+  correct: "if WebhookLog.objects.filter(event_id=event_id).exists(): return"
+  incorrect: "process_webhook() without idempotency check"
+  severity: critical
+  difficulty: medium
+  tags: [external, webhook, idempotency]
+
+- id: EXT_003
+  category: external
+  axis: implicit_knowledge
+  name: api_call_in_transaction
+  plan: "Make external API calls outside transaction"
+  bug_description: "Payment charged even if transaction rolls back"
+  correct: "transaction.on_commit(lambda: charge_payment())"
+  incorrect: "with transaction.atomic(): charge_payment()"
+  severity: critical
+  difficulty: hard
+  tags: [external, transaction, api]
+
+- id: EXT_004
+  category: external
+  axis: implicit_knowledge
+  name: retry_duplicate_order
+  plan: "Prevent duplicate orders on retry"
+  bug_description: "Network retry creates duplicate order records"
+  correct: "Order.objects.get_or_create(idempotency_key=key)"
+  incorrect: "Order.objects.create()"
+  severity: critical
+  difficulty: hard
+  tags: [external, retry, duplicate]
+
+- id: EXT_005
+  category: external
+  axis: implicit_knowledge
+  name: inventory_sync_delay
+  plan: "Account for warehouse sync delay"
+  bug_description: "External warehouse stock diff not considered"
+  correct: "available = local_stock - pending_sync"
+  incorrect: "available = local_stock"
+  severity: high
+  difficulty: hard
+  tags: [external, inventory, sync]
+
+- id: EXT_006
+  category: external
+  axis: implicit_knowledge
+  name: shipping_error_swallowed
+  plan: "Handle shipping API errors properly"
+  bug_description: "Shipping API error swallowed, treated as success"
+  correct: "if not response.ok: raise ShippingError"
+  incorrect: "response = requests.post(...) without status check"
+  severity: high
+  difficulty: medium
+  tags: [external, shipping, error]
+
+# =============================================================================
+# Performance (6 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: PERF_001
+  category: performance
+  axis: implicit_knowledge
+  name: n_plus_one_query
+  plan: "Eager load order items with products"
+  bug_description: "N+1 query on order items accessing product names"
+  correct: "Order.objects.prefetch_related('items__product')"
+  incorrect: "Order.objects.all() then loop accessing item.product"
+  severity: high
+  difficulty: easy
+  tags: [performance, n_plus_one, eager_load]
+
+- id: PERF_002
+  category: performance
+  axis: implicit_knowledge
+  name: full_table_load
+  plan: "Process orders in batches"
+  bug_description: "Loading all orders into memory - Order.objects.all() on 1M records"
+  correct: "Order.objects.iterator() or Paginator"
+  incorrect: "list(Order.objects.all())"
+  severity: critical
+  difficulty: easy
+  tags: [performance, memory, batch]
+
+- id: PERF_003
+  category: performance
+  axis: implicit_knowledge
+  name: unnecessary_eager_loading
+  plan: "Only load needed associations"
+  bug_description: "Eager loading unused associations wastes resources"
+  correct: "Order.objects.select_related('user')"
+  incorrect: "Order.objects.select_related('user', 'items', 'payments', 'shipments')"
+  severity: medium
+  difficulty: medium
+  tags: [performance, eager_load, waste]
+
+- id: PERF_004
+  category: performance
+  axis: implicit_knowledge
+  name: inefficient_count
+  plan: "Use COUNT query for totals"
+  bug_description: "Loading all records just to count - len(items) vs items.count()"
+  correct: "order.items.count()"
+  incorrect: "len(order.items.all())"
+  severity: medium
+  difficulty: easy
+  tags: [performance, count, query]
+
+- id: PERF_005
+  category: performance
+  axis: implicit_knowledge
+  name: index_not_used
+  plan: "Query on indexed columns"
+  bug_description: "Search condition on non-indexed column causes full scan"
+  correct: "db_index=True on status field"
+  incorrect: "Order.objects.filter(status=...) without index"
+  severity: high
+  difficulty: medium
+  tags: [performance, index, query]
+
+- id: PERF_006
+  category: performance
+  axis: implicit_knowledge
+  name: cache_key_design
+  plan: "Use user-specific cache keys"
+  bug_description: "Same cache key for all users - cache collision"
+  correct: "cache.get(f'orders_{user.id}')"
+  incorrect: "cache.get('orders')"
+  severity: high
+  difficulty: medium
+  tags: [performance, cache, key]
+
+# =============================================================================
+# Data Integrity (6 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: DATA_001
+  category: data
+  axis: implicit_knowledge
+  name: no_foreign_key
+  plan: "Maintain referential integrity"
+  bug_description: "No foreign key constraint - orphan records on parent delete"
+  correct: "ForeignKey with on_delete=CASCADE"
+  incorrect: "IntegerField storing related id"
+  severity: high
+  difficulty: medium
+  tags: [data, foreign_key, integrity]
+
+- id: DATA_002
+  category: data
+  axis: implicit_knowledge
+  name: unique_constraint_missing
+  plan: "Ensure unique email addresses"
+  bug_description: "Unique constraint missing - duplicate emails allowed"
+  correct: "unique=True on email field"
+  incorrect: "email field without unique constraint"
+  severity: critical
+  difficulty: easy
+  tags: [data, unique, constraint]
+
+- id: DATA_003
+  category: data
+  axis: implicit_knowledge
+  name: optimistic_lock_missing
+  plan: "Prevent concurrent edit overwrites"
+  bug_description: "No optimistic locking - last write wins silently"
+  correct: "version field with check on save"
+  incorrect: "save() without version check"
+  severity: high
+  difficulty: medium
+  tags: [data, locking, concurrent]
+
+- id: DATA_004
+  category: data
+  axis: implicit_knowledge
+  name: soft_delete_in_query
+  plan: "Exclude soft-deleted records from queries"
+  bug_description: "Deleted records appear in search results"
+  correct: "custom manager with deleted_at__isnull=True"
+  incorrect: "Model.objects.all() without deleted filter"
+  severity: high
+  difficulty: easy
+  tags: [data, soft_delete, query]
+
+- id: DATA_005
+  category: data
+  axis: implicit_knowledge
+  name: master_data_history
+  plan: "Preserve historical product data in orders"
+  bug_description: "Product name change affects past order display"
+  correct: "order_item.snapshot_product_name field"
+  incorrect: "order_item.product.name accessed directly"
+  severity: medium
+  difficulty: hard
+  tags: [data, history, snapshot]
+
+- id: DATA_006
+  category: data
+  axis: implicit_knowledge
+  name: column_default_null
+  plan: "Provide sensible column defaults"
+  bug_description: "New column defaults to NULL causing downstream errors"
+  correct: "default=0, null=False"
+  incorrect: "field without default"
+  severity: medium
+  difficulty: medium
+  tags: [data, default, null]
+
+# =============================================================================
+# Additional False Positives (15 patterns)
+# =============================================================================
+
+- id: FP_006
+  category: false_positive
+  name: complex_nested_transaction
+  plan: "Properly nested transactions"
+  bug_description: null
+  correct: "transaction.atomic() with savepoint=True"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, transaction, complex]
+  misleading_points: "Nested transactions look suspicious but are correct"
+
+- id: FP_007
+  category: false_positive
+  name: complex_callback_chain
+  plan: "Multiple signals in correct order"
+  bug_description: null
+  correct: "Ordered signal handlers with proper dependencies"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, signal, complex]
+  misleading_points: "Many signals look fragile but order is correct"
+
+- id: FP_008
+  category: false_positive
+  name: complex_state_machine
+  plan: "Complete state machine implementation"
+  bug_description: null
+  correct: "All transitions validated with django-fsm or custom"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, state, complex]
+  misleading_points: "Complex state logic but all paths valid"
+
+- id: FP_009
+  category: false_positive
+  name: complex_calculation
+  plan: "Multi-step price calculation"
+  bug_description: null
+  correct: "Tax, discount, shipping correctly ordered"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, calculation, complex]
+  misleading_points: "Complex math but order is correct"
+
+- id: FP_010
+  category: false_positive
+  name: complex_authorization
+  plan: "Role-based access control"
+  bug_description: null
+  correct: "Proper permission checks with PermissionRequiredMixin"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, authorization, complex]
+  misleading_points: "Complex permissions but all correct"
+
+- id: FP_011
+  category: false_positive
+  name: intentional_no_validation
+  plan: "Admin bypass for testing"
+  bug_description: null
+  correct: "Intentional skip_validation for superuser"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, validation, intentional]
+  misleading_points: "Looks like missing validation but intentional"
+
+- id: FP_012
+  category: false_positive
+  name: intentional_raw_sql_complex
+  plan: "Performance-critical raw SQL with joins"
+  bug_description: null
+  correct: "Optimized SQL with proper parameterization"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, sql, intentional]
+  misleading_points: "Complex raw SQL looks dangerous but is parameterized"
+
+- id: FP_013
+  category: false_positive
+  name: intentional_update_bulk
+  plan: "Bulk update without signals for performance"
+  bug_description: null
+  correct: "Intentional bulk_update where signals not needed"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, bulk_update, intentional]
+  misleading_points: "bulk_update looks wrong but signals not needed"
+
+- id: FP_014
+  category: false_positive
+  name: intentional_no_index
+  plan: "Low cardinality column without index"
+  bug_description: null
+  correct: "Index would hurt more than help"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, index, intentional]
+  misleading_points: "Missing index is intentional decision"
+
+- id: FP_015
+  category: false_positive
+  name: intentional_eager_load
+  plan: "Preload for known N+1 prevention"
+  bug_description: null
+  correct: "Extra prefetch_related for downstream use"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, eager_load, intentional]
+  misleading_points: "Extra prefetch looks wasteful but used later"
+
+- id: FP_016
+  category: false_positive
+  name: optimized_counter_cache
+  plan: "Counter cache for count queries"
+  bug_description: null
+  correct: "Denormalized count field properly maintained"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, counter_cache]
+  misleading_points: "Looks like denormalization but correct pattern"
+
+- id: FP_017
+  category: false_positive
+  name: optimized_batch_insert
+  plan: "Bulk insert for performance"
+  bug_description: null
+  correct: "bulk_create with ignore_conflicts=True"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, batch]
+  misleading_points: "Bypassing validations but intentional for bulk"
+
+- id: FP_018
+  category: false_positive
+  name: optimized_cache_warming
+  plan: "Pre-warm cache on deploy"
+  bug_description: null
+  correct: "Intentional full table load into cache"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, cache]
+  misleading_points: "Looks like full table load bug but intentional"
+
+- id: FP_019
+  category: false_positive
+  name: optimized_denormalization
+  plan: "Denormalized for read performance"
+  bug_description: null
+  correct: "Materialized data pattern correctly implemented"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, denormalization]
+  misleading_points: "Duplication looks wrong but for performance"
+
+- id: FP_020
+  category: false_positive
+  name: optimized_async_write
+  plan: "Async write for throughput"
+  bug_description: null
+  correct: "Celery task with eventual consistency"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, async]
+  misleading_points: "Eventual consistency looks like race condition"

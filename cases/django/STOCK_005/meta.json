@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_005",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "zero_quantity_order",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Zero quantity orders allowed through validation gap",
+  "bug_anchor": "MinValueValidator(0)",
+  "correct_implementation": "MinValueValidator(1) on quantity field",
+  "severity": "medium",
+  "tags": [
+    "inventory",
+    "validation",
+    "quantity"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

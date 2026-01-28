@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_003",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "coupon_expiry_comparison",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Off-by-one on expiry - using < instead of <=",
+  "bug_anchor": "timezone.now() < expires_at",
+  "correct_implementation": "timezone.now() <= expires_at or expires_at.date() >= timezone.now().date()",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "expiry",
+    "comparison"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

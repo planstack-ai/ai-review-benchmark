@@ -1,15 +1,23 @@
-# AI Code Review Benchmark: Rails × Context Engineering Edition
+# AI Code Review Benchmark
 
-**Theme:** A Rails-specific AI review benchmark to verify alignment between specifications (Plan) and implementation (Code)
+**Theme:** A framework-agnostic AI review benchmark to verify alignment between specifications (Plan) and implementation (Code)
 
 ## Overview
 
 This benchmark quantitatively evaluates the quality of LLM-based code reviews.
 Beyond simple bug detection, it measures the advanced review capability of checking **"Is this implemented according to the Plan (design intent)?"**
 
+### Supported Frameworks
+
+| Framework | Cases | Pattern File | Implementation |
+|-----------|-------|--------------|----------------|
+| Rails | 99 | `patterns.yaml` | `impl.rb` |
+| Django | 30 | `patterns_django.yaml` | `impl.py` |
+| Laravel | 60 | `patterns_laravel.yaml` | `impl.php` |
+
 ### Primary Goal
 
-How reliable is AI as a code reviewer for real-world Rails applications?
+How reliable is AI as a code reviewer for real-world web applications?
 
 This benchmark evaluates whether AI can:
 - detect design and specification violations,
@@ -74,31 +82,23 @@ This benchmark measures whether AI can detect the gap between Plan and Code.
 ```
 ai-review-benchmark/
 ├── cases/
-│   └── rails/
-│       ├── CALC_001/          # Price calculation cases
-│       ├── STOCK_001/         # Inventory & quantity cases
-│       ├── STATE_001/         # State transition cases
-│       ├── AUTH_001/          # Authorization cases
-│       ├── TIME_001/          # Time & duration cases
-│       ├── NOTIFY_001/        # Notification cases
-│       ├── EXT_001/           # External integration cases
-│       ├── PERF_001/          # Performance cases
-│       ├── DATA_001/          # Data integrity cases
-│       ├── RAILS_001/         # Rails-specific cases
-│       ├── FP_001/            # False positive cases
-│       └── ...                # 99 cases total
+│   ├── rails/                 # Rails test cases (99)
+│   ├── django/                # Django test cases (30)
+│   └── laravel/               # Laravel test cases (60)
 ├── results/                   # Execution results
 ├── scripts/
 │   ├── config.py              # Model configurations
 │   ├── generator.py           # Test case generation
 │   ├── runner.py              # Benchmark execution
 │   ├── evaluator.py           # Scoring (LLM-as-a-Judge)
-│   ├── judges/                # Judge implementations (Claude, Gemini, Ensemble)
+│   ├── judges/                # Judge implementations
 │   ├── metrics/               # Evaluation metrics
 │   └── extractors/            # Response extractors
 ├── docs/
 │   └── benchmark-spec-v3.md   # Full specification
-├── patterns.yaml              # Bug pattern definitions
+├── patterns.yaml              # Rails bug patterns
+├── patterns_django.yaml       # Django bug patterns
+├── patterns_laravel.yaml      # Laravel bug patterns
 ├── CLAUDE.md                  # Claude Code configuration
 └── README.md
 ```
@@ -110,48 +110,90 @@ ai-review-benchmark/
 Results are analyzed along two dimensions:
 
 ```
-Bug Cases (79)                    Clean Cases (20)
+Bug Cases                         Clean Cases
 ┌──────────────────────┐         ┌─────────────┐
-│ Spec Alignment (46)  │         │    FP (20)  │
+│ Spec Alignment       │         │    FP       │
 │ CALC,STOCK,STATE,... │         │             │
 ├──────────────────────┤         │ Tests       │
-│ Implicit Know. (33)  │         │ over-       │
+│ Implicit Knowledge   │         │ over-       │
 │ EXT,PERF,DATA,RAILS  │         │ detection   │
 └──────────────────────┘         └─────────────┘
     ↓ DETECTION                      ↓ RESTRAINT
 ```
 
-| Axis | Categories | Cases | What it measures |
-|------|------------|-------|------------------|
-| **Spec Alignment** | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 46 | Can the model detect Plan vs Code mismatches? |
-| **Implicit Knowledge** | EXT, PERF, DATA, RAILS | 33 | Can the model detect issues not written in Plan? |
-| **False Positive** | FP | 20 | Over-detection test |
+| Axis | What it measures |
+|------|------------------|
+| **Spec Alignment** | Can the model detect Plan vs Code mismatches? |
+| **Implicit Knowledge** | Can the model detect issues not written in Plan? |
+| **False Positive** | Over-detection test (clean code) |
 
-### Category Composition (99 cases total)
+### Rails Cases (99 total)
 
-| Category | Cases | Axis | Verification Points |
-|----------|-------|------|---------------------|
-| **CALC** (Price Calculation) | 10 | Spec Alignment | Discounts, tax, rounding, currency |
-| **STOCK** (Inventory) | 8 | Spec Alignment | Stock allocation, race conditions |
-| **STATE** (State Transitions) | 7 | Spec Alignment | Order status, cancellation, refunds |
-| **AUTH** (Authorization) | 7 | Spec Alignment | Permission checks, access control |
-| **TIME** (Time & Duration) | 8 | Spec Alignment | Timezone, period validation |
-| **NOTIFY** (Notifications) | 6 | Spec Alignment | Duplicate sends, timing, recipients |
-| **EXT** (External Integration) | 6 | Implicit Knowledge | Payment API, Webhook, idempotency |
-| **PERF** (Performance) | 6 | Implicit Knowledge | N+1, full table loads, caching |
-| **DATA** (Data Integrity) | 6 | Implicit Knowledge | Constraints, locking, soft deletes |
-| **RAILS** (Rails-Specific) | 15 | Implicit Knowledge | Scope, enum, callbacks, transactions |
-| **FP** (False Positive) | 20 | - | Perfect code (test for over-detection) |
+| Axis | Categories | Cases |
+|------|------------|-------|
+| Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 47 |
+| Implicit Knowledge | EXT, PERF, DATA, RAILS | 39 |
+| False Positive | FP | 13 |
+
+| Category | Cases | Verification Points |
+|----------|-------|---------------------|
+| **CALC** (Price Calculation) | 10 | Discounts, tax, rounding, currency |
+| **STOCK** (Inventory) | 8 | Stock allocation, race conditions |
+| **STATE** (State Transitions) | 7 | Order status, cancellation, refunds |
+| **AUTH** (Authorization) | 7 | Permission checks, access control |
+| **TIME** (Time & Duration) | 8 | Timezone, period validation |
+| **NOTIFY** (Notifications) | 6 | Duplicate sends, timing, recipients |
+| **EXT** (External Integration) | 6 | Payment API, Webhook, idempotency |
+| **PERF** (Performance) | 6 | N+1, full table loads, caching |
+| **DATA** (Data Integrity) | 6 | Constraints, locking, soft deletes |
+| **RAILS** (Rails-Specific) | 15 | Scope, enum, callbacks, transactions |
+| **FP** (False Positive) | 13 | Perfect code (test for over-detection) |
+
+### Django Cases (30 MVP)
+
+| Axis | Categories | Cases |
+|------|------------|-------|
+| Spec Alignment | CALC, AUTH | 17 |
+| Implicit Knowledge | DJANGO | 8 |
+| False Positive | FP | 5 |
+
+| Category | Cases | Verification Points |
+|----------|-------|---------------------|
+| **CALC** (Price Calculation) | 10 | Discounts, tax, rounding |
+| **AUTH** (Authorization) | 7 | Permission checks, access control |
+| **DJANGO** (Django-Specific) | 8 | ORM, signals, middleware, views |
+| **FP** (False Positive) | 5 | Perfect code (test for over-detection) |
+
+### Laravel Cases (60)
+
+| Axis | Categories | Cases |
+|------|------------|-------|
+| Spec Alignment | CALC, AUTH, STOCK, STATE, TIME, NOTIFY | 41 |
+| Implicit Knowledge | PERF | 9 |
+| False Positive | FP | 10 |
+
+| Category | Cases | Verification Points |
+|----------|-------|---------------------|
+| **CALC** (Price Calculation) | 10 | Discounts, tax, rounding |
+| **AUTH** (Authorization) | 7 | Permission checks, access control |
+| **STOCK** (Inventory) | 8 | Stock allocation, race conditions |
+| **STATE** (State Transitions) | 6 | Order status, cancellation |
+| **TIME** (Time & Duration) | 6 | Timezone, period validation |
+| **NOTIFY** (Notifications) | 4 | Duplicate sends, timing |
+| **PERF** (Performance) | 9 | N+1, eager loading, caching |
+| **FP** (False Positive) | 10 | Perfect code (test for over-detection) |
 
 ### Case File Structure
 
-Each case consists of 5 files:
+Each case consists of these files:
 
-- `plan.md` - Specification document (requirements to reference during review)
-- `context.md` - Existing codebase information
-- `impl.rb` - Code under review
-- `meta.json` - Ground truth and metadata
-- `expected_critique.md` - Expected review findings for semantic evaluation
+| File | Description |
+|------|-------------|
+| `plan.md` | Specification document |
+| `context.md` | Existing codebase information |
+| `impl.rb` / `impl.py` / `impl.php` | Code under review |
+| `meta.json` | Ground truth and metadata |
+| `expected_critique.md` | Expected review findings |
 
 ## Dual-Mode Evaluation
 
@@ -236,13 +278,12 @@ docker compose build
 # dry-run (list cases)
 docker compose run --rm benchmark --model claude-sonnet --dry-run
 
-# Run with single model
+# Run with single model (Rails - default)
 docker compose run --rm benchmark --model claude-sonnet
-docker compose run --rm benchmark --model deepseek-v3
-docker compose run --rm benchmark --model deepseek-r1
-docker compose run --rm benchmark --model gemini-pro
-docker compose run --rm benchmark --model gemini-3-pro
-docker compose run --rm benchmark --model gemini-3-flash
+
+# Run with specific framework
+docker compose run --rm benchmark --model claude-sonnet --framework django
+docker compose run --rm benchmark --model claude-sonnet --framework laravel
 
 # Run with all models
 docker compose run --rm benchmark --model all
@@ -265,7 +306,13 @@ export ANTHROPIC_API_KEY=xxx
 export OPENAI_API_KEY=xxx
 export DEEPSEEK_API_KEY=xxx
 export GOOGLE_API_KEY=xxx
+
+# Run benchmark (Rails - default)
 python scripts/runner.py --model claude-sonnet
+
+# Run benchmark with specific framework
+python scripts/runner.py --model claude-sonnet --framework django
+python scripts/runner.py --model claude-sonnet --framework laravel
 ```
 
 ## Execution Settings

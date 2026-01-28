@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_006",
+  "category": "inventory",
+  "axis": "spec_alignment",
+  "name": "negative_stock_allowed",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Cancellation processing can drive stock negative",
+  "bug_anchor": "product.stock_quantity += cancelled_quantity",
+  "correct_implementation": "stock = min(stock + cancelled_qty, max_stock)",
+  "severity": "high",
+  "tags": [
+    "inventory",
+    "cancellation",
+    "negative"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

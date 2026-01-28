@@ -11,6 +11,7 @@ Benchmark for evaluating AI code review quality on Rails, Django, Laravel, and S
 - Ruby: 3.2+ / Rails 7.1+, rubocop compliant
 - Java: 21+ / Spring Boot 3.2+, standard Java conventions
 - Kotlin: 1.9+ / Spring Boot 3.2+, idiomatic Kotlin style
+- PHP: 8.2+ / Laravel 11+, PSR-12 compliant
 
 ### Planning Workflow
 
@@ -28,8 +29,9 @@ Benchmark for evaluating AI code review quality on Rails, Django, Laravel, and S
 # Generate test case (Rails - default)
 python scripts/generator.py --pattern CALC_001
 
-# Generate test case (Django)
+# Generate test case (Django / Laravel)
 python scripts/generator.py --framework django --pattern CALC_001
+python scripts/generator.py --framework laravel --pattern CALC_001
 
 # Generate test case (Spring Boot - Java)
 python scripts/generator.py --framework springboot-java --pattern CALC_001
@@ -37,8 +39,9 @@ python scripts/generator.py --framework springboot-java --pattern CALC_001
 # Run benchmark (Rails - default)
 python scripts/runner.py --model claude-sonnet --cases cases/rails/
 
-# Run benchmark (Django)
+# Run benchmark (Django / Laravel)
 python scripts/runner.py --model claude-sonnet --framework django
+python scripts/runner.py --model claude-sonnet --framework laravel
 
 # Run benchmark (Spring Boot - Java)
 python scripts/runner.py --model claude-sonnet --framework springboot-java
@@ -80,6 +83,7 @@ cases/{framework}/{CASE_ID}/
 | Rails | patterns.yaml | cases/rails/ | impl.rb |
 | Django | patterns_django.yaml | cases/django/ | impl.py |
 | Laravel | - | cases/laravel/ | impl.php |
+| Laravel | patterns_laravel.yaml | cases/laravel/ | impl.php |
 | Spring Boot (Java) | patterns_springboot_java.yaml | cases/springboot-java/ | impl.java |
 | Spring Boot (Kotlin) | patterns_springboot_kotlin.yaml | cases/springboot-kotlin/ | impl.kt |
 
@@ -117,6 +121,14 @@ cases/{framework}/{CASE_ID}/
 | Implicit Knowledge | SPRING | 5 |
 | False Positive | FP | 5 |
 
+### Laravel (60)
+
+| Axis | Categories | Cases |
+|------|------------|-------|
+| Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 41 |
+| Implicit Knowledge | PERF | 9 |
+| False Positive | FP | 10 |
+
 ## Evaluation Targets
 
 | Metric | Target |
@@ -144,6 +156,10 @@ cases/{framework}/{CASE_ID}/
   "framework_version": "5.0+ | 3.2+",
   "python_version": "3.11+",           // Django only
   "java_version": "21+",               // Spring Boot (Java) only
-  "kotlin_version": "1.9+"             // Spring Boot (Kotlin) only
+  "kotlin_version": "1.9+",            // Spring Boot (Kotlin) only
+  "framework": "django | laravel", // Django/Laravel only
+  "framework_version": "5.0+",     // Django/Laravel only
+  "python_version": "3.11+",       // Django only
+  "php_version": "8.2+"            // Laravel only
 }
 ```

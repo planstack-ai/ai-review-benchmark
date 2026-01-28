@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_017",
+  "category": "false_positive",
+  "axis": null,
+  "name": "optimized_batch_insert",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "bulk_create with ignore_conflicts=True",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "batch"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

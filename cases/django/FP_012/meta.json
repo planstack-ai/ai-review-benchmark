@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_012",
+  "category": "false_positive",
+  "axis": null,
+  "name": "intentional_raw_sql_complex",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Optimized SQL with proper parameterization",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "sql",
+    "intentional"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_008",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "past_delivery_date",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Past delivery dates accepted",
+  "bug_anchor": "def _validate_delivery_date(self, delivery_date: date)",
+  "correct_implementation": "if delivery_date <= timezone.now().date(): raise ValidationError",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "validation",
+    "future"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

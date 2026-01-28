@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_002",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "sale_period_boundary",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Sale period boundary error - datetime comparison without time component",
+  "bug_anchor": "datetime.combine(sale.start_date, current_time.time())",
+  "correct_implementation": "datetime.combine(start_date, time.min)",
+  "severity": "high",
+  "tags": [
+    "time",
+    "boundary",
+    "sale"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

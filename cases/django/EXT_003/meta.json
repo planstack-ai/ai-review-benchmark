@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_003",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "api_call_in_transaction",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Payment charged even if transaction rolls back",
+  "bug_anchor": "with transaction.atomic(): charge_payment()",
+  "correct_implementation": "transaction.on_commit(lambda: charge_payment())",
+  "severity": "critical",
+  "tags": [
+    "external",
+    "transaction",
+    "api"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}

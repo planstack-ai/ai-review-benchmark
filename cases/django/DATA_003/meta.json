@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_003",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "optimistic_lock_missing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "No optimistic locking - last write wins silently",
+  "bug_anchor": "save() without version check",
+  "correct_implementation": "version field with check on save",
+  "severity": "high",
+  "tags": [
+    "data",
+    "locking",
+    "concurrent"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": false
+}

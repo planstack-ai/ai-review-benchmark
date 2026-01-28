@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_009",
+  "category": "false_positive",
+  "axis": null,
+  "name": "complex_calculation",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Tax, discount, shipping correctly ordered",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "calculation",
+    "complex"
+  ],
+  "framework": "django",
+  "framework_version": "5.0+",
+  "python_version": "3.11+",
+  "bug_anchor_verified": true
+}
