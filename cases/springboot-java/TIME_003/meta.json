@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_003",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "campaign_period_check",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Only checking start date, not end date",
+  "bug_anchor": "now.isAfter(campaign.getStartDate())",
+  "correct_implementation": "now.isAfter(campaign.getStartDate()) && now.isBefore(campaign.getEndDate())",
+  "severity": "high",
+  "tags": [
+    "time",
+    "campaign",
+    "validation"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": true
+}

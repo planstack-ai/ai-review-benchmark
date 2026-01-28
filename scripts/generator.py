@@ -50,12 +50,12 @@ FRAMEWORK_CONFIG = {
         "orm": "Django ORM",
         "patterns_file": "patterns_django.yaml",
     },
-    "springboot": {
+    "springboot-java": {
         "impl_ext": ".java",
         "language": "Java",
         "expert_role": "Senior Spring Boot developer",
         "orm": "Spring Data JPA",
-        "patterns_file": "patterns_springboot.yaml",
+        "patterns_file": "patterns_springboot_java.yaml",
     },
 }
 
@@ -195,7 +195,7 @@ It should contain realistic Django/Python code that would exist before the imple
 - Use Python 3.11+ syntax and Django 5.0+ patterns
 
 Generate only the markdown content, no explanations."""
-    elif framework == "springboot":
+    elif framework == "springboot-java":
         prompt = f"""Generate a context.md file for an AI code review benchmark test case.
 
 This file represents the EXISTING CODEBASE that a code reviewer can reference.
@@ -264,7 +264,7 @@ def generate_plan_md(client: Any, pattern: dict[str, Any]) -> str:
     is_fp = category == "false_positive"
 
     framework = CONFIG["framework"]
-    framework_names = {"django": "Django", "springboot": "Spring Boot", "rails": "Rails"}
+    framework_names = {"django": "Django", "springboot-java": "Spring Boot (Java)", "rails": "Rails"}
     framework_name = framework_names.get(framework, "Rails")
 
     prompt = f"""Generate a plan.md file for an AI code review benchmark test case.
@@ -393,7 +393,7 @@ The implementation MUST be consistent with the following existing codebase:
 - Do NOT wrap in markdown code blocks (no ```python)
 - Do NOT add any explanation before or after the code"""
 
-    elif framework == "springboot":
+    elif framework == "springboot-java":
         if is_fp:
             prompt = f"""Generate a Java service class for an AI code review benchmark (Spring Boot).
 
@@ -602,8 +602,8 @@ def generate_meta_json(pattern: dict[str, Any]) -> dict[str, Any]:
         meta["framework"] = "django"
         meta["framework_version"] = "5.0+"
         meta["python_version"] = "3.11+"
-    elif framework == "springboot":
-        meta["framework"] = "springboot"
+    elif framework == "springboot-java":
+        meta["framework"] = "springboot-java"
         meta["framework_version"] = "3.2+"
         meta["java_version"] = "21+"
 
@@ -743,7 +743,7 @@ def main() -> None:
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Model to use (default: {DEFAULT_MODEL})")
     parser.add_argument(
         "--framework",
-        choices=["rails", "django", "springboot"],
+        choices=["rails", "django", "springboot-java"],
         default="rails",
         help="Target framework (default: rails)",
     )

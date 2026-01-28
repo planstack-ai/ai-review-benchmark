@@ -1,0 +1,21 @@
+{
+  "case_id": "SPRING_006",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "circular_dependency",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Circular dependency - OrderService -> PaymentService -> OrderService",
+  "bug_anchor": "// OrderService and PaymentService inject each other",
+  "correct_implementation": "Use @Lazy or refactor to break cycle",
+  "severity": "high",
+  "tags": [
+    "spring",
+    "dependency",
+    "circular"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": false
+}

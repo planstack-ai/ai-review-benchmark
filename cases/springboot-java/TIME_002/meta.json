@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_002",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "date_boundary_error",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "End date comparison excludes the last day",
+  "bug_anchor": "now.isBefore(campaign.getEndDate().atStartOfDay())",
+  "correct_implementation": "!now.isAfter(campaign.getEndDate().atTime(23, 59, 59))",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "boundary",
+    "campaign"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": true
+}

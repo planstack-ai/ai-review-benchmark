@@ -1,0 +1,21 @@
+{
+  "case_id": "SPRING_004",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "missing_valid_annotation",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "@Valid missing on @RequestBody - validation annotations ignored",
+  "bug_anchor": "public ResponseEntity<?> create(@RequestBody OrderRequest request)",
+  "correct_implementation": "public ResponseEntity<?> create(@Valid @RequestBody OrderRequest request)",
+  "severity": "high",
+  "tags": [
+    "spring",
+    "validation",
+    "request"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": false
+}

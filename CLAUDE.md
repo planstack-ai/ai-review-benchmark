@@ -31,8 +31,8 @@ python scripts/generator.py --pattern CALC_001
 # Generate test case (Django)
 python scripts/generator.py --framework django --pattern CALC_001
 
-# Generate test case (Spring Boot)
-python scripts/generator.py --framework springboot --pattern CALC_001
+# Generate test case (Spring Boot - Java)
+python scripts/generator.py --framework springboot-java --pattern CALC_001
 
 # Run benchmark (Rails - default)
 python scripts/runner.py --model claude-sonnet --cases cases/rails/
@@ -41,7 +41,7 @@ python scripts/runner.py --model claude-sonnet --cases cases/rails/
 python scripts/runner.py --model claude-sonnet --framework django
 
 # Run benchmark (Spring Boot - Java)
-python scripts/runner.py --model claude-sonnet --framework springboot
+python scripts/runner.py --model claude-sonnet --framework springboot-java
 
 # Run benchmark (Spring Boot - Kotlin)
 python scripts/runner.py --model claude-sonnet --framework springboot-kotlin
@@ -80,7 +80,7 @@ cases/{framework}/{CASE_ID}/
 | Rails | patterns.yaml | cases/rails/ | impl.rb |
 | Django | patterns_django.yaml | cases/django/ | impl.py |
 | Laravel | - | cases/laravel/ | impl.php |
-| Spring Boot (Java) | patterns_springboot.yaml | cases/springboot/ | impl.java |
+| Spring Boot (Java) | patterns_springboot_java.yaml | cases/springboot-java/ | impl.java |
 | Spring Boot (Kotlin) | patterns_springboot_kotlin.yaml | cases/springboot-kotlin/ | impl.kt |
 
 ## Test Cases
@@ -140,7 +140,7 @@ cases/{framework}/{CASE_ID}/
   "correct_implementation": "...",
   "severity": "critical | high | medium | low",
   "tags": ["calculation", "discount"],
-  "framework": "django | springboot | springboot-kotlin",
+  "framework": "django | springboot-java | springboot-kotlin",
   "framework_version": "5.0+ | 3.2+",
   "python_version": "3.11+",           // Django only
   "java_version": "21+",               // Spring Boot (Java) only

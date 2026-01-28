@@ -31,7 +31,7 @@ ModelName = Literal["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "g
 ALL_MODELS: list[ModelName] = ["claude-opus", "claude-sonnet", "claude-haiku", "gpt-4o", "gpt-5", "deepseek-v3", "deepseek-r1", "gemini-pro", "gemini-3-pro", "gemini-3-flash"]
 
 RunMode = Literal["explicit", "implicit", "dual"]
-FrameworkName = Literal["rails", "django", "laravel", "springboot", "springboot-kotlin"]
+FrameworkName = Literal["rails", "django", "laravel", "springboot-java", "springboot-kotlin"]
 
 RESULTS_DIR = Path(__file__).parent.parent / "results"
 
@@ -52,7 +52,7 @@ FRAMEWORK_CONFIG = {
         "language": "PHP",
         "code_block": "php",
     },
-    "springboot": {
+    "springboot-java": {
         "impl_ext": ".java",
         "language": "Java",
         "code_block": "java",
@@ -562,7 +562,7 @@ def build_prompt(case: dict[str, Any]) -> str:
     elif framework == "laravel":
         impl_template = REVIEW_PROMPT_LARAVEL_TEMPLATE
         diff_template = REVIEW_PROMPT_DIFF_LARAVEL_TEMPLATE
-    elif framework == "springboot":
+    elif framework == "springboot-java":
         impl_template = REVIEW_PROMPT_SPRINGBOOT_TEMPLATE
         diff_template = REVIEW_PROMPT_DIFF_SPRINGBOOT_TEMPLATE
     elif framework == "springboot-kotlin":
@@ -955,7 +955,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--framework",
-        choices=["rails", "django", "laravel", "springboot", "springboot-kotlin"],
+        choices=["rails", "django", "laravel", "springboot-java", "springboot-kotlin"],
         default="rails",
         help="Target framework (default: rails)",
     )
