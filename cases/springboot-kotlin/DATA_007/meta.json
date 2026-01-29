@@ -1,0 +1,16 @@
+{
+  "case_id": "DATA_007",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "batch_count_inaccurate",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Batch import reports incorrect counts - saveAll skips duplicates but reports full count",
+  "bug_anchor": "return products.size",
+  "correct_implementation": "Track actual inserts vs skipped duplicates separately",
+  "severity": "medium",
+  "tags": ["data", "batch", "import", "counting"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+"
+}

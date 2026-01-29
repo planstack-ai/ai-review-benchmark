@@ -1,0 +1,21 @@
+{
+  "case_id": "PERF_001",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "n_plus_one_query",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "N+1 query on order items accessing product names - missing JOIN FETCH or @EntityGraph",
+  "bug_anchor": "order.getItems().forEach(item -> item.getProduct().getName())",
+  "correct_implementation": "Use @EntityGraph or JOIN FETCH to eagerly load products with items",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "n_plus_one",
+    "jpa",
+    "hibernate"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

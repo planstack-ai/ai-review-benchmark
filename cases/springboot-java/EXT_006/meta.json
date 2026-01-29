@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_006",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "error_swallowed",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Shipping API error swallowed in empty catch block - failure treated as success",
+  "bug_anchor": "catch (Exception e) { }",
+  "correct_implementation": "Log error, set appropriate status, and notify for manual handling",
+  "severity": "high",
+  "tags": [
+    "external",
+    "error_handling",
+    "shipping",
+    "silent_failure"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

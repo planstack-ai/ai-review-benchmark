@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_003",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "optimistic_lock_missing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "No optimistic locking - concurrent updates cause last-write-wins data loss",
+  "bug_anchor": "public class Inventory {",
+  "correct_implementation": "Add @Version field for optimistic locking",
+  "severity": "high",
+  "tags": [
+    "data",
+    "concurrency",
+    "optimistic_locking",
+    "jpa"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

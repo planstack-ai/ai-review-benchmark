@@ -1,0 +1,16 @@
+{
+  "case_id": "PERF_005",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "index_not_used",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Search condition on non-indexed column causes full table scan",
+  "bug_anchor": "findByPhoneNumber",
+  "correct_implementation": "Add index on frequently queried columns or use indexed columns",
+  "severity": "high",
+  "tags": ["performance", "index", "database", "query"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+"
+}

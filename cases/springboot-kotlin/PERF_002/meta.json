@@ -1,0 +1,16 @@
+{
+  "case_id": "PERF_002",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "full_table_load",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Loading all records into memory - findAll() on potentially millions of records without pagination",
+  "bug_anchor": "orderRepository.findAll()",
+  "correct_implementation": "Use Pageable with findAll(Pageable) or streaming with @Query",
+  "severity": "critical",
+  "tags": ["performance", "memory", "pagination", "jpa"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+"
+}

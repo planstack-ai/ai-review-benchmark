@@ -105,20 +105,20 @@ cases/{framework}/{CASE_ID}/
 | Implicit Knowledge | DJANGO | 8 |
 | False Positive | FP | 5 |
 
-### Spring Boot - Java (33 MVP)
+### Spring Boot - Java (55 total)
 
 | Axis | Categories | Cases |
 |------|------------|-------|
 | Spec Alignment | CALC, AUTH, STATE, TIME, STOCK, NOTIFY | 20 |
-| Implicit Knowledge | SPRING | 8 |
+| Implicit Knowledge | SPRING, PERF, DATA, EXT | 30 |
 | False Positive | FP | 5 |
 
-### Spring Boot - Kotlin (30 MVP)
+### Spring Boot - Kotlin (52 total)
 
 | Axis | Categories | Cases |
 |------|------------|-------|
 | Spec Alignment | CALC, AUTH, STATE, TIME, STOCK, NOTIFY | 20 |
-| Implicit Knowledge | SPRING | 5 |
+| Implicit Knowledge | SPRING, PERF, DATA, EXT | 27 |
 | False Positive | FP | 5 |
 
 ### Laravel (60)

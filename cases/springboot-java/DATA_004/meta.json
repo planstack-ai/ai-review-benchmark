@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_004",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "soft_delete_leak",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Deleted records appear in search results - missing @Where clause for soft delete",
+  "bug_anchor": "findByNameContaining",
+  "correct_implementation": "Add @Where(clause = \"deleted = false\") or @SQLRestriction",
+  "severity": "medium",
+  "tags": [
+    "data",
+    "soft_delete",
+    "query",
+    "jpa"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

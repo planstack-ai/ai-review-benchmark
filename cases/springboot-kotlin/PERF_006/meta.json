@@ -1,0 +1,16 @@
+{
+  "case_id": "PERF_006",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "cache_key_collision",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Same cache key for all users - cache collision causes data leakage between users",
+  "bug_anchor": "@Cacheable(\"userProfile\")",
+  "correct_implementation": "@Cacheable(value = \"userProfile\", key = \"#userId\")",
+  "severity": "critical",
+  "tags": ["performance", "cache", "security", "spring"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+"
+}

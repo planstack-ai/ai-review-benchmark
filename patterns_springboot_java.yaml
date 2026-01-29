@@ -1,6 +1,6 @@
 # AI Code Review Benchmark - Spring Boot Bug Pattern Definitions
-# 33 MVP patterns (28 bugs + 5 false positives) for Spring Boot e-commerce order processing
-# Version: 1.0
+# 55 patterns (50 bugs + 5 false positives) for Spring Boot e-commerce order processing
+# Version: 1.1
 # Framework: Spring Boot 3.2+, Java 21+
 
 # =============================================================================
@@ -435,3 +435,279 @@
   difficulty: easy
   tags: [false_positive, calculation, baseline]
   misleading_points: "None - proper decimal handling"
+
+# =============================================================================
+# Performance (8 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: PERF_001
+  category: performance
+  axis: implicit_knowledge
+  name: n_plus_one_query
+  plan: "Generate order report with product details"
+  bug_description: "N+1 query on order items accessing product names - missing JOIN FETCH or @EntityGraph"
+  correct: "Use @EntityGraph or JOIN FETCH to eagerly load products with items"
+  incorrect: "order.getItems().forEach(item -> item.getProduct().getName())"
+  severity: high
+  difficulty: easy
+  tags: [performance, n_plus_one, jpa, hibernate]
+
+- id: PERF_002
+  category: performance
+  axis: implicit_knowledge
+  name: full_table_load
+  plan: "Generate monthly sales report"
+  bug_description: "Loading all records into memory - findAll() on potentially millions of records without pagination"
+  correct: "Use Pageable with findAll(Pageable) or streaming with @Query"
+  incorrect: "orderRepository.findAll()"
+  severity: critical
+  difficulty: easy
+  tags: [performance, memory, pagination, jpa]
+
+- id: PERF_003
+  category: performance
+  axis: implicit_knowledge
+  name: unnecessary_eager_loading
+  plan: "Load product catalog"
+  bug_description: "FetchType.EAGER on rarely-used associations wastes resources and causes unnecessary joins"
+  correct: "Use FetchType.LAZY and fetch explicitly when needed with @EntityGraph"
+  incorrect: "fetch = FetchType.EAGER"
+  severity: medium
+  difficulty: medium
+  tags: [performance, eager_loading, jpa, hibernate]
+
+- id: PERF_004
+  category: performance
+  axis: implicit_knowledge
+  name: inefficient_count
+  plan: "Get dashboard statistics"
+  bug_description: "Loading all records just to count - using list.size() instead of repository.count()"
+  correct: "Use repository.count() or @Query with COUNT"
+  incorrect: "findAll().size()"
+  severity: high
+  difficulty: easy
+  tags: [performance, count, jpa]
+
+- id: PERF_005
+  category: performance
+  axis: implicit_knowledge
+  name: index_not_used
+  plan: "Search customers by phone number"
+  bug_description: "Search condition on non-indexed column causes full table scan"
+  correct: "Add index on frequently queried columns or use indexed columns"
+  incorrect: "findByPhoneNumber"
+  severity: high
+  difficulty: medium
+  tags: [performance, index, database, query]
+
+- id: PERF_006
+  category: performance
+  axis: implicit_knowledge
+  name: cache_key_collision
+  plan: "Cache user profile"
+  bug_description: "Same cache key for all users - cache collision causes data leakage between users"
+  correct: "@Cacheable(value = \"userProfile\", key = \"#userId\")"
+  incorrect: "@Cacheable(\"userProfile\")"
+  severity: critical
+  difficulty: medium
+  tags: [performance, cache, security, spring]
+
+- id: PERF_007
+  category: performance
+  axis: implicit_knowledge
+  name: in_memory_aggregation
+  plan: "Calculate sales analytics"
+  bug_description: "In-memory aggregation and sorting on potentially large datasets instead of using database"
+  correct: "Use database-level aggregation with @Query or native SQL"
+  incorrect: "findAll().stream().sorted()"
+  severity: high
+  difficulty: medium
+  tags: [performance, aggregation, memory, jpa]
+
+- id: PERF_008
+  category: performance
+  axis: implicit_knowledge
+  name: n_plus_one_bulk_operation
+  plan: "Update metrics for all active users"
+  bug_description: "N+1 queries in bulk operation - creating new service call per iteration in loop"
+  correct: "Use batch operations or single query with IN clause"
+  incorrect: "for (User user : users) { userService.updateMetrics(user.getId()); }"
+  severity: high
+  difficulty: medium
+  tags: [performance, n_plus_one, bulk, batch]
+
+# =============================================================================
+# Data Integrity (7 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: DATA_001
+  category: data
+  axis: implicit_knowledge
+  name: no_foreign_key
+  plan: "Define order item entity"
+  bug_description: "No foreign key constraint - orphan records possible when parent is deleted"
+  correct: "Add @OnDelete(action = OnDeleteAction.CASCADE) or handle in service layer"
+  incorrect: "@JoinColumn(name = \"order_id\")"
+  severity: high
+  difficulty: medium
+  tags: [data, foreign_key, integrity, jpa]
+
+- id: DATA_002
+  category: data
+  axis: implicit_knowledge
+  name: unique_constraint_missing
+  plan: "Define user entity"
+  bug_description: "Unique constraint missing - duplicate emails allowed in user registration"
+  correct: "@Column(unique = true) or @Table(uniqueConstraints = @UniqueConstraint)"
+  incorrect: "private String email;"
+  severity: high
+  difficulty: easy
+  tags: [data, unique, constraint, integrity]
+
+- id: DATA_003
+  category: data
+  axis: implicit_knowledge
+  name: optimistic_lock_missing
+  plan: "Define inventory entity"
+  bug_description: "No optimistic locking - concurrent updates cause last-write-wins data loss"
+  correct: "Add @Version field for optimistic locking"
+  incorrect: "public class Inventory {"
+  severity: high
+  difficulty: medium
+  tags: [data, concurrency, optimistic_locking, jpa]
+
+- id: DATA_004
+  category: data
+  axis: implicit_knowledge
+  name: soft_delete_leak
+  plan: "Search products"
+  bug_description: "Deleted records appear in search results - missing @Where clause for soft delete"
+  correct: "Add @Where(clause = \"deleted = false\") or @SQLRestriction"
+  incorrect: "findByNameContaining"
+  severity: medium
+  difficulty: medium
+  tags: [data, soft_delete, query, jpa]
+
+- id: DATA_005
+  category: data
+  axis: implicit_knowledge
+  name: master_data_not_snapshotted
+  plan: "Display order history"
+  bug_description: "Product price change affects historical order display - no snapshot of price at order time"
+  correct: "Store price_at_purchase in OrderItem or use temporal tables"
+  incorrect: "private Long productId;"
+  severity: high
+  difficulty: hard
+  tags: [data, snapshot, history, integrity]
+
+- id: DATA_006
+  category: data
+  axis: implicit_knowledge
+  name: nullable_column_no_default
+  plan: "Add loyalty points feature"
+  bug_description: "New column defaults to NULL causing NullPointerException in downstream code"
+  correct: "Add @Column(nullable = false) with default value or @ColumnDefault"
+  incorrect: "private Integer loyaltyPoints;"
+  severity: medium
+  difficulty: easy
+  tags: [data, null, default, schema]
+
+- id: DATA_007
+  category: data
+  axis: implicit_knowledge
+  name: batch_count_inaccurate
+  plan: "Import products from CSV"
+  bug_description: "Batch import reports incorrect counts - saveAll skips duplicates but reports full count"
+  correct: "Track actual inserts vs skipped duplicates separately"
+  incorrect: "return products.size();"
+  severity: medium
+  difficulty: medium
+  tags: [data, batch, import, counting]
+
+# =============================================================================
+# External Services (7 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: EXT_001
+  category: external
+  axis: implicit_knowledge
+  name: payment_timeout_unhandled
+  plan: "Process payment through gateway"
+  bug_description: "Payment timeout leaves order in unknown state - no rollback or recovery mechanism"
+  correct: "Mark order as PENDING_VERIFICATION and notify admin for manual review"
+  incorrect: "catch (HttpTimeoutException e) { throw new PaymentException"
+  severity: critical
+  difficulty: hard
+  tags: [external, payment, timeout, recovery]
+
+- id: EXT_002
+  category: external
+  axis: implicit_knowledge
+  name: webhook_not_idempotent
+  plan: "Handle payment webhook"
+  bug_description: "Webhook endpoint processes same event multiple times - no idempotency check"
+  correct: "Check and store processed event IDs to ensure idempotency"
+  incorrect: "public void handlePaymentWebhook"
+  severity: high
+  difficulty: medium
+  tags: [external, webhook, idempotency, duplicate]
+
+- id: EXT_003
+  category: external
+  axis: implicit_knowledge
+  name: api_call_in_transaction
+  plan: "Process order with payment"
+  bug_description: "External API call inside @Transactional - payment charged even if transaction rolls back"
+  correct: "Move external API call outside transaction or use saga pattern"
+  incorrect: "@Transactional"
+  severity: critical
+  difficulty: hard
+  tags: [external, transaction, api, rollback]
+
+- id: EXT_004
+  category: external
+  axis: implicit_knowledge
+  name: retry_without_idempotency
+  plan: "Submit order for fulfillment"
+  bug_description: "Network retry creates duplicate orders - no idempotency key for retries"
+  correct: "Use idempotency key to prevent duplicate operations on retry"
+  incorrect: "@Retryable"
+  severity: high
+  difficulty: medium
+  tags: [external, retry, idempotency, duplicate]
+
+- id: EXT_005
+  category: external
+  axis: implicit_knowledge
+  name: inventory_sync_race_condition
+  plan: "Sync inventory from warehouse"
+  bug_description: "Async inventory sync race condition - order placed during sync gets stale stock data"
+  correct: "Use optimistic locking or queue-based sync with proper ordering"
+  incorrect: "@Async"
+  severity: high
+  difficulty: hard
+  tags: [external, async, inventory, race_condition]
+
+- id: EXT_006
+  category: external
+  axis: implicit_knowledge
+  name: error_swallowed
+  plan: "Generate shipping label"
+  bug_description: "Shipping API error swallowed in empty catch block - failure treated as success"
+  correct: "Log error, set appropriate status, and notify for manual handling"
+  incorrect: "catch (Exception e) { }"
+  severity: high
+  difficulty: easy
+  tags: [external, error_handling, shipping, silent_failure]
+
+- id: EXT_007
+  category: external
+  axis: implicit_knowledge
+  name: path_traversal_vulnerability
+  plan: "Export report to file"
+  bug_description: "Path traversal vulnerability - unsanitized user input used in file path construction"
+  correct: "Validate and sanitize filename, use Path.normalize() and check within allowed directory"
+  incorrect: "new File(baseDir, filename)"
+  severity: critical
+  difficulty: medium
+  tags: [security, path_traversal, injection, file]

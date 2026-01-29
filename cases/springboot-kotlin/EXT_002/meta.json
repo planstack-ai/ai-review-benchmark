@@ -1,0 +1,16 @@
+{
+  "case_id": "EXT_002",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "webhook_not_idempotent",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Webhook endpoint processes same event multiple times - no idempotency check",
+  "bug_anchor": "fun handlePaymentWebhook",
+  "correct_implementation": "Check and store processed event IDs to ensure idempotency",
+  "severity": "high",
+  "tags": ["external", "webhook", "idempotency", "duplicate"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+"
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_005",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "master_data_not_snapshotted",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Product price change affects historical order display - no snapshot of price at order time",
+  "bug_anchor": "private Long productId;",
+  "correct_implementation": "Store price_at_purchase in OrderItem or use temporal tables",
+  "severity": "high",
+  "tags": [
+    "data",
+    "snapshot",
+    "history",
+    "integrity"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

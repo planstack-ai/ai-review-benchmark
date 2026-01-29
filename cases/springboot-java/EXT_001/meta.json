@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_001",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "payment_timeout_unhandled",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Payment timeout leaves order in unknown state - no rollback or recovery mechanism",
+  "bug_anchor": "catch (HttpTimeoutException e) { throw new PaymentException",
+  "correct_implementation": "Mark order as PENDING_VERIFICATION and notify admin for manual review",
+  "severity": "critical",
+  "tags": [
+    "external",
+    "payment",
+    "timeout",
+    "recovery"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}
