@@ -5,97 +5,73 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
+/**
+ * Order processing service.
+ * Handles order creation, cancellation, and status management.
+ */
 @Service
 @Transactional
 public class OrderService {
 
+    // BUG: Circular dependency - OrderService depends on PaymentService
     @Autowired
     private PaymentService paymentService;
 
     @Autowired
     private OrderRepository orderRepository;
 
-    @Autowired
-    private InventoryService inventoryService;
-
     public OrderResponse createOrder(OrderRequest request) {
         validateOrderRequest(request);
-        
-        Order order = buildOrder(request);
+
+        Order order = new Order();
+        order.setCustomerId(request.getCustomerId());
+        order.setTotalAmount(request.getTotalAmount());
         order.setStatus(OrderStatus.PENDING);
         order.setCreatedAt(LocalDateTime.now());
-        
-        if (!inventoryService.checkAvailability(request.getProductId(), request.getQuantity())) {
-            throw new InsufficientInventoryException("Product not available in requested quantity");
-        }
-        
+
         Order savedOrder = orderRepository.save(order);
-        
+
         PaymentResult paymentResult = paymentService.processPayment(
-            savedOrder.getId(), 
+            savedOrder.getId(),
             savedOrder.getTotalAmount(),
             request.getPaymentMethod()
         );
-        
+
         if (paymentResult.isSuccessful()) {
             savedOrder.setStatus(OrderStatus.CONFIRMED);
-            inventoryService.reserveItems(request.getProductId(), request.getQuantity());
         } else {
-            savedOrder.setStatus(OrderStatus.FAILED);
-            savedOrder.setFailureReason(paymentResult.getErrorMessage());
+            savedOrder.setStatus(OrderStatus.CANCELLED);
         }
-        
-        Order finalOrder = orderRepository.save(savedOrder);
-        return mapToOrderResponse(finalOrder);
+
+        return mapToOrderResponse(orderRepository.save(savedOrder));
     }
 
-    public void cancelOrder(String orderId) {
+    public void cancelOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new OrderNotFoundException("Order not found: " + orderId));
-        
+
         if (order.getStatus() == OrderStatus.CONFIRMED) {
             paymentService.refundPayment(orderId, order.getTotalAmount());
-            inventoryService.releaseReservation(order.getProductId(), order.getQuantity());
         }
-        
+
         order.setStatus(OrderStatus.CANCELLED);
-        order.setCancelledAt(LocalDateTime.now());
         orderRepository.save(order);
     }
 
-    public OrderStatus getOrderStatus(String orderId) {
+    public OrderStatus getOrderStatus(Long orderId) {
         return orderRepository.findById(orderId)
             .map(Order::getStatus)
             .orElseThrow(() -> new OrderNotFoundException("Order not found: " + orderId));
     }
 
     private void validateOrderRequest(OrderRequest request) {
-        if (request.getProductId() == null || request.getProductId().trim().isEmpty()) {
-            throw new InvalidOrderException("Product ID is required");
+        if (request.getCustomerId() == null) {
+            throw new InvalidOrderException("Customer ID is required");
         }
-        if (request.getQuantity() <= 0) {
-            throw new InvalidOrderException("Quantity must be positive");
+        if (request.getTotalAmount() == null || request.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidOrderException("Total amount must be positive");
         }
-        if (request.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidOrderException("Unit price must be positive");
-        }
-    }
-
-    private Order buildOrder(OrderRequest request) {
-        Order order = new Order();
-        order.setId(UUID.randomUUID().toString());
-        order.setCustomerId(request.getCustomerId());
-        order.setProductId(request.getProductId());
-        order.setQuantity(request.getQuantity());
-        order.setUnitPrice(request.getUnitPrice());
-        order.setTotalAmount(calculateTotalAmount(request.getUnitPrice(), request.getQuantity()));
-        return order;
-    }
-
-    private BigDecimal calculateTotalAmount(BigDecimal unitPrice, int quantity) {
-        return unitPrice.multiply(BigDecimal.valueOf(quantity));
     }
 
     private OrderResponse mapToOrderResponse(Order order) {
@@ -105,5 +81,68 @@ public class OrderService {
         response.setTotalAmount(order.getTotalAmount());
         response.setCreatedAt(order.getCreatedAt());
         return response;
+    }
+}
+
+/**
+ * Payment processing service.
+ * Handles payment processing and refunds.
+ */
+@Service
+@Transactional
+class PaymentService {
+
+    // BUG: Circular dependency - PaymentService depends on OrderService
+    @Autowired
+    private OrderService orderService;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
+
+    public PaymentResult processPayment(Long orderId, BigDecimal amount, PaymentMethod method) {
+        // Verify order exists via OrderService (causes circular dependency)
+        OrderStatus status = orderService.getOrderStatus(orderId);
+        if (status != OrderStatus.PENDING) {
+            return new PaymentResult(false, "Order is not in pending status");
+        }
+
+        Payment payment = new Payment();
+        payment.setOrderId(orderId);
+        payment.setAmount(amount);
+        payment.setPaymentMethod(method);
+        payment.setStatus(PaymentStatus.PROCESSING);
+
+        try {
+            // Simulate payment gateway call
+            boolean gatewaySuccess = processWithGateway(amount, method);
+
+            if (gatewaySuccess) {
+                payment.setStatus(PaymentStatus.COMPLETED);
+                payment.setProcessedAt(LocalDateTime.now());
+                paymentRepository.save(payment);
+                return new PaymentResult(true, null);
+            } else {
+                payment.setStatus(PaymentStatus.FAILED);
+                paymentRepository.save(payment);
+                return new PaymentResult(false, "Payment gateway rejected the transaction");
+            }
+        } catch (Exception e) {
+            payment.setStatus(PaymentStatus.FAILED);
+            paymentRepository.save(payment);
+            return new PaymentResult(false, "Payment processing error: " + e.getMessage());
+        }
+    }
+
+    public void refundPayment(Long orderId, BigDecimal amount) {
+        Payment payment = paymentRepository.findByOrderIdAndStatus(orderId, PaymentStatus.COMPLETED)
+            .orElseThrow(() -> new PaymentNotFoundException("No completed payment found for order: " + orderId));
+
+        payment.setStatus(PaymentStatus.REFUNDED);
+        paymentRepository.save(payment);
+    }
+
+    private boolean processWithGateway(BigDecimal amount, PaymentMethod method) {
+        // Simplified gateway simulation
+        return amount.compareTo(new BigDecimal("10000")) < 0;
     }
 }

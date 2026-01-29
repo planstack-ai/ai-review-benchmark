@@ -5,9 +5,9 @@
   "name": "circular_dependency",
   "difficulty": "hard",
   "expected_detection": true,
-  "bug_description": "Circular dependency - OrderService -> PaymentService -> OrderService",
-  "bug_anchor": "// OrderService and PaymentService inject each other",
-  "correct_implementation": "Use @Lazy or refactor to break cycle",
+  "bug_description": "Circular dependency - OrderService -> PaymentService -> OrderService. PaymentService injects OrderService and calls orderService.getOrderStatus() in processPayment(), creating a circular bean dependency that will fail at startup.",
+  "bug_anchor": "// BUG: Circular dependency - PaymentService depends on OrderService",
+  "correct_implementation": "Use @Lazy annotation on one of the injected dependencies, use setter injection instead of field injection, or refactor to break the cycle by extracting shared logic into a separate service",
   "severity": "high",
   "tags": [
     "spring",
@@ -17,5 +17,5 @@
   "framework": "springboot-java",
   "framework_version": "3.2+",
   "java_version": "21+",
-  "bug_anchor_verified": false
+  "bug_anchor_verified": true
 }
