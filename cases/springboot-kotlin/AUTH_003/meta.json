@@ -1,0 +1,21 @@
+{
+  "case_id": "AUTH_003",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "preauthorize_condition_wrong",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "@PreAuthorize condition uses OR instead of proper ownership check",
+  "bug_anchor": "@PreAuthorize(\\\"hasRole('USER'\") or hasRole('ADMIN'\")\\\"\")",
+  "correct_implementation": "@PreAuthorize(\\\"@orderService.isOwner(#orderId, principal) or hasRole('ADMIN')\\\")",
+  "severity": "critical",
+  "tags": [
+    "authorization",
+    "preauthorize",
+    "security"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "bug_anchor_verified": false,
+  "kotlin_version": "1.9+"
+}

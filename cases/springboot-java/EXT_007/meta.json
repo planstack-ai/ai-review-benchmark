@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_007",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "path_traversal_vulnerability",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Path traversal vulnerability - unsanitized user input used in file path construction",
+  "bug_anchor": "new File(baseDir, filename)",
+  "correct_implementation": "Validate and sanitize filename, use Path.normalize() and check within allowed directory",
+  "severity": "critical",
+  "tags": [
+    "security",
+    "path_traversal",
+    "injection",
+    "file"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_002",
+  "category": "stock",
+  "axis": "implicit_knowledge",
+  "name": "negative_stock_allowed",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "No validation prevents negative stock",
+  "bug_anchor": "private Integer quantity;",
+  "correct_implementation": "@Min(0) private Integer quantity;",
+  "severity": "high",
+  "tags": [
+    "stock",
+    "validation",
+    "constraint"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "bug_anchor_verified": false,
+  "kotlin_version": "1.9+"
+}

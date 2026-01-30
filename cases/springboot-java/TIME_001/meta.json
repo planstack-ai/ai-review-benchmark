@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_001",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "timezone_not_considered",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Using system default timezone instead of specified timezone",
+  "bug_anchor": "LocalDateTime.now()",
+  "correct_implementation": "LocalDateTime.now(ZoneId.of(\\\"Asia/Tokyo\\\"))",
+  "severity": "high",
+  "tags": [
+    "time",
+    "timezone",
+    "campaign"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+",
+  "bug_anchor_verified": true
+}

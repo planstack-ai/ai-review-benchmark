@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_004",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "inconsistent_rounding",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Rounds each item subtotal before summing instead of summing first then rounding - causes penny discrepancies",
+  "bug_anchor": ".setScale(2, RoundingMode.HALF_UP)).reduce",
+  "correct_implementation": "items.stream().map(item -> calculateItemSubtotal(item)).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP)",
+  "severity": "medium",
+  "tags": [
+    "calculation",
+    "rounding",
+    "order-of-operations"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "bug_anchor_verified": true,
+  "kotlin_version": "1.9+"
+}

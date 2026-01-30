@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_001",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "discount_rate_direction",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Discount rate direction wrong, becomes 90% off",
+  "bug_anchor": "total.multiply(MEMBER_DISCOUNT_RATE)",
+  "correct_implementation": "total.multiply(BigDecimal(\"0.9\"))",
+  "severity": "critical",
+  "tags": [
+    "calculation",
+    "discount",
+    "member"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

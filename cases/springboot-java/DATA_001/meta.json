@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_001",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "no_foreign_key",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "No foreign key constraint - orphan records possible when parent is deleted",
+  "bug_anchor": "@JoinColumn(name = \"order_id\")",
+  "correct_implementation": "Add @OnDelete(action = OnDeleteAction.CASCADE) or handle in service layer",
+  "severity": "high",
+  "tags": [
+    "data",
+    "foreign_key",
+    "integrity",
+    "jpa"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

@@ -1,0 +1,20 @@
+{
+  "case_id": "PERF_004",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "inefficient_count",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Loading all records just to count - using list.size() instead of repository.count()",
+  "bug_anchor": "findAll().size()",
+  "correct_implementation": "Use repository.count() or @Query with COUNT",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "count",
+    "jpa"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

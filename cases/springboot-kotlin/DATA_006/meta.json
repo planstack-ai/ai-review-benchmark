@@ -1,0 +1,16 @@
+{
+  "case_id": "DATA_006",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "nullable_column_no_default",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "New column defaults to NULL causing NullPointerException in downstream code",
+  "bug_anchor": "var loyaltyPoints: Int?",
+  "correct_implementation": "Add @Column(nullable = false) with default value or use non-nullable type with default",
+  "severity": "medium",
+  "tags": ["data", "null", "default", "schema"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+"
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_005",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "inventory_sync_race_condition",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Async inventory sync race condition - order placed during sync gets stale stock data",
+  "bug_anchor": "@Async",
+  "correct_implementation": "Use optimistic locking or queue-based sync with proper ordering",
+  "severity": "high",
+  "tags": [
+    "external",
+    "async",
+    "inventory",
+    "race_condition"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

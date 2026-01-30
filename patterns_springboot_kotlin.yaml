@@ -1,0 +1,677 @@
+# AI Code Review Benchmark - Spring Boot (Kotlin) Bug Pattern Definitions
+# 52 patterns (47 bugs + 5 false positives) for Spring Boot e-commerce order processing
+# Version: 1.1
+# Framework: Spring Boot 3.2+, Kotlin 1.9+
+
+# =============================================================================
+# Price Calculation (6 patterns) - Spec Alignment
+# =============================================================================
+
+- id: CALC_001
+  category: calculation
+  axis: spec_alignment
+  name: discount_rate_direction
+  plan: "Apply 10% discount for members"
+  bug_description: "Discount rate direction wrong, becomes 90% off"
+  correct: "total.multiply(BigDecimal(\"0.9\"))"
+  incorrect: "total.multiply(BigDecimal(\"0.1\"))"
+  severity: critical
+  difficulty: easy
+  tags: [calculation, discount, member]
+
+- id: CALC_002
+  category: calculation
+  axis: spec_alignment
+  name: tax_calculation_order
+  plan: "Calculate total with 10% tax after discount"
+  bug_description: "Tax calculation order wrong - applying tax before discount yields different amount"
+  correct: "subtotal.subtract(discount).multiply(BigDecimal(\"1.1\"))"
+  incorrect: "subtotal.multiply(BigDecimal(\"1.1\")).subtract(discount)"
+  severity: high
+  difficulty: medium
+  tags: [calculation, tax, discount]
+
+- id: CALC_003
+  category: calculation
+  axis: spec_alignment
+  name: floating_point_currency
+  plan: "Calculate price with decimal precision"
+  bug_description: "Using Double instead of BigDecimal for monetary calculations"
+  correct: "BigDecimal(\"0.1\") + BigDecimal(\"0.2\")"
+  incorrect: "0.1 + 0.2"
+  severity: high
+  difficulty: medium
+  tags: [calculation, currency, precision]
+
+- id: CALC_004
+  category: calculation
+  axis: spec_alignment
+  name: inconsistent_rounding
+  plan: "Calculate order total with consistent rounding"
+  bug_description: "Inconsistent rounding - round per item then sum vs sum then round yields different results"
+  correct: "items.map { it.subtotal }.reduce(BigDecimal::add).setScale(2, RoundingMode.HALF_UP)"
+  incorrect: "items.map { it.subtotal.setScale(2, RoundingMode.HALF_UP) }.reduce(BigDecimal::add)"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, rounding]
+
+- id: CALC_005
+  category: calculation
+  axis: spec_alignment
+  name: hardcoded_tax_rate
+  plan: "Apply current tax rate (10%)"
+  bug_description: "Hardcoded old tax rate - still using 8% instead of 10%"
+  correct: "subtotal.multiply(taxRateRepository.findCurrentRate())"
+  incorrect: "subtotal.multiply(BigDecimal(\"0.08\"))"
+  severity: high
+  difficulty: easy
+  tags: [calculation, tax, hardcode]
+
+- id: CALC_006
+  category: calculation
+  axis: spec_alignment
+  name: free_shipping_boundary
+  plan: "Free shipping for orders of 5000 yen or more"
+  bug_description: "Boundary condition error - >= 5000 vs > 5000"
+  correct: "if (total >= BigDecimal(\"5000\")) BigDecimal.ZERO else shippingFee"
+  incorrect: "if (total > BigDecimal(\"5000\")) BigDecimal.ZERO else shippingFee"
+  severity: medium
+  difficulty: easy
+  tags: [calculation, shipping, boundary]
+
+# =============================================================================
+# User & Authorization (4 patterns) - Spec Alignment
+# =============================================================================
+
+- id: AUTH_001
+  category: authorization
+  axis: spec_alignment
+  name: access_other_user_order
+  plan: "Users can only view their own orders"
+  bug_description: "IDOR vulnerability - can access other user's order by changing ID"
+  correct: "orderRepository.findByIdAndUserId(orderId, currentUser.id)"
+  incorrect: "orderRepository.findById(orderId)"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, idor, security]
+
+- id: AUTH_002
+  category: authorization
+  axis: spec_alignment
+  name: manipulate_other_cart
+  plan: "Users can only modify their own cart"
+  bug_description: "Can manipulate other user's cart by specifying cart_id"
+  correct: "cartRepository.findByUserId(currentUser.id)"
+  incorrect: "cartRepository.findById(cartId)"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, cart, security]
+
+- id: AUTH_003
+  category: authorization
+  axis: spec_alignment
+  name: preauthorize_condition_wrong
+  plan: "Only order owner or admin can cancel order"
+  bug_description: "@PreAuthorize condition uses OR instead of proper ownership check"
+  correct: "@PreAuthorize(\"@orderService.isOwner(#orderId, principal) or hasRole('ADMIN')\")"
+  incorrect: "@PreAuthorize(\"hasRole('USER') or hasRole('ADMIN')\")"
+  severity: critical
+  difficulty: medium
+  tags: [authorization, preauthorize, security]
+
+- id: AUTH_004
+  category: authorization
+  axis: spec_alignment
+  name: admin_permission_missing
+  plan: "Only admins can modify product prices"
+  bug_description: "Regular users can change prices - admin check missing"
+  correct: "@PreAuthorize(\"hasRole('ADMIN')\")"
+  incorrect: "// no permission check"
+  severity: critical
+  difficulty: easy
+  tags: [authorization, admin, permission]
+
+# =============================================================================
+# State Management (4 patterns) - Spec Alignment
+# =============================================================================
+
+- id: STATE_001
+  category: state
+  axis: spec_alignment
+  name: invalid_state_transition
+  plan: "Order can only be cancelled from PENDING or CONFIRMED state"
+  bug_description: "Allows cancellation from any state including SHIPPED"
+  correct: "if (order.status == PENDING || order.status == CONFIRMED) { order.cancel() }"
+  incorrect: "order.cancel()"
+  severity: high
+  difficulty: medium
+  tags: [state, validation, order]
+
+- id: STATE_002
+  category: state
+  axis: spec_alignment
+  name: state_update_conflict
+  plan: "Prevent concurrent state updates"
+  bug_description: "Race condition - no optimistic locking on state update"
+  correct: "@Version var version: Long = 0"
+  incorrect: "// no version field"
+  severity: high
+  difficulty: hard
+  tags: [state, concurrency, locking]
+
+- id: STATE_003
+  category: state
+  axis: spec_alignment
+  name: check_then_act_race
+  plan: "Atomic check and update for stock reservation"
+  bug_description: "Check-then-act race condition between stock check and reservation"
+  correct: "stockRepository.decrementIfAvailable(productId, quantity)"
+  incorrect: "if (stock.quantity >= quantity) { stock.quantity = stock.quantity - quantity }"
+  severity: critical
+  difficulty: hard
+  tags: [state, concurrency, stock]
+
+- id: STATE_004
+  category: state
+  axis: spec_alignment
+  name: enum_comparison_wrong
+  plan: "Check if order is in completed states"
+  bug_description: "Using string comparison instead of enum comparison"
+  correct: "order.status in completedStatuses"
+  incorrect: "completedStatuses.any { it.name == order.status.name }"
+  severity: medium
+  difficulty: medium
+  tags: [state, enum, comparison]
+
+# =============================================================================
+# Time & Date (3 patterns) - Spec Alignment
+# =============================================================================
+
+- id: TIME_001
+  category: time
+  axis: spec_alignment
+  name: timezone_not_considered
+  plan: "Check if campaign is active based on Japan time"
+  bug_description: "Using system default timezone instead of specified timezone"
+  correct: "LocalDateTime.now(ZoneId.of(\"Asia/Tokyo\"))"
+  incorrect: "LocalDateTime.now()"
+  severity: high
+  difficulty: medium
+  tags: [time, timezone, campaign]
+
+- id: TIME_002
+  category: time
+  axis: spec_alignment
+  name: date_boundary_error
+  plan: "Campaign valid until end of specified date"
+  bug_description: "End date comparison excludes the last day"
+  correct: "!now.isAfter(campaign.endDate.atTime(23, 59, 59))"
+  incorrect: "now.isBefore(campaign.endDate.atStartOfDay())"
+  severity: medium
+  difficulty: medium
+  tags: [time, boundary, campaign]
+
+- id: TIME_003
+  category: time
+  axis: spec_alignment
+  name: campaign_period_check
+  plan: "Apply campaign discount only during valid period"
+  bug_description: "Only checking start date, not end date"
+  correct: "now.isAfter(campaign.startDate) && now.isBefore(campaign.endDate)"
+  incorrect: "now.isAfter(campaign.startDate)"
+  severity: high
+  difficulty: easy
+  tags: [time, campaign, validation]
+
+# =============================================================================
+# Inventory Management (2 patterns) - Spec Alignment
+# =============================================================================
+
+- id: STOCK_001
+  category: stock
+  axis: spec_alignment
+  name: stock_reservation_race
+  plan: "Reserve stock atomically"
+  bug_description: "Race condition between stock check and decrement"
+  correct: "@Modifying @Query(\"UPDATE Stock s SET s.quantity = s.quantity - :qty WHERE s.productId = :productId AND s.quantity >= :qty\")"
+  incorrect: "if (stock.quantity >= qty) stock.quantity = stock.quantity - qty"
+  severity: critical
+  difficulty: hard
+  tags: [stock, concurrency, atomic]
+
+- id: STOCK_002
+  category: stock
+  axis: spec_alignment
+  name: negative_stock_allowed
+  plan: "Stock quantity must not go negative"
+  bug_description: "No validation prevents negative stock"
+  correct: "@field:Min(0) var quantity: Int"
+  incorrect: "var quantity: Int"
+  severity: high
+  difficulty: easy
+  tags: [stock, validation, constraint]
+
+# =============================================================================
+# Notification (1 pattern) - Spec Alignment
+# =============================================================================
+
+- id: NOTIFY_001
+  category: notification
+  axis: spec_alignment
+  name: async_notification_failure
+  plan: "Send order confirmation email asynchronously"
+  bug_description: "Async email failure silently ignored - no error handling"
+  correct: "@Async fun sendEmail(): CompletableFuture<Unit> { try { ... } catch (e: Exception) { logger.error(...); throw e } }"
+  incorrect: "@Async fun sendEmail() { ... }"
+  severity: medium
+  difficulty: medium
+  tags: [notification, async, error_handling]
+
+# =============================================================================
+# Spring Boot Specific (5 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: SPRING_001
+  category: spring
+  axis: implicit_knowledge
+  name: transactional_propagation_wrong
+  plan: "Order and payment must be processed atomically"
+  bug_description: "@Transactional propagation issue - nested service has REQUIRES_NEW causing partial commit"
+  correct: "@Transactional(propagation = Propagation.REQUIRED)"
+  incorrect: "@Transactional // nested call has REQUIRES_NEW"
+  severity: critical
+  difficulty: hard
+  tags: [spring, transaction, propagation]
+
+- id: SPRING_002
+  category: spring
+  axis: implicit_knowledge
+  name: async_without_enable
+  plan: "Process order asynchronously"
+  bug_description: "@Async annotation ignored - @EnableAsync missing on configuration"
+  correct: "@EnableAsync @Configuration class AsyncConfig"
+  incorrect: "// @EnableAsync missing"
+  severity: high
+  difficulty: medium
+  tags: [spring, async, configuration]
+
+- id: SPRING_003
+  category: spring
+  axis: implicit_knowledge
+  name: field_injection_testing
+  plan: "Inject OrderService dependency"
+  bug_description: "Field injection makes unit testing difficult - use constructor injection"
+  correct: "@Service class OrderController(private val orderService: OrderService)"
+  incorrect: "@Service class OrderController { @Autowired lateinit var orderService: OrderService }"
+  severity: medium
+  difficulty: easy
+  tags: [spring, injection, testing]
+
+- id: SPRING_004
+  category: spring
+  axis: implicit_knowledge
+  name: missing_valid_annotation
+  plan: "Validate request body"
+  bug_description: "@Valid missing on @RequestBody - validation annotations ignored"
+  correct: "fun create(@Valid @RequestBody request: OrderRequest): ResponseEntity<*>"
+  incorrect: "fun create(@RequestBody request: OrderRequest): ResponseEntity<*>"
+  severity: high
+  difficulty: easy
+  tags: [spring, validation, request]
+
+- id: SPRING_005
+  category: spring
+  axis: implicit_knowledge
+  name: exception_info_leak
+  plan: "Handle exceptions gracefully"
+  bug_description: "Exception message exposed to client - potential security info leak"
+  correct: "ResponseEntity.badRequest().body(ErrorResponse(\"Invalid request\"))"
+  incorrect: "ResponseEntity.badRequest().body(e.message)"
+  severity: high
+  difficulty: medium
+  tags: [spring, security, exception]
+
+# =============================================================================
+# False Positive (5 patterns)
+# =============================================================================
+
+- id: FP_001
+  category: false_positive
+  axis: false_positive
+  name: correct_discount_calculation
+  plan: "Apply 10% member discount correctly"
+  bug_description: null
+  correct: "total.multiply(BigDecimal(\"0.9\"))"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, calculation, baseline]
+  misleading_points: "None - standard implementation"
+
+- id: FP_002
+  category: false_positive
+  axis: false_positive
+  name: correct_transactional_usage
+  plan: "Proper transactional boundary"
+  bug_description: null
+  correct: "@Transactional with proper propagation"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, transaction, baseline]
+  misleading_points: "None - correct transaction handling"
+
+- id: FP_003
+  category: false_positive
+  axis: false_positive
+  name: correct_authorization_check
+  plan: "Proper authorization with @PreAuthorize"
+  bug_description: null
+  correct: "@PreAuthorize with proper SpEL expression"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, authorization, baseline]
+  misleading_points: "None - proper security implementation"
+
+- id: FP_004
+  category: false_positive
+  axis: false_positive
+  name: correct_state_machine
+  plan: "Proper state transition validation"
+  bug_description: null
+  correct: "State machine with proper transition validation"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, state, baseline]
+  misleading_points: "None - proper state management"
+
+- id: FP_005
+  category: false_positive
+  axis: false_positive
+  name: correct_bigdecimal_usage
+  plan: "Proper BigDecimal for monetary calculations"
+  bug_description: null
+  correct: "BigDecimal with proper scale and rounding"
+  incorrect: null
+  severity: null
+  difficulty: easy
+  tags: [false_positive, calculation, baseline]
+  misleading_points: "None - proper decimal handling"
+
+# =============================================================================
+# Performance (8 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: PERF_001
+  category: performance
+  axis: implicit_knowledge
+  name: n_plus_one_query
+  plan: "Generate order report with product details"
+  bug_description: "N+1 query on order items accessing product names - missing JOIN FETCH or @EntityGraph"
+  correct: "Use @EntityGraph or JOIN FETCH to eagerly load products with items"
+  incorrect: "order.items.forEach { item -> item.product.name }"
+  severity: high
+  difficulty: easy
+  tags: [performance, n_plus_one, jpa, hibernate]
+
+- id: PERF_002
+  category: performance
+  axis: implicit_knowledge
+  name: full_table_load
+  plan: "Generate monthly sales report"
+  bug_description: "Loading all records into memory - findAll() on potentially millions of records without pagination"
+  correct: "Use Pageable with findAll(Pageable) or streaming with @Query"
+  incorrect: "orderRepository.findAll()"
+  severity: critical
+  difficulty: easy
+  tags: [performance, memory, pagination, jpa]
+
+- id: PERF_003
+  category: performance
+  axis: implicit_knowledge
+  name: unnecessary_eager_loading
+  plan: "Load product catalog"
+  bug_description: "FetchType.EAGER on rarely-used associations wastes resources and causes unnecessary joins"
+  correct: "Use FetchType.LAZY and fetch explicitly when needed with @EntityGraph"
+  incorrect: "fetch = FetchType.EAGER"
+  severity: medium
+  difficulty: medium
+  tags: [performance, eager_loading, jpa, hibernate]
+
+- id: PERF_004
+  category: performance
+  axis: implicit_knowledge
+  name: inefficient_count
+  plan: "Get dashboard statistics"
+  bug_description: "Loading all records just to count - using list.size instead of repository.count()"
+  correct: "Use repository.count() or @Query with COUNT"
+  incorrect: "findAll().size"
+  severity: high
+  difficulty: easy
+  tags: [performance, count, jpa]
+
+- id: PERF_005
+  category: performance
+  axis: implicit_knowledge
+  name: index_not_used
+  plan: "Search customers by phone number"
+  bug_description: "Search condition on non-indexed column causes full table scan"
+  correct: "Add index on frequently queried columns or use indexed columns"
+  incorrect: "findByPhoneNumber"
+  severity: high
+  difficulty: medium
+  tags: [performance, index, database, query]
+
+- id: PERF_006
+  category: performance
+  axis: implicit_knowledge
+  name: cache_key_collision
+  plan: "Cache user profile"
+  bug_description: "Same cache key for all users - cache collision causes data leakage between users"
+  correct: "@Cacheable(value = [\"userProfile\"], key = \"#userId\")"
+  incorrect: "@Cacheable(\"userProfile\")"
+  severity: critical
+  difficulty: medium
+  tags: [performance, cache, security, spring]
+
+- id: PERF_007
+  category: performance
+  axis: implicit_knowledge
+  name: in_memory_aggregation
+  plan: "Calculate sales analytics"
+  bug_description: "In-memory aggregation and sorting on potentially large datasets instead of using database"
+  correct: "Use database-level aggregation with @Query or native SQL"
+  incorrect: "findAll().sortedBy { ... }"
+  severity: high
+  difficulty: medium
+  tags: [performance, aggregation, memory, jpa]
+
+- id: PERF_008
+  category: performance
+  axis: implicit_knowledge
+  name: n_plus_one_bulk_operation
+  plan: "Update metrics for all active users"
+  bug_description: "N+1 queries in bulk operation - creating new service call per iteration in loop"
+  correct: "Use batch operations or single query with IN clause"
+  incorrect: "users.forEach { user -> userService.updateMetrics(user.id) }"
+  severity: high
+  difficulty: medium
+  tags: [performance, n_plus_one, bulk, batch]
+
+# =============================================================================
+# Data Integrity (7 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: DATA_001
+  category: data
+  axis: implicit_knowledge
+  name: no_foreign_key
+  plan: "Define order item entity"
+  bug_description: "No foreign key constraint - orphan records possible when parent is deleted"
+  correct: "Add @OnDelete(action = OnDeleteAction.CASCADE) or handle in service layer"
+  incorrect: "@JoinColumn(name = \"order_id\")"
+  severity: high
+  difficulty: medium
+  tags: [data, foreign_key, integrity, jpa]
+
+- id: DATA_002
+  category: data
+  axis: implicit_knowledge
+  name: unique_constraint_missing
+  plan: "Define user entity"
+  bug_description: "Unique constraint missing - duplicate emails allowed in user registration"
+  correct: "@Column(unique = true) or @Table(uniqueConstraints = [UniqueConstraint(...)])"
+  incorrect: "var email: String"
+  severity: high
+  difficulty: easy
+  tags: [data, unique, constraint, integrity]
+
+- id: DATA_003
+  category: data
+  axis: implicit_knowledge
+  name: optimistic_lock_missing
+  plan: "Define inventory entity"
+  bug_description: "No optimistic locking - concurrent updates cause last-write-wins data loss"
+  correct: "Add @Version field for optimistic locking"
+  incorrect: "data class Inventory("
+  severity: high
+  difficulty: medium
+  tags: [data, concurrency, optimistic_locking, jpa]
+
+- id: DATA_004
+  category: data
+  axis: implicit_knowledge
+  name: soft_delete_leak
+  plan: "Search products"
+  bug_description: "Deleted records appear in search results - missing @Where clause for soft delete"
+  correct: "Add @Where(clause = \"deleted = false\") or @SQLRestriction"
+  incorrect: "findByNameContaining"
+  severity: medium
+  difficulty: medium
+  tags: [data, soft_delete, query, jpa]
+
+- id: DATA_005
+  category: data
+  axis: implicit_knowledge
+  name: master_data_not_snapshotted
+  plan: "Display order history"
+  bug_description: "Product price change affects historical order display - no snapshot of price at order time"
+  correct: "Store priceAtPurchase in OrderItem or use temporal tables"
+  incorrect: "val productId: Long"
+  severity: high
+  difficulty: hard
+  tags: [data, snapshot, history, integrity]
+
+- id: DATA_006
+  category: data
+  axis: implicit_knowledge
+  name: nullable_column_no_default
+  plan: "Add loyalty points feature"
+  bug_description: "New column defaults to NULL causing NullPointerException in downstream code"
+  correct: "Add @Column(nullable = false) with default value or @ColumnDefault"
+  incorrect: "var loyaltyPoints: Int?"
+  severity: medium
+  difficulty: easy
+  tags: [data, null, default, schema]
+
+- id: DATA_007
+  category: data
+  axis: implicit_knowledge
+  name: batch_count_inaccurate
+  plan: "Import products from CSV"
+  bug_description: "Batch import reports incorrect counts - saveAll skips duplicates but reports full count"
+  correct: "Track actual inserts vs skipped duplicates separately"
+  incorrect: "return products.size"
+  severity: medium
+  difficulty: medium
+  tags: [data, batch, import, counting]
+
+# =============================================================================
+# External Services (7 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: EXT_001
+  category: external
+  axis: implicit_knowledge
+  name: payment_timeout_unhandled
+  plan: "Process payment through gateway"
+  bug_description: "Payment timeout leaves order in unknown state - no rollback or recovery mechanism"
+  correct: "Mark order as PENDING_VERIFICATION and notify admin for manual review"
+  incorrect: "catch (e: HttpTimeoutException) { throw PaymentException"
+  severity: critical
+  difficulty: hard
+  tags: [external, payment, timeout, recovery]
+
+- id: EXT_002
+  category: external
+  axis: implicit_knowledge
+  name: webhook_not_idempotent
+  plan: "Handle payment webhook"
+  bug_description: "Webhook endpoint processes same event multiple times - no idempotency check"
+  correct: "Check and store processed event IDs to ensure idempotency"
+  incorrect: "fun handlePaymentWebhook"
+  severity: high
+  difficulty: medium
+  tags: [external, webhook, idempotency, duplicate]
+
+- id: EXT_003
+  category: external
+  axis: implicit_knowledge
+  name: api_call_in_transaction
+  plan: "Process order with payment"
+  bug_description: "External API call inside @Transactional - payment charged even if transaction rolls back"
+  correct: "Move external API call outside transaction or use saga pattern"
+  incorrect: "@Transactional"
+  severity: critical
+  difficulty: hard
+  tags: [external, transaction, api, rollback]
+
+- id: EXT_004
+  category: external
+  axis: implicit_knowledge
+  name: retry_without_idempotency
+  plan: "Submit order for fulfillment"
+  bug_description: "Network retry creates duplicate orders - no idempotency key for retries"
+  correct: "Use idempotency key to prevent duplicate operations on retry"
+  incorrect: "@Retryable"
+  severity: high
+  difficulty: medium
+  tags: [external, retry, idempotency, duplicate]
+
+- id: EXT_005
+  category: external
+  axis: implicit_knowledge
+  name: inventory_sync_race_condition
+  plan: "Sync inventory from warehouse"
+  bug_description: "Async inventory sync race condition - order placed during sync gets stale stock data"
+  correct: "Use optimistic locking or queue-based sync with proper ordering"
+  incorrect: "@Async"
+  severity: high
+  difficulty: hard
+  tags: [external, async, inventory, race_condition]
+
+- id: EXT_006
+  category: external
+  axis: implicit_knowledge
+  name: error_swallowed
+  plan: "Generate shipping label"
+  bug_description: "Shipping API error swallowed in empty catch block - failure treated as success"
+  correct: "Log error, set appropriate status, and notify for manual handling"
+  incorrect: "catch (e: Exception) { }"
+  severity: high
+  difficulty: easy
+  tags: [external, error_handling, shipping, silent_failure]
+
+- id: EXT_007
+  category: external
+  axis: implicit_knowledge
+  name: path_traversal_vulnerability
+  plan: "Export report to file"
+  bug_description: "Path traversal vulnerability - unsanitized user input used in file path construction"
+  correct: "Validate and sanitize filename, use Path.normalize() and check within allowed directory"
+  incorrect: "File(reportsDirectory, filename)"
+  severity: critical
+  difficulty: medium
+  tags: [security, path_traversal, injection, file]

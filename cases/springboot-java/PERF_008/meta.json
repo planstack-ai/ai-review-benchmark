@@ -1,0 +1,21 @@
+{
+  "case_id": "PERF_008",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "n_plus_one_bulk_operation",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "N+1 queries in bulk operation - creating new service call per iteration in loop",
+  "bug_anchor": "for (User user : users) { userService.updateMetrics(user.getId()); }",
+  "correct_implementation": "Use batch operations or single query with IN clause",
+  "severity": "high",
+  "tags": [
+    "performance",
+    "n_plus_one",
+    "bulk",
+    "batch"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

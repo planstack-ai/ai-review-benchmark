@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_003",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "api_call_in_transaction",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "External API call inside @Transactional - payment charged even if transaction rolls back",
+  "bug_anchor": "@Transactional",
+  "correct_implementation": "Move external API call outside transaction or use saga pattern",
+  "severity": "critical",
+  "tags": [
+    "external",
+    "transaction",
+    "api",
+    "rollback"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

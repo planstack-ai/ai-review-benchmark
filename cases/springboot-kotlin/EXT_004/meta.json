@@ -1,0 +1,16 @@
+{
+  "case_id": "EXT_004",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "retry_without_idempotency",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Network retry creates duplicate orders - no idempotency key for retries",
+  "bug_anchor": "@Retryable",
+  "correct_implementation": "Use idempotency key to prevent duplicate operations on retry",
+  "severity": "high",
+  "tags": ["external", "retry", "idempotency", "duplicate"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+"
+}

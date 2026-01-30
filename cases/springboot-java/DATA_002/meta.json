@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_002",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "unique_constraint_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Unique constraint missing - duplicate emails allowed in user registration",
+  "bug_anchor": "private String email;",
+  "correct_implementation": "@Column(unique = true) or @Table(uniqueConstraints = @UniqueConstraint)",
+  "severity": "high",
+  "tags": [
+    "data",
+    "unique",
+    "constraint",
+    "integrity"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}

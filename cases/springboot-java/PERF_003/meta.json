@@ -1,0 +1,21 @@
+{
+  "case_id": "PERF_003",
+  "category": "performance",
+  "axis": "implicit_knowledge",
+  "name": "unnecessary_eager_loading",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "FetchType.EAGER on rarely-used associations wastes resources and causes unnecessary joins",
+  "bug_anchor": "fetch = FetchType.EAGER",
+  "correct_implementation": "Use FetchType.LAZY and fetch explicitly when needed with @EntityGraph",
+  "severity": "medium",
+  "tags": [
+    "performance",
+    "eager_loading",
+    "jpa",
+    "hibernate"
+  ],
+  "framework": "springboot-java",
+  "framework_version": "3.2+",
+  "java_version": "21+"
+}
