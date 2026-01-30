@@ -121,13 +121,13 @@ cases/{framework}/{CASE_ID}/
 | Implicit Knowledge | SPRING, PERF, DATA, EXT | 27 |
 | False Positive | FP | 5 |
 
-### Laravel (60)
+### Laravel (105 total)
 
 | Axis | Categories | Cases |
 |------|------------|-------|
-| Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 41 |
-| Implicit Knowledge | PERF | 9 |
-| False Positive | FP | 10 |
+| Spec Alignment | CALC, STOCK, STATE, AUTH, TIME, NOTIFY | 46 |
+| Implicit Knowledge | PERF, DATA, EXT, LARAVEL | 39 |
+| False Positive | FP | 20 |
 
 ## Evaluation Targets
 

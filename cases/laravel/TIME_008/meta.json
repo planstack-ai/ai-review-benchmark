@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_008",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "past_delivery_date",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Past delivery dates accepted",
+  "bug_anchor": "'delivery_date' => 'required|date'",
+  "correct_implementation": "'delivery_date' => 'required|date|after:today'",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "validation",
+    "future"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

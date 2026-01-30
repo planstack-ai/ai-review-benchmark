@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_014",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "eloquent_boot_static",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "boot() not static - called on every instantiation instead of once",
+  "bug_anchor": "protected function boot()",
+  "correct_implementation": "protected static function boot()",
+  "severity": "high",
+  "tags": [
+    "laravel",
+    "eloquent",
+    "boot"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

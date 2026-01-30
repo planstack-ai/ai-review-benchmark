@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_012",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "observer_transaction",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Observer fires before transaction commits - inventory updated on rollback",
+  "bug_anchor": "public function created(Order $order): void",
+  "correct_implementation": "use afterCommit property in Observer",
+  "severity": "high",
+  "tags": [
+    "laravel",
+    "observer",
+    "transaction"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

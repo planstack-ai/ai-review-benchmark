@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_014",
+  "category": "false_positive",
+  "axis": null,
+  "name": "intentional_no_index",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Boolean column where index would hurt more than help",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "index",
+    "intentional"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

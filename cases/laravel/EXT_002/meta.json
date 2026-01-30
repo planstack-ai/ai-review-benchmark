@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_002",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "webhook_not_idempotent",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Same webhook processed multiple times - duplicate order updates",
+  "bug_anchor": "$this->logWebhookEvent($eventId",
+  "correct_implementation": "if (WebhookLog::where('event_id', $eventId)->exists()) return;",
+  "severity": "critical",
+  "tags": [
+    "external",
+    "webhook",
+    "idempotency"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

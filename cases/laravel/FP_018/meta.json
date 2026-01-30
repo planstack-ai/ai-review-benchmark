@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_018",
+  "category": "false_positive",
+  "axis": null,
+  "name": "optimized_cache_warming",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Intentional full table load into Cache::forever()",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "cache"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

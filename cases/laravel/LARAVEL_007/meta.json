@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_007",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "facade_mock_not_reset",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Facade mock leaks to next test - false positives",
+  "bug_anchor": "// BUG: Not calling parent::tearDown()",
+  "correct_implementation": "Mail::fake() in setUp, parent::tearDown() resets",
+  "severity": "medium",
+  "tags": [
+    "laravel",
+    "testing",
+    "facade"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_004",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "soft_delete_in_query",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Deleted products appear in search - SoftDeletes trait not applied",
+  "bug_anchor": "->where('is_active', true)",
+  "correct_implementation": "use SoftDeletes; // in model",
+  "severity": "high",
+  "tags": [
+    "data",
+    "soft_delete",
+    "query"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}
