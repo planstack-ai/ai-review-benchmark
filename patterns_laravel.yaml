@@ -1,9 +1,9 @@
 # AI Code Review Benchmark - Laravel Bug Pattern Definitions
-# 105 patterns (85 bugs + 20 false positives) for Laravel e-commerce order processing
-# Version: 2.1
+# 107 patterns (87 bugs + 20 false positives) for Laravel e-commerce order processing
+# Version: 2.2
 
 # =============================================================================
-# Price Calculation (10 patterns) - Spec Alignment
+# Price Calculation (11 patterns) - Spec Alignment
 # =============================================================================
 
 - id: CALC_001
@@ -126,8 +126,20 @@
   difficulty: hard
   tags: [calculation, overflow, bulk]
 
+- id: CALC_011
+  category: calculation
+  axis: spec_alignment
+  name: calculation_order_mismatch
+  plan: "Multi-step price calculation with quantity discount, customer discount, tax, and promotional discount"
+  bug_description: "Calculation order differs from specification; customer type adjustment applied before tax causes premium customers to pay more tax; promotional discount missing entirely"
+  correct: "Apply discounts in order: quantity discount -> customer discount -> tax -> promotional discount"
+  incorrect: "Customer adjustment applied to discounted subtotal before tax; promotional discount not implemented"
+  severity: critical
+  difficulty: medium
+  tags: [calculation, spec_violation, pricing, tax]
+
 # =============================================================================
-# User & Authorization (7 patterns) - Spec Alignment
+# User & Authorization (8 patterns) - Spec Alignment
 # =============================================================================
 
 - id: AUTH_001
@@ -213,6 +225,18 @@
   severity: high
   difficulty: medium
   tags: [authorization, coupon, ownership]
+
+- id: AUTH_008
+  category: authorization
+  axis: implicit_knowledge
+  name: privilege_escalation
+  plan: "Implement role-based access control with hierarchical permissions"
+  bug_description: "Role hierarchy bypass allows managers to access ALL resources regardless of action permissions; owner check bypasses permission matrix entirely"
+  correct: "accessible_resources should respect action-specific permissions; owner check should not bypass role requirements"
+  incorrect: "$resourceClass::all() for managers; bypassing permission check for resource owners"
+  severity: critical
+  difficulty: medium
+  tags: [authorization, security, privilege_escalation, rbac]
 
 # =============================================================================
 # Inventory & Quantity (8 patterns) - Spec Alignment
