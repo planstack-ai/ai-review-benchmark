@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_004",
+  "category": "stock",
+  "axis": "spec_alignment",
+  "name": "reserved_actual_confusion",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Reserved stock counted as available - double counting",
+  "bug_anchor": "return product.totalStock",
+  "correct_implementation": "available = totalStock - reservedStock",
+  "severity": "critical",
+  "tags": [
+    "stock",
+    "reservation",
+    "counting"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

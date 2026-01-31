@@ -6,8 +6,8 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "Discount rate direction wrong, becomes 90% off",
-  "bug_anchor": "total.multiply(MEMBER_DISCOUNT_RATE)",
-  "correct_implementation": "total.multiply(BigDecimal(\"0.9\"))",
+  "bug_anchor": "total.multiply(BigDecimal(\\\"0.1\\\"))",
+  "correct_implementation": "total.multiply(BigDecimal(\\\"0.9\\\"))",
   "severity": "critical",
   "tags": [
     "calculation",

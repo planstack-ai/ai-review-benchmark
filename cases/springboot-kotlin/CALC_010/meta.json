@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_010",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "quantity_overflow",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Integer overflow on unit_price * quantity for large orders",
+  "bug_anchor": "val total = item.unitPrice * item.quantity",
+  "correct_implementation": "val total = BigDecimal(item.unitPrice).multiply(BigDecimal(item.quantity))",
+  "severity": "critical",
+  "tags": [
+    "calculation",
+    "overflow",
+    "bulk"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

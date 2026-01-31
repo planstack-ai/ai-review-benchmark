@@ -5,84 +5,101 @@ import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.math.RoundingMode
 
+data class OrderItem(
+    val productId: String,
+    val quantity: Int,
+    val unitPrice: BigDecimal
+)
+
+data class DiscountRule(
+    val type: String,
+    val value: BigDecimal,
+    val minimumAmount: BigDecimal? = null
+)
+
+data class OrderCalculationResult(
+    val subtotal: BigDecimal,
+    val discountAmount: BigDecimal,
+    val taxAmount: BigDecimal,
+    val total: BigDecimal
+)
+
 @Service
-@Transactional
+@Transactional(readOnly = true)
 class OrderCalculationService {
 
-    companion object {
-        private val TAX_RATE = BigDecimal("0.10")
-        private val TAX_MULTIPLIER = BigDecimal("1.10")
-        private const val CURRENCY_SCALE = 2
-    }
+    private val taxRate = BigDecimal("0.10")
+    private val scale = 2
+    private val roundingMode = RoundingMode.HALF_UP
 
-    fun calculateOrderTotal(items: List<OrderItem>?, discountAmount: BigDecimal?): BigDecimal {
-        if (items.isNullOrEmpty()) {
-            return BigDecimal.ZERO
-        }
-
+    fun calculateOrderTotal(items: List<OrderItem>, discountRules: List<DiscountRule> = emptyList()): OrderCalculationResult {
         val subtotal = calculateSubtotal(items)
-        val finalAmount = applyTaxAndDiscount(subtotal, discountAmount)
-
-        return finalAmount.setScale(CURRENCY_SCALE, RoundingMode.HALF_UP)
-    }
-
-    fun calculateOrderTotalWithPercentageDiscount(items: List<OrderItem>?, discountPercentage: BigDecimal?): BigDecimal {
-        if (items.isNullOrEmpty()) {
-            return BigDecimal.ZERO
-        }
-
-        val subtotal = calculateSubtotal(items)
-        val discountAmount = calculatePercentageDiscount(subtotal, discountPercentage)
-        val finalAmount = applyTaxAndDiscount(subtotal, discountAmount)
-
-        return finalAmount.setScale(CURRENCY_SCALE, RoundingMode.HALF_UP)
+        val applicableDiscount = findBestDiscount(subtotal, discountRules)
+        val discountAmount = calculateDiscountAmount(subtotal, applicableDiscount)
+        
+        val totalWithTax = calculateTotalWithTax(subtotal, discountAmount)
+        val taxAmount = totalWithTax.subtract(subtotal).add(discountAmount)
+        
+        return OrderCalculationResult(
+            subtotal = subtotal,
+            discountAmount = discountAmount,
+            taxAmount = taxAmount,
+            total = totalWithTax
+        )
     }
 
     private fun calculateSubtotal(items: List<OrderItem>): BigDecimal {
-        return items
-            .map { calculateItemTotal(it) }
-            .fold(BigDecimal.ZERO) { acc, item -> acc.add(item) }
+        return items.fold(BigDecimal.ZERO) { acc, item ->
+            val itemTotal = item.unitPrice.multiply(BigDecimal(item.quantity))
+            acc.add(itemTotal)
+        }.setScale(scale, roundingMode)
     }
 
-    private fun calculateItemTotal(item: OrderItem): BigDecimal {
-        return item.price.multiply(BigDecimal(item.quantity))
+    private fun findBestDiscount(subtotal: BigDecimal, discountRules: List<DiscountRule>): DiscountRule? {
+        return discountRules
+            .filter { rule -> 
+                rule.minimumAmount?.let { minimum -> 
+                    subtotal >= minimum 
+                } ?: true 
+            }
+            .maxByOrNull { rule -> 
+                calculateDiscountAmount(subtotal, rule) 
+            }
     }
 
-    // BUG: Tax is applied BEFORE discount, should be AFTER
-    // Correct: (subtotal - discount) * 1.10
-    // Wrong: (subtotal * 1.10) - discount
-    private fun applyTaxAndDiscount(subtotal: BigDecimal, discountAmount: BigDecimal?): BigDecimal {
-        val discount = discountAmount ?: BigDecimal.ZERO
-
-        val taxableAmount = subtotal.multiply(TAX_MULTIPLIER)
-        val finalAmount = taxableAmount.subtract(discount)
-
-        return finalAmount.max(BigDecimal.ZERO)
+    private fun calculateDiscountAmount(subtotal: BigDecimal, discountRule: DiscountRule?): BigDecimal {
+        return discountRule?.let { rule ->
+            when (rule.type) {
+                "PERCENTAGE" -> subtotal.multiply(rule.value.divide(BigDecimal("100")))
+                "FIXED" -> rule.value
+                else -> BigDecimal.ZERO
+            }
+        }?.setScale(scale, roundingMode) ?: BigDecimal.ZERO
     }
 
-    private fun calculatePercentageDiscount(subtotal: BigDecimal, discountPercentage: BigDecimal?): BigDecimal {
-        if (discountPercentage == null || discountPercentage <= BigDecimal.ZERO) {
-            return BigDecimal.ZERO
+    private fun calculateTotalWithTax(subtotal: BigDecimal, discountAmount: BigDecimal): BigDecimal {
+        val taxMultiplier = BigDecimal.ONE.add(taxRate)
+        return subtotal.multiply(taxMultiplier).subtract(discountAmount).setScale(scale, roundingMode)
+    }
+
+    fun validateOrderItems(items: List<OrderItem>): Boolean {
+        return items.isNotEmpty() && items.all { item ->
+            item.quantity > 0 && item.unitPrice > BigDecimal.ZERO
         }
-
-        val discountRate = discountPercentage.divide(BigDecimal("100"), 4, RoundingMode.HALF_UP)
-        return subtotal.multiply(discountRate)
     }
 
-    fun calculateTaxAmount(taxableAmount: BigDecimal): BigDecimal {
-        return taxableAmount.multiply(TAX_RATE).setScale(CURRENCY_SCALE, RoundingMode.HALF_UP)
-    }
-
-    fun isValidDiscount(discountAmount: BigDecimal?, subtotal: BigDecimal?): Boolean {
-        if (discountAmount == null || subtotal == null) {
-            return false
+    fun estimateShippingCost(subtotal: BigDecimal, shippingZone: String): BigDecimal {
+        val baseShipping = when (shippingZone.uppercase()) {
+            "LOCAL" -> BigDecimal("5.00")
+            "REGIONAL" -> BigDecimal("12.00")
+            "NATIONAL" -> BigDecimal("18.00")
+            else -> BigDecimal("25.00")
         }
-        return discountAmount >= BigDecimal.ZERO && discountAmount <= subtotal
+        
+        return if (subtotal >= BigDecimal("100.00")) {
+            BigDecimal.ZERO
+        } else {
+            baseShipping
+        }
     }
-
-    data class OrderItem(
-        val productId: String,
-        val price: BigDecimal,
-        val quantity: Int
-    )
 }

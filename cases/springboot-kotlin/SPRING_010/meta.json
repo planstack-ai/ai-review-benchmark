@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_010",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "event_listener_order",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "@EventListener order dependency not specified - listeners execute in undefined order, causing race conditions when order matters",
+  "bug_anchor": "@EventListener",
+  "correct_implementation": "@Order(1) @EventListener for first listener, @Order(2) for second listener, etc.",
+  "severity": "high",
+  "tags": ["spring", "event", "order"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

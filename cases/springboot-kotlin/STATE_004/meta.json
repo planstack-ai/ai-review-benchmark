@@ -5,9 +5,9 @@
   "name": "enum_comparison_wrong",
   "difficulty": "medium",
   "expected_detection": true,
-  "bug_description": "Using == for enum comparison in stream - works but comparing by name fails",
-  "bug_anchor": "completedStatuses.stream().anyMatch(s -> s.name().equals(order.Status.name()))",
-  "correct_implementation": "completedStatuses.contains(order.getStatus())",
+  "bug_description": "Using string comparison instead of enum comparison",
+  "bug_anchor": "completedStatuses.any { it.name == order.status.name }",
+  "correct_implementation": "order.status in completedStatuses",
   "severity": "medium",
   "tags": [
     "state",
@@ -16,6 +16,6 @@
   ],
   "framework": "springboot-kotlin",
   "framework_version": "3.2+",
-  "bug_anchor_verified": true,
-  "kotlin_version": "1.9+"
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
 }

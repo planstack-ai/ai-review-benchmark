@@ -6,23 +6,27 @@ This system manages order state transitions with specific business rules governi
 
 ## Requirements
 
-1. Orders must maintain a current state that can be tracked and validated
-2. Order cancellation must be restricted to only PENDING and CONFIRMED states
-3. Attempting to cancel an order from any other state must result in an appropriate error response
-4. The system must validate the current order state before processing any cancellation request
-5. State transition validation must occur before any cancellation logic is executed
-6. The cancellation operation must update the order state to CANCELLED when successful
-7. All state transitions must be atomic to prevent inconsistent states
-8. The system must provide clear feedback when cancellation is not permitted due to state restrictions
+1. Define an Order entity with appropriate state management capabilities
+2. Implement state enumeration covering the complete order lifecycle (PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED)
+3. Create a cancellation method that validates current state before allowing transition
+4. Ensure cancellation is only permitted when order state is PENDING or CONFIRMED
+5. Throw appropriate exception when cancellation is attempted from invalid states
+6. Maintain state transition history for audit purposes
+7. Provide clear error messaging indicating why cancellation failed
+8. Implement proper validation before any state change occurs
+9. Ensure cancelled orders cannot be modified further
+10. Create REST endpoint to handle cancellation requests with proper HTTP status codes
 
 ## Constraints
 
-1. Orders in SHIPPED, DELIVERED, or already CANCELLED states cannot be cancelled
-2. State validation must be performed using the current state at the time of the cancellation request
-3. Concurrent state changes must be handled appropriately to prevent race conditions
-4. Invalid state transition attempts must not modify the order in any way
-5. The system must maintain referential integrity during state transitions
+- Orders in SHIPPED state cannot be cancelled (goods already in transit)
+- Orders in DELIVERED state cannot be cancelled (transaction complete)
+- Orders already in CANCELLED state should not allow re-cancellation
+- State transitions must be atomic and thread-safe
+- Invalid state transition attempts must not modify the order
+- Cancellation timestamp must be recorded when transition occurs
+- Original order data must remain intact after cancellation
 
 ## References
 
-See context.md for existing order management implementations and state handling patterns.
+See context.md for existing codebase patterns and architectural decisions.

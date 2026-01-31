@@ -7,7 +7,7 @@ CREATE TABLE orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_id BIGINT NOT NULL,
     total_amount DECIMAL(10,2) NOT NULL,
-    shipping_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    shipping_cost DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     status VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -21,101 +21,118 @@ CREATE TABLE order_items (
     unit_price DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id)
 );
+
+CREATE TABLE shipping_policies (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    policy_name VARCHAR(100) NOT NULL,
+    minimum_amount DECIMAL(10,2) NOT NULL,
+    shipping_cost DECIMAL(10,2) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
 ```
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "orders")
-public class Order {
+data class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "customer_id", nullable = false)
-    private Long customerId;
+    val customerId: Long,
     
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount;
+    val totalAmount: BigDecimal,
     
-    @Column(name = "shipping_fee", nullable = false, precision = 10, scale = 2)
-    private BigDecimal shippingFee = BigDecimal.ZERO;
+    @Column(name = "shipping_cost", nullable = false, precision = 10, scale = 2)
+    var shippingCost: BigDecimal = BigDecimal.ZERO,
     
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    val status: OrderStatus,
     
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<OrderItem> items = new ArrayList<>();
+    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val items: List<OrderItem> = emptyList(),
     
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
-}
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+)
 
 @Entity
 @Table(name = "order_items")
-public class OrderItem {
+data class OrderItem(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    @JoinColumn(name = "order_id")
+    val order: Order,
     
     @Column(name = "product_id", nullable = false)
-    private Long productId;
+    val productId: Long,
     
     @Column(nullable = false)
-    private Integer quantity;
+    val quantity: Int,
     
     @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal unitPrice;
-    
-    // constructors, getters, setters
+    val unitPrice: BigDecimal
+) {
+    val subtotal: BigDecimal
+        get() = unitPrice.multiply(BigDecimal(quantity))
 }
 
-public enum OrderStatus {
+@Entity
+@Table(name = "shipping_policies")
+data class ShippingPolicy(
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
+    
+    @Column(name = "policy_name", nullable = false)
+    val policyName: String,
+    
+    @Column(name = "minimum_amount", nullable = false, precision = 10, scale = 2)
+    val minimumAmount: BigDecimal,
+    
+    @Column(name = "shipping_cost", nullable = false, precision = 10, scale = 2)
+    val shippingCost: BigDecimal,
+    
+    @Column(name = "is_active")
+    val isActive: Boolean = true
+)
+
+enum class OrderStatus {
     PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
 }
-```
 
-```java
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByCustomerId(Long customerId);
-    List<Order> findByStatus(OrderStatus status);
-    
-    @Query("SELECT o FROM Order o WHERE o.totalAmount >= :amount")
-    List<Order> findOrdersWithMinimumAmount(@Param("amount") BigDecimal amount);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByCustomerId(customerId: Long): List<Order>
+    fun findByStatus(status: OrderStatus): List<Order>
 }
 
 @Repository
-public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
-    List<OrderItem> findByOrderId(Long orderId);
-}
-```
-
-```java
-@Component
-public class ShippingConstants {
-    public static final BigDecimal STANDARD_SHIPPING_FEE = new BigDecimal("500");
-    public static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("5000");
+interface ShippingPolicyRepository : JpaRepository<ShippingPolicy, Long> {
+    fun findByIsActiveTrueOrderByMinimumAmountAsc(): List<ShippingPolicy>
+    fun findByMinimumAmountLessThanEqualAndIsActiveTrueOrderByMinimumAmountDesc(amount: BigDecimal): List<ShippingPolicy>
 }
 
 @Service
-public interface OrderService {
-    Order createOrder(Long customerId, List<OrderItemRequest> items);
-    Order updateOrderStatus(Long orderId, OrderStatus status);
-    BigDecimal calculateOrderTotal(List<OrderItemRequest> items);
+interface ShippingService {
+    fun calculateShippingCost(orderAmount: BigDecimal): BigDecimal
+    fun applyShippingPolicy(order: Order): Order
 }
 
-public record OrderItemRequest(Long productId, Integer quantity, BigDecimal unitPrice) {}
+object ShippingConstants {
+    val STANDARD_SHIPPING_COST = BigDecimal("500")
+    val FREE_SHIPPING_THRESHOLD = BigDecimal("5000")
+}
 ```

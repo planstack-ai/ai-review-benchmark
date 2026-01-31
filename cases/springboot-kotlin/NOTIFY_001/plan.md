@@ -2,31 +2,30 @@
 
 ## Overview
 
-The system needs to send order confirmation emails to customers asynchronously after successful order placement. This ensures that email delivery issues do not block the order processing workflow and provides a better user experience by reducing response times. The notification system should handle email failures gracefully and provide appropriate logging for monitoring and debugging purposes.
+The system needs to send order confirmation emails to customers asynchronously after successful order placement. This ensures that the order processing flow is not blocked by email delivery operations, providing better user experience and system performance. The notification system should handle email delivery failures gracefully and provide appropriate logging for monitoring and debugging purposes.
 
 ## Requirements
 
-1. Send order confirmation emails asynchronously using Spring's `@Async` annotation
-2. Create a dedicated notification service that handles email composition and delivery
-3. Include essential order details in the email: order ID, customer name, order total, and order items
-4. Configure proper async execution with a custom thread pool for notification tasks
-5. Implement comprehensive error handling for email delivery failures
-6. Log successful email deliveries with order ID and recipient information
-7. Log email delivery failures with detailed error information for troubleshooting
-8. Ensure the main order processing flow continues regardless of email delivery status
-9. Use proper exception handling to prevent async task failures from propagating
-10. Configure email templates or formatting for professional order confirmation messages
+1. Send order confirmation emails asynchronously using Spring's async capabilities
+2. Email sending must not block the main order processing thread
+3. Include essential order details in the confirmation email (order ID, customer email, order items, total amount)
+4. Handle email delivery failures without affecting the order completion status
+5. Log successful email deliveries with order ID and recipient email
+6. Log email delivery failures with error details and order context
+7. Implement proper exception handling for email service failures
+8. Use appropriate Spring annotations for async method execution
+9. Validate that customer email address is present before attempting to send
+10. Return appropriate response indicating email notification status
 
 ## Constraints
 
-1. Email delivery failures must not cause the order processing to fail or rollback
-2. The async notification method must not throw uncaught exceptions
-3. All email operations must be performed on separate threads from the main request processing
-4. Customer email addresses must be validated before attempting to send notifications
-5. The system must handle null or empty order data gracefully without crashing
-6. Email service timeouts should not exceed 30 seconds per delivery attempt
-7. Failed email notifications should not be retried automatically to avoid spam
+1. Email sending failures must not cause order processing to fail
+2. Customer email address must be validated as non-null and non-empty
+3. Order confirmation emails should only be sent for successfully completed orders
+4. Async method must be properly configured to run in separate thread pool
+5. All email operations must include proper error handling and logging
+6. System should gracefully handle cases where email service is unavailable
 
 ## References
 
-See context.md for existing order processing implementation and email service configuration details.
+See context.md for existing Spring Boot application structure, configuration patterns, and related service implementations.

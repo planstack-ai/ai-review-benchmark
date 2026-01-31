@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_005",
+  "category": "stock",
+  "axis": "spec_alignment",
+  "name": "zero_quantity_order",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Zero quantity orders allowed through validation gap",
+  "bug_anchor": "@field:Min(0)",
+  "correct_implementation": "@field:Min(1) var quantity: Int",
+  "severity": "medium",
+  "tags": [
+    "stock",
+    "validation",
+    "quantity"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

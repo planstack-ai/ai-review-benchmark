@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_005",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "month_end_processing",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Invalid date error - February 30 doesn't exist. When advancing from January 31 to next month, constructing LocalDate.of(year, 2, 31) throws DateTimeException",
+  "bug_anchor": "LocalDate.of(nextYear, nextMonth, day)",
+  "correct_implementation": "currentBillingDate.plusMonths(1).withDayOfMonth(minOf(day, currentBillingDate.plusMonths(1).lengthOfMonth()))",
+  "severity": "high",
+  "tags": [
+    "time",
+    "month_end",
+    "validation"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

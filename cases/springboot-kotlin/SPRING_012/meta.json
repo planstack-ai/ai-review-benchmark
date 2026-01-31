@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_012",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "async_outside_commit",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "@Async called inside transaction - notification sent before commit, may reference uncommitted data",
+  "bug_anchor": "@Async\n    fun sendOrderConfirmation(orderId: Long)",
+  "correct_implementation": "@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT) or call async method outside transaction",
+  "severity": "critical",
+  "tags": ["spring", "async", "transaction"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

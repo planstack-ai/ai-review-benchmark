@@ -1,0 +1,17 @@
+{
+  "case_id": "FP_007",
+  "category": "false_positive",
+  "axis": "false_positive",
+  "name": "complex_state_machine",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": "when (currentState) { ... multiple state transitions ... }",
+  "correct_implementation": null,
+  "severity": null,
+  "tags": ["false_positive", "state", "complex"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "misleading_points": "Complex state machine logic with many transitions looks error-prone but all paths are properly validated with exhaustive when expressions"
+}

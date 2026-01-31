@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_008",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "coupon_stacking_logic",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Coupon stacking allowed - multiple coupons can be applied",
+  "bug_anchor": "validateCoupon(coupon, order)",
+  "correct_implementation": "if (order.couponId != null) throw CouponAlreadyAppliedException(); validateCoupon(coupon, order)",
+  "severity": "high",
+  "tags": [
+    "calculation",
+    "coupon",
+    "validation"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

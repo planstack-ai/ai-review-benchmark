@@ -13,11 +13,19 @@ CREATE TABLE campaigns (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE products (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    base_price DECIMAL(10,2) NOT NULL,
+    category VARCHAR(100),
+    active BOOLEAN DEFAULT true
+);
+
 CREATE TABLE orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_id BIGINT NOT NULL,
     total_amount DECIMAL(10,2) NOT NULL,
-    discount_amount DECIMAL(10,2) DEFAULT 0.00,
+    discount_amount DECIMAL(10,2) DEFAULT 0,
     campaign_id BIGINT,
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
@@ -26,93 +34,107 @@ CREATE TABLE orders (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "campaigns")
-public class Campaign {
+data class Campaign(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(nullable = false)
-    private String name;
+    val name: String,
     
     @Column(name = "discount_percentage", nullable = false, precision = 5, scale = 2)
-    private BigDecimal discountPercentage;
+    val discountPercentage: BigDecimal,
     
     @Column(name = "start_date", nullable = false)
-    private LocalDateTime startDate;
+    val startDate: LocalDateTime,
     
     @Column(name = "end_date", nullable = false)
-    private LocalDateTime endDate;
+    val endDate: LocalDateTime,
     
     @Column(nullable = false)
-    private Boolean active = true;
+    val active: Boolean = true,
     
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
+
+@Entity
+@Table(name = "products")
+data class Product(
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
     
-    // constructors, getters, setters
-}
+    @Column(nullable = false)
+    val name: String,
+    
+    @Column(name = "base_price", nullable = false, precision = 10, scale = 2)
+    val basePrice: BigDecimal,
+    
+    val category: String?,
+    
+    val active: Boolean = true
+)
 
 @Entity
 @Table(name = "orders")
-public class Order {
+data class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "customer_id", nullable = false)
-    private Long customerId;
+    val customerId: Long,
     
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount;
+    val totalAmount: BigDecimal,
     
     @Column(name = "discount_amount", precision = 10, scale = 2)
-    private BigDecimal discountAmount = BigDecimal.ZERO;
+    val discountAmount: BigDecimal = BigDecimal.ZERO,
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campaign_id")
-    private Campaign campaign;
+    val campaign: Campaign? = null,
     
     @Column(name = "order_date")
-    private LocalDateTime orderDate;
-    
-    // constructors, getters, setters
+    val orderDate: LocalDateTime = LocalDateTime.now()
+)
+```
+
+```kotlin
+@Repository
+interface CampaignRepository : JpaRepository<Campaign, Long> {
+    fun findByActiveTrue(): List<Campaign>
+    fun findByActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<Campaign>
 }
 
 @Repository
-public interface CampaignRepository extends JpaRepository<Campaign, Long> {
-    
-    @Query("SELECT c FROM Campaign c WHERE c.active = true AND :currentTime BETWEEN c.startDate AND c.endDate")
-    List<Campaign> findActiveCampaignsAt(@Param("currentTime") LocalDateTime currentTime);
-    
-    Optional<Campaign> findByIdAndActiveTrue(Long id);
+interface ProductRepository : JpaRepository<Product, Long> {
+    fun findByActiveTrue(): List<Product>
 }
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByCustomerId(Long customerId);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByCustomerId(customerId: Long): List<Order>
+}
+```
+
+```kotlin
+@Service
+interface CampaignService {
+    fun getActiveCampaigns(): List<Campaign>
+    fun calculateDiscount(baseAmount: BigDecimal, campaignId: Long): BigDecimal
 }
 
 @Service
-public interface TimeService {
-    LocalDateTime getCurrentTime();
-}
-
-@Service
-@Component
-public class SystemTimeService implements TimeService {
-    @Override
-    public LocalDateTime getCurrentTime() {
-        return LocalDateTime.now();
-    }
-}
-
-public final class DiscountConstants {
-    public static final BigDecimal HUNDRED = new BigDecimal("100");
-    public static final BigDecimal ZERO = BigDecimal.ZERO;
-    
-    private DiscountConstants() {}
+interface OrderService {
+    fun createOrder(customerId: Long, productIds: List<Long>, campaignId: Long?): Order
+    fun calculateOrderTotal(productIds: List<Long>): BigDecimal
 }
 ```

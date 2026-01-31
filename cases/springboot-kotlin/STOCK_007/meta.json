@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_007",
+  "category": "stock",
+  "axis": "spec_alignment",
+  "name": "duplicate_stock_restoration",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Cancel spam increases stock - no idempotency check",
+  "bug_anchor": "restoreStock(order)",
+  "correct_implementation": "if (order.stockRestored) return; restoreStock(); order.stockRestored = true",
+  "severity": "critical",
+  "tags": [
+    "stock",
+    "cancellation",
+    "idempotency"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

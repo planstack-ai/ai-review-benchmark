@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_015",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "modifying_skips_listeners",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "@Modifying bulk update skips @EntityListeners - audit callbacks not triggered",
+  "bug_anchor": "@Modifying\n    @Query(\"UPDATE Order o SET o.status = :status WHERE o.createdAt < :cutoffDate\")",
+  "correct_implementation": "findAll matching orders then save each entity to trigger listeners, or implement audit logic separately",
+  "severity": "high",
+  "tags": ["spring", "jpa", "listeners"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

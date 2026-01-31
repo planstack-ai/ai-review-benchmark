@@ -6,26 +6,26 @@ This system manages critical business state that requires protection against con
 
 ## Requirements
 
-1. The system must detect when multiple concurrent updates are attempted on the same resource
-2. Only one update operation should succeed when concurrent modifications are detected
+1. The system must detect when multiple concurrent update attempts occur on the same resource
+2. Only one update operation should succeed when concurrent modifications are attempted
 3. Failed update attempts must receive clear feedback indicating a conflict occurred
-4. The system must maintain data consistency even under high concurrency
-5. State changes must be atomic - either fully applied or completely rolled back
+4. The system must preserve data integrity by preventing partial or corrupted updates
+5. State changes must be atomic - either fully applied or completely rejected
 6. The application must handle optimistic locking scenarios appropriately
-7. Conflict detection must occur before any state modifications are persisted
-8. The system must provide meaningful error responses for conflict situations
-9. All state update operations must be thread-safe
-10. The application must prevent the "lost update" problem in concurrent scenarios
+7. Conflict detection must work across different types of state modifications
+8. The system must provide meaningful error responses when conflicts are detected
+9. Resource versioning or similar mechanisms must be used to track state changes
+10. The application must handle both direct API calls and background processing conflicts
 
 ## Constraints
 
-1. Updates must fail fast when conflicts are detected rather than blocking indefinitely
-2. The system must not allow partial updates when conflicts occur
-3. Conflict resolution must not introduce additional race conditions
+1. Updates must not proceed if the resource has been modified since it was last read
+2. The system must not allow silent data overwrites or lost updates
+3. Conflict resolution must not introduce race conditions
 4. Error responses must not expose sensitive internal state information
-5. The system must handle both database-level and application-level concurrency
-6. Performance must remain acceptable even with conflict detection overhead
-7. The solution must work correctly in distributed deployment scenarios
+5. The system must handle high-concurrency scenarios without performance degradation
+6. Database transactions must be properly managed to prevent deadlocks
+7. Version conflicts must be detected before any state changes are committed
 
 ## References
 

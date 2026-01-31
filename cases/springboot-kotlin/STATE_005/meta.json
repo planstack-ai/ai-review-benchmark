@@ -1,0 +1,21 @@
+{
+  "case_id": "STATE_005",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "partial_cancel_integrity",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Total amount wrong after partial item cancellation",
+  "bug_anchor": "orderRepository.save(order)",
+  "correct_implementation": "order.recalculateTotal(); orderRepository.save(order)",
+  "severity": "high",
+  "tags": [
+    "state",
+    "cancellation",
+    "calculation"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

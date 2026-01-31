@@ -19,99 +19,100 @@ CREATE TABLE price_adjustments (
     adjustment_value DECIMAL(19,4) NOT NULL,
     is_percentage BOOLEAN NOT NULL DEFAULT FALSE,
     effective_date DATE NOT NULL,
+    expiry_date DATE,
     FOREIGN KEY (product_id) REFERENCES products(id)
 );
 ```
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "products")
-public class Product {
+data class Product(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(nullable = false)
-    private String name;
+    val name: String,
     
     @Column(name = "base_price", nullable = false, precision = 19, scale = 4)
-    private BigDecimal basePrice;
+    val basePrice: BigDecimal,
     
     @Column(name = "currency_code", nullable = false, length = 3)
-    private String currencyCode = "USD";
+    val currencyCode: String = "USD",
     
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
-    private List<PriceAdjustment> priceAdjustments = new ArrayList<>();
-    
-    // constructors, getters, setters
-}
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+)
 
 @Entity
 @Table(name = "price_adjustments")
-public class PriceAdjustment {
+data class PriceAdjustment(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @Column(name = "product_id", nullable = false)
+    val productId: Long,
     
     @Enumerated(EnumType.STRING)
     @Column(name = "adjustment_type", nullable = false)
-    private AdjustmentType adjustmentType;
+    val adjustmentType: AdjustmentType,
     
     @Column(name = "adjustment_value", nullable = false, precision = 19, scale = 4)
-    private BigDecimal adjustmentValue;
+    val adjustmentValue: BigDecimal,
     
     @Column(name = "is_percentage", nullable = false)
-    private Boolean isPercentage = false;
+    val isPercentage: Boolean = false,
     
     @Column(name = "effective_date", nullable = false)
-    private LocalDate effectiveDate;
+    val effectiveDate: LocalDate,
     
-    // constructors, getters, setters
-}
+    @Column(name = "expiry_date")
+    val expiryDate: LocalDate?
+)
 
-public enum AdjustmentType {
-    DISCOUNT, TAX, SURCHARGE, PROMOTION
+enum class AdjustmentType {
+    DISCOUNT, MARKUP, TAX, SHIPPING
 }
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long> {
-    Optional<Product> findByIdWithAdjustments(Long id);
-    
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.priceAdjustments pa " +
-           "WHERE p.id = :id AND (pa.effectiveDate IS NULL OR pa.effectiveDate <= :date)")
-    Optional<Product> findByIdWithActiveAdjustments(@Param("id") Long id, @Param("date") LocalDate date);
+interface ProductRepository : JpaRepository<Product, Long> {
+    fun findByCurrencyCode(currencyCode: String): List<Product>
 }
 
 @Repository
-public interface PriceAdjustmentRepository extends JpaRepository<PriceAdjustment, Long> {
-    List<PriceAdjustment> findByProductIdAndEffectiveDateLessThanEqual(Long productId, LocalDate date);
+interface PriceAdjustmentRepository : JpaRepository<PriceAdjustment, Long> {
+    fun findByProductIdAndEffectiveDateLessThanEqualAndExpiryDateGreaterThanEqualOrExpiryDateIsNull(
+        productId: Long,
+        effectiveDate: LocalDate,
+        expiryDate: LocalDate
+    ): List<PriceAdjustment>
 }
 
-@Component
-public class CurrencyConstants {
-    public static final String DEFAULT_CURRENCY = "USD";
-    public static final int CURRENCY_SCALE = 4;
-    public static final RoundingMode DEFAULT_ROUNDING = RoundingMode.HALF_UP;
-    public static final BigDecimal HUNDRED = new BigDecimal("100");
+object PricingConstants {
+    val DEFAULT_ROUNDING_MODE = RoundingMode.HALF_UP
+    const val CURRENCY_SCALE = 4
+    const val PERCENTAGE_DIVISOR = 100
 }
 
 @Service
-public interface PriceCalculationService {
-    BigDecimal calculateFinalPrice(Long productId, LocalDate effectiveDate);
-    BigDecimal applyAdjustments(BigDecimal basePrice, List<PriceAdjustment> adjustments);
+interface PricingService {
+    fun calculateFinalPrice(productId: Long, calculationDate: LocalDate = LocalDate.now()): BigDecimal?
 }
+
+data class PriceCalculationResult(
+    val productId: Long,
+    val basePrice: BigDecimal,
+    val adjustments: List<PriceAdjustment>,
+    val finalPrice: BigDecimal,
+    val currencyCode: String
+)
 ```

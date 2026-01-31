@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_011",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "orphan_removal_missing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "orphanRemoval = false (or missing) - child OrderItem records become orphaned when parent Order is deleted, causing data integrity issues",
+  "bug_anchor": "@OneToMany(mappedBy = \"order\")",
+  "correct_implementation": "@OneToMany(mappedBy = \"order\", orphanRemoval = true, cascade = [CascadeType.ALL])",
+  "severity": "high",
+  "tags": ["spring", "jpa", "cascade"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

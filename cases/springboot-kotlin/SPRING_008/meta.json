@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_008",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "repository_query_not_used",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Reimplementing findByStatus logic everywhere instead of using the existing repository query method, causing inefficient queries and code duplication",
+  "bug_anchor": "orderRepository.findAll().filter { it.status == OrderStatus.ACTIVE }",
+  "correct_implementation": "orderRepository.findByStatus(OrderStatus.ACTIVE)",
+  "severity": "medium",
+  "tags": ["spring", "repository", "dry"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

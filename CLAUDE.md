@@ -113,13 +113,13 @@ cases/{framework}/{CASE_ID}/
 | Implicit Knowledge | SPRING, PERF, DATA, EXT | 30 |
 | False Positive | FP | 5 |
 
-### Spring Boot - Kotlin (52 total)
+### Spring Boot - Kotlin (98 total)
 
 | Axis | Categories | Cases |
 |------|------------|-------|
-| Spec Alignment | CALC, AUTH, STATE, TIME, STOCK, NOTIFY | 20 |
-| Implicit Knowledge | SPRING, PERF, DATA, EXT | 27 |
-| False Positive | FP | 5 |
+| Spec Alignment | CALC, AUTH, STATE, TIME, STOCK, NOTIFY | 46 |
+| Implicit Knowledge | SPRING, PERF, DATA, EXT | 39 |
+| False Positive | FP | 13 |
 
 ### Laravel (60)
 

@@ -1,0 +1,17 @@
+{
+  "case_id": "FP_006",
+  "category": "false_positive",
+  "axis": "false_positive",
+  "name": "complex_nested_transaction",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": "@Transactional(propagation = Propagation.REQUIRES_NEW)",
+  "correct_implementation": null,
+  "severity": null,
+  "tags": ["false_positive", "transaction", "complex"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "misleading_points": "Nested transactions with REQUIRES_NEW look suspicious but are correctly used for independent transaction boundaries"
+}

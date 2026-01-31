@@ -8,7 +8,7 @@ CREATE TABLE products (
     sku VARCHAR(100) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
-    stock_quantity INTEGER NOT NULL DEFAULT 0,
+    stock_quantity INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -17,7 +17,7 @@ CREATE TABLE stock_movements (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     product_id BIGINT NOT NULL,
     movement_type ENUM('IN', 'OUT') NOT NULL,
-    quantity INTEGER NOT NULL,
+    quantity INT NOT NULL,
     reference_id VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id)
@@ -26,92 +26,100 @@ CREATE TABLE stock_movements (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "products")
-public class Product {
+data class Product(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(unique = true, nullable = false)
-    private String sku;
+    val sku: String,
     
     @Column(nullable = false)
-    private String name;
+    val name: String,
     
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
+    val price: BigDecimal,
     
     @Column(name = "stock_quantity", nullable = false)
-    private Integer stockQuantity = 0;
+    val stockQuantity: Int = 0,
     
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
-}
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+)
 
 @Entity
 @Table(name = "stock_movements")
-public class StockMovement {
+data class StockMovement(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "product_id", nullable = false)
-    private Long productId;
+    val productId: Long,
     
     @Enumerated(EnumType.STRING)
     @Column(name = "movement_type", nullable = false)
-    private MovementType movementType;
+    val movementType: MovementType,
     
     @Column(nullable = false)
-    private Integer quantity;
+    val quantity: Int,
     
     @Column(name = "reference_id")
-    private String referenceId;
+    val referenceId: String? = null,
     
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
-    // constructors, getters, setters
-}
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
 
-public enum MovementType {
+enum class MovementType {
     IN, OUT
 }
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long> {
-    Optional<Product> findBySku(String sku);
+interface ProductRepository : JpaRepository<Product, Long> {
+    fun findBySku(sku: String): Product?
     
     @Modifying
     @Query("UPDATE Product p SET p.stockQuantity = p.stockQuantity + :quantity WHERE p.id = :productId")
-    int adjustStock(@Param("productId") Long productId, @Param("quantity") Integer quantity);
+    fun updateStockQuantity(productId: Long, quantity: Int): Int
 }
 
 @Repository
-public interface StockMovementRepository extends JpaRepository<StockMovement, Long> {
-    List<StockMovement> findByProductIdOrderByCreatedAtDesc(Long productId);
+interface StockMovementRepository : JpaRepository<StockMovement, Long> {
+    fun findByProductIdOrderByCreatedAtDesc(productId: Long): List<StockMovement>
 }
 
-public class InsufficientStockException extends RuntimeException {
-    public InsufficientStockException(String message) {
-        super(message);
-    }
+interface StockService {
+    fun adjustStock(productId: Long, quantity: Int, referenceId: String? = null): Product
+    fun getAvailableStock(productId: Long): Int
 }
 
-@Service
-public interface StockService {
-    void reserveStock(String sku, Integer quantity);
-    void releaseStock(String sku, Integer quantity);
-    Integer getAvailableStock(String sku);
-}
+data class StockAdjustmentRequest(
+    val productId: Long,
+    val quantity: Int,
+    val referenceId: String? = null
+)
+
+data class StockValidationResult(
+    val isValid: Boolean,
+    val currentStock: Int,
+    val requestedQuantity: Int,
+    val resultingStock: Int,
+    val errorMessage: String? = null
+)
+
+class InsufficientStockException(
+    val productId: Long,
+    val currentStock: Int,
+    val requestedQuantity: Int
+) : RuntimeException("Insufficient stock for product $productId. Current: $currentStock, Requested: $requestedQuantity")
 ```

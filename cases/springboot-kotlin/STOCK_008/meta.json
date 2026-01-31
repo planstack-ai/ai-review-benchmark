@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_008",
+  "category": "stock",
+  "axis": "spec_alignment",
+  "name": "bundle_stock_calculation",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Bundle stock not calculated as minimum of components",
+  "bug_anchor": "return components.sumOf { it.availableStock }",
+  "correct_implementation": "components.minOfOrNull { it.stock } ?: 0",
+  "severity": "high",
+  "tags": [
+    "stock",
+    "bundle",
+    "calculation"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

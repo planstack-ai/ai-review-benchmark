@@ -22,99 +22,139 @@ CREATE TABLE payments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id)
 );
+
+CREATE TABLE inventory (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    product_id BIGINT NOT NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    reserved_quantity INT NOT NULL DEFAULT 0
+);
 ```
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "orders")
-public class Order {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+data class Order(
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
     
     @Column(name = "customer_id", nullable = false)
-    private Long customerId;
+    val customerId: Long,
     
     @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
-    private BigDecimal totalAmount;
+    val totalAmount: BigDecimal,
     
     @Enumerated(EnumType.STRING)
-    private OrderStatus status = OrderStatus.PENDING;
+    @Column(nullable = false)
+    val status: OrderStatus = OrderStatus.PENDING,
     
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
-}
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+)
 
 @Entity
 @Table(name = "payments")
-public class Payment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+data class Payment(
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
     
     @Column(name = "order_id", nullable = false)
-    private Long orderId;
+    val orderId: Long,
     
     @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal amount;
+    val amount: BigDecimal,
     
     @Column(name = "payment_method", nullable = false)
-    private String paymentMethod;
+    val paymentMethod: String,
     
     @Enumerated(EnumType.STRING)
-    private PaymentStatus status = PaymentStatus.PENDING;
+    @Column(nullable = false)
+    val status: PaymentStatus = PaymentStatus.PENDING,
     
     @Column(name = "transaction_id")
-    private String transactionId;
+    val transactionId: String? = null,
     
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
-    // constructors, getters, setters
-}
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
 
-public enum OrderStatus {
+@Entity
+@Table(name = "inventory")
+data class Inventory(
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
+    
+    @Column(name = "product_id", nullable = false)
+    val productId: Long,
+    
+    @Column(nullable = false)
+    val quantity: Int,
+    
+    @Column(name = "reserved_quantity", nullable = false)
+    val reservedQuantity: Int = 0
+)
+
+enum class OrderStatus {
     PENDING, CONFIRMED, CANCELLED, COMPLETED
 }
 
-public enum PaymentStatus {
+enum class PaymentStatus {
     PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED
 }
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByCustomerId(Long customerId);
-    List<Order> findByStatus(OrderStatus status);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByCustomerId(customerId: Long): List<Order>
+    fun findByStatus(status: OrderStatus): List<Order>
 }
 
 @Repository
-public interface PaymentRepository extends JpaRepository<Payment, Long> {
-    List<Payment> findByOrderId(Long orderId);
-    Optional<Payment> findByTransactionId(String transactionId);
-    List<Payment> findByStatus(PaymentStatus status);
+interface PaymentRepository : JpaRepository<Payment, Long> {
+    fun findByOrderId(orderId: Long): List<Payment>
+    fun findByStatus(status: PaymentStatus): List<Payment>
+}
+
+@Repository
+interface InventoryRepository : JpaRepository<Inventory, Long> {
+    fun findByProductId(productId: Long): Inventory?
+    
+    @Modifying
+    @Query("UPDATE Inventory i SET i.reservedQuantity = i.reservedQuantity + :quantity WHERE i.productId = :productId")
+    fun reserveQuantity(productId: Long, quantity: Int): Int
+    
+    @Modifying
+    @Query("UPDATE Inventory i SET i.quantity = i.quantity - :quantity, i.reservedQuantity = i.reservedQuantity - :quantity WHERE i.productId = :productId")
+    fun confirmReservation(productId: Long, quantity: Int): Int
 }
 
 @Service
-public interface PaymentGatewayService {
-    PaymentResult processPayment(BigDecimal amount, String paymentMethod);
-    void refundPayment(String transactionId);
+interface PaymentGatewayService {
+    fun processPayment(amount: BigDecimal, paymentMethod: String): PaymentResult
 }
 
-public record PaymentResult(String transactionId, PaymentStatus status, String errorMessage) {}
+data class PaymentResult(
+    val success: Boolean,
+    val transactionId: String?,
+    val errorMessage: String? = null
+)
 
-@Service
-public interface NotificationService {
-    void sendOrderConfirmation(Long orderId);
-    void sendPaymentNotification(Long paymentId);
-}
+data class OrderRequest(
+    val customerId: Long,
+    val items: List<OrderItem>,
+    val paymentMethod: String
+)
+
+data class OrderItem(
+    val productId: Long,
+    val quantity: Int,
+    val unitPrice: BigDecimal
+)
 ```

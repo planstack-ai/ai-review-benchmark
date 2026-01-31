@@ -5,12 +5,10 @@
 ```sql
 CREATE TABLE users (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'USER',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    username VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE products (
@@ -26,109 +24,114 @@ CREATE TABLE products (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "users")
-public class User {
+data class User(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(unique = true, nullable = false)
-    private String username;
-    
-    @Column(unique = true, nullable = false)
-    private String email;
+    val username: String,
     
     @Column(nullable = false)
-    private String password;
+    val email: String,
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserRole role = UserRole.USER;
+    val role: UserRole,
     
     @CreationTimestamp
-    private LocalDateTime createdAt;
-    
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
+
+enum class UserRole {
+    ADMIN, USER, MODERATOR
 }
 
 @Entity
 @Table(name = "products")
-public class Product {
+data class Product(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(nullable = false)
-    private String name;
+    val name: String,
     
-    private String description;
+    val description: String? = null,
     
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
+    val price: BigDecimal,
     
-    private String category;
+    val category: String? = null,
     
     @CreationTimestamp
-    private LocalDateTime createdAt;
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
-}
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+)
 
-public enum UserRole {
-    USER, ADMIN
+@Repository
+interface UserRepository : JpaRepository<User, Long> {
+    fun findByUsername(username: String): User?
 }
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByUsername(String username);
-    Optional<User> findByEmail(String email);
-}
-
-@Repository
-public interface ProductRepository extends JpaRepository<Product, Long> {
-    List<Product> findByCategory(String category);
-    List<Product> findByPriceBetween(BigDecimal minPrice, BigDecimal maxPrice);
+interface ProductRepository : JpaRepository<Product, Long> {
+    fun findByCategory(category: String): List<Product>
+    fun findByPriceBetween(minPrice: BigDecimal, maxPrice: BigDecimal): List<Product>
 }
 
 @Service
-public interface UserService {
-    User findByUsername(String username);
-    boolean hasRole(String username, UserRole role);
-    User getCurrentUser();
+interface UserService {
+    fun getCurrentUser(): User?
+    fun hasRole(user: User, role: UserRole): Boolean
 }
 
 @Service
-@Transactional
-public class UserServiceImpl implements UserService {
-    private final UserRepository userRepository;
+class UserServiceImpl(
+    private val userRepository: UserRepository
+) : UserService {
     
-    public UserServiceImpl(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    override fun getCurrentUser(): User? {
+        val authentication = SecurityContextHolder.getContext().authentication
+        return authentication?.name?.let { username ->
+            userRepository.findByUsername(username)
+        }
     }
     
-    @Override
-    public User findByUsername(String username) {
-        return userRepository.findByUsername(username)
-            .orElseThrow(() -> new EntityNotFoundException("User not found: " + username));
+    override fun hasRole(user: User, role: UserRole): Boolean {
+        return user.role == role
     }
+}
+
+data class ProductUpdateRequest(
+    val name: String? = null,
+    val description: String? = null,
+    val price: BigDecimal? = null,
+    val category: String? = null
+)
+
+@RestController
+@RequestMapping("/api/products")
+class ProductController(
+    private val productService: ProductService
+) {
     
-    @Override
-    public boolean hasRole(String username, UserRole role) {
-        return findByUsername(username).getRole() == role;
-    }
+    @GetMapping
+    fun getAllProducts(): List<Product> = productService.findAll()
     
-    @Override
-    public User getCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return findByUsername(auth.getName());
-    }
+    @GetMapping("/{id}")
+    fun getProduct(@PathVariable id: Long): Product? = productService.findById(id)
+}
+
+@Service
+interface ProductService {
+    fun findAll(): List<Product>
+    fun findById(id: Long): Product?
+    fun updateProduct(id: Long, request: ProductUpdateRequest): Product
 }
 ```

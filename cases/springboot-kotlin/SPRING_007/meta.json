@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_007",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "cacheable_key_missing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "@Cacheable without explicit key uses all method parameters by default, causing cache misses when the same productId is queried with different method signatures or contexts",
+  "bug_anchor": "@Cacheable(\"products\")",
+  "correct_implementation": "@Cacheable(value = [\"products\"], key = \"#productId\")",
+  "severity": "medium",
+  "tags": ["spring", "cache", "configuration"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

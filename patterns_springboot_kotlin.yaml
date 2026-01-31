@@ -1,6 +1,6 @@
 # AI Code Review Benchmark - Spring Boot (Kotlin) Bug Pattern Definitions
-# 52 patterns (47 bugs + 5 false positives) for Spring Boot e-commerce order processing
-# Version: 1.1
+# 98 patterns (85 bugs + 13 false positives) for Spring Boot e-commerce order processing
+# Version: 2.0
 # Framework: Spring Boot 3.2+, Kotlin 1.9+
 
 # =============================================================================
@@ -79,8 +79,56 @@
   difficulty: easy
   tags: [calculation, shipping, boundary]
 
+- id: CALC_007
+  category: calculation
+  axis: spec_alignment
+  name: points_calculation_order
+  plan: "Award points based on payment amount after discount"
+  bug_description: "Points calculated on pre-discount amount instead of post-discount"
+  correct: "total.subtract(discount).multiply(pointRate)"
+  incorrect: "total.multiply(pointRate)"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, points, discount]
+
+- id: CALC_008
+  category: calculation
+  axis: spec_alignment
+  name: coupon_stacking_logic
+  plan: "Apply single coupon per order"
+  bug_description: "Coupon stacking allowed - multiple coupons can be applied"
+  correct: "if (order.couponApplied) throw CouponAlreadyAppliedException(); applyCoupon(coupon)"
+  incorrect: "applyCoupon(coupon) // no check for existing coupon"
+  severity: high
+  difficulty: medium
+  tags: [calculation, coupon, validation]
+
+- id: CALC_009
+  category: calculation
+  axis: spec_alignment
+  name: minimum_order_amount
+  plan: "Minimum order amount is 1000 yen after discounts"
+  bug_description: "Minimum check on pre-discount amount instead of post-discount"
+  correct: "subtotal.subtract(discount) >= BigDecimal(\"1000\")"
+  incorrect: "subtotal >= BigDecimal(\"1000\")"
+  severity: medium
+  difficulty: medium
+  tags: [calculation, validation, minimum]
+
+- id: CALC_010
+  category: calculation
+  axis: spec_alignment
+  name: quantity_overflow
+  plan: "Calculate total for bulk orders"
+  bug_description: "Integer overflow on unit_price * quantity for large orders"
+  correct: "BigDecimal(unitPrice).multiply(BigDecimal(quantity))"
+  incorrect: "unitPrice * quantity // Int overflow"
+  severity: critical
+  difficulty: hard
+  tags: [calculation, overflow, bulk]
+
 # =============================================================================
-# User & Authorization (4 patterns) - Spec Alignment
+# User & Authorization (7 patterns) - Spec Alignment
 # =============================================================================
 
 - id: AUTH_001
@@ -131,8 +179,44 @@
   difficulty: easy
   tags: [authorization, admin, permission]
 
+- id: AUTH_005
+  category: authorization
+  axis: spec_alignment
+  name: guest_member_pricing
+  plan: "Member pricing only for logged-in members"
+  bug_description: "Guest users getting member pricing - membership check hole"
+  correct: "if (currentUser?.isMember == true) memberPrice else regularPrice"
+  incorrect: "memberPrice // no membership check"
+  severity: high
+  difficulty: medium
+  tags: [authorization, membership, pricing]
+
+- id: AUTH_006
+  category: authorization
+  axis: spec_alignment
+  name: access_other_points
+  plan: "Users can only view their own points"
+  bug_description: "Can access other user's points via API"
+  correct: "pointsRepository.findByUserId(currentUser.id)"
+  incorrect: "pointsRepository.findByUserId(userId) // from request param"
+  severity: high
+  difficulty: easy
+  tags: [authorization, points, api]
+
+- id: AUTH_007
+  category: authorization
+  axis: spec_alignment
+  name: coupon_owner_missing
+  plan: "Users can only use their own coupons"
+  bug_description: "Can use another user's coupon code"
+  correct: "couponRepository.findByCodeAndUserId(code, currentUser.id)"
+  incorrect: "couponRepository.findByCode(code) // no owner check"
+  severity: high
+  difficulty: medium
+  tags: [authorization, coupon, ownership]
+
 # =============================================================================
-# State Management (4 patterns) - Spec Alignment
+# State Management (7 patterns) - Spec Alignment
 # =============================================================================
 
 - id: STATE_001
@@ -183,8 +267,44 @@
   difficulty: medium
   tags: [state, enum, comparison]
 
+- id: STATE_005
+  category: state
+  axis: spec_alignment
+  name: partial_cancel_integrity
+  plan: "Update total correctly on partial cancellation"
+  bug_description: "Total amount wrong after partial item cancellation"
+  correct: "order.recalculateTotal() after partialCancel(item)"
+  incorrect: "partialCancel(item) // no total recalculation"
+  severity: high
+  difficulty: medium
+  tags: [state, cancellation, calculation]
+
+- id: STATE_006
+  category: state
+  axis: spec_alignment
+  name: refund_status_missing
+  plan: "Update payment status after refund"
+  bug_description: "Payment shows unpaid despite refund completion"
+  correct: "payment.status = PaymentStatus.REFUNDED after processRefund()"
+  incorrect: "processRefund() // no status update"
+  severity: high
+  difficulty: easy
+  tags: [state, refund, status]
+
+- id: STATE_007
+  category: state
+  axis: spec_alignment
+  name: delivery_status_regression
+  plan: "Delivery status can only move forward"
+  bug_description: "Delivered can regress to shipping status"
+  correct: "if (currentStatus.ordinal >= newStatus.ordinal) throw InvalidTransitionException()"
+  incorrect: "delivery.status = newStatus // allows regression"
+  severity: medium
+  difficulty: medium
+  tags: [state, delivery, regression]
+
 # =============================================================================
-# Time & Date (3 patterns) - Spec Alignment
+# Time & Date (8 patterns) - Spec Alignment
 # =============================================================================
 
 - id: TIME_001
@@ -223,8 +343,68 @@
   difficulty: easy
   tags: [time, campaign, validation]
 
+- id: TIME_004
+  category: time
+  axis: spec_alignment
+  name: date_only_comparison
+  plan: "Compare dates ignoring time component"
+  bug_description: "Time truncation causes next-day treatment"
+  correct: "deliveryDate.toLocalDate() == targetDate.toLocalDate()"
+  incorrect: "deliveryDate == targetDate // includes time"
+  severity: medium
+  difficulty: medium
+  tags: [time, date, comparison]
+
+- id: TIME_005
+  category: time
+  axis: spec_alignment
+  name: month_end_processing
+  plan: "Handle month-end dates correctly"
+  bug_description: "Invalid date error - February 30 doesn't exist"
+  correct: "date.plusMonths(1).withDayOfMonth(minOf(day, date.plusMonths(1).lengthOfMonth()))"
+  incorrect: "LocalDate.of(year, month + 1, day) // may not exist"
+  severity: high
+  difficulty: hard
+  tags: [time, month_end, validation]
+
+- id: TIME_006
+  category: time
+  axis: spec_alignment
+  name: year_crossing
+  plan: "Handle year boundary correctly"
+  bug_description: "Year crossing logic error - 12/31 to 1/1 fails"
+  correct: "date.plusDays(1)"
+  incorrect: "LocalDate.of(year, month, day + 1) // fails on Dec 31"
+  severity: high
+  difficulty: hard
+  tags: [time, year_end, boundary]
+
+- id: TIME_007
+  category: time
+  axis: spec_alignment
+  name: business_day_calculation
+  plan: "Calculate delivery in business days"
+  bug_description: "Weekends and holidays not excluded from business days"
+  correct: "addBusinessDays(date, 3) // excludes weekends/holidays"
+  incorrect: "date.plusDays(3) // includes weekends"
+  severity: medium
+  difficulty: medium
+  tags: [time, business_day, holiday]
+
+- id: TIME_008
+  category: time
+  axis: spec_alignment
+  name: past_delivery_date
+  plan: "Delivery date must be in the future"
+  bug_description: "Past delivery dates accepted"
+  correct: "@field:Future var deliveryDate: LocalDate"
+  incorrect: "var deliveryDate: LocalDate // no future validation"
+  severity: medium
+  difficulty: easy
+  tags: [time, validation, future]
+
 # =============================================================================
-# Inventory Management (2 patterns) - Spec Alignment
+# Inventory Management (8 patterns) - Spec Alignment
 # =============================================================================
 
 - id: STOCK_001
@@ -251,8 +431,80 @@
   difficulty: easy
   tags: [stock, validation, constraint]
 
+- id: STOCK_003
+  category: stock
+  axis: spec_alignment
+  name: cart_stock_divergence
+  plan: "Validate stock availability at checkout"
+  bug_description: "Cart quantity not revalidated - stock may deplete while cart abandoned"
+  correct: "validateStockAvailability(cart.items) before checkout"
+  incorrect: "// skip stock validation at checkout"
+  severity: high
+  difficulty: medium
+  tags: [stock, cart, validation]
+
+- id: STOCK_004
+  category: stock
+  axis: spec_alignment
+  name: reserved_actual_confusion
+  plan: "Track reserved and available stock separately"
+  bug_description: "Reserved stock counted as available - double counting"
+  correct: "available = totalStock - reservedStock"
+  incorrect: "available = totalStock // ignores reserved"
+  severity: critical
+  difficulty: medium
+  tags: [stock, reservation, counting]
+
+- id: STOCK_005
+  category: stock
+  axis: spec_alignment
+  name: zero_quantity_order
+  plan: "Validate item quantity is positive"
+  bug_description: "Zero quantity orders allowed through validation gap"
+  correct: "@field:Min(1) var quantity: Int"
+  incorrect: "@field:Min(0) var quantity: Int // allows zero"
+  severity: medium
+  difficulty: easy
+  tags: [stock, validation, quantity]
+
+- id: STOCK_006
+  category: stock
+  axis: spec_alignment
+  name: stock_restoration_overflow
+  plan: "Prevent negative stock levels"
+  bug_description: "Cancellation processing can drive stock beyond max capacity"
+  correct: "stock = minOf(stock + cancelledQty, maxStock)"
+  incorrect: "stock += cancelledQty // may exceed max"
+  severity: high
+  difficulty: medium
+  tags: [stock, cancellation, overflow]
+
+- id: STOCK_007
+  category: stock
+  axis: spec_alignment
+  name: duplicate_stock_restoration
+  plan: "Restore stock once per cancellation"
+  bug_description: "Cancel spam increases stock - no idempotency check"
+  correct: "if (order.stockRestored) return; restoreStock(); order.stockRestored = true"
+  incorrect: "restoreStock() // no idempotency check"
+  severity: critical
+  difficulty: medium
+  tags: [stock, cancellation, idempotency]
+
+- id: STOCK_008
+  category: stock
+  axis: spec_alignment
+  name: bundle_stock_calculation
+  plan: "Bundle availability is minimum of component stocks"
+  bug_description: "Bundle stock not calculated as minimum of components"
+  correct: "components.minOfOrNull { it.stock } ?: 0"
+  incorrect: "components.sumOf { it.stock } // wrong aggregation"
+  severity: high
+  difficulty: hard
+  tags: [stock, bundle, calculation]
+
 # =============================================================================
-# Notification (1 pattern) - Spec Alignment
+# Notification (6 patterns) - Spec Alignment
 # =============================================================================
 
 - id: NOTIFY_001
@@ -267,8 +519,68 @@
   difficulty: medium
   tags: [notification, async, error_handling]
 
+- id: NOTIFY_002
+  category: notification
+  axis: spec_alignment
+  name: async_error_swallowed
+  plan: "Handle background job failures"
+  bug_description: "Background job fails silently - user not notified"
+  correct: "catch (e: Exception) { notifyAdmin(e); throw e }"
+  incorrect: "catch (e: Exception) { logger.error(e.message) } // swallowed"
+  severity: high
+  difficulty: medium
+  tags: [notification, async, error]
+
+- id: NOTIFY_003
+  category: notification
+  axis: spec_alignment
+  name: notification_timing
+  plan: "Send confirmation after payment confirmed"
+  bug_description: "Order complete email sent before payment confirmation"
+  correct: "@TransactionalEventListener(phase = AFTER_COMMIT) fun sendConfirmation()"
+  incorrect: "@EventListener fun sendConfirmation() // may run before commit"
+  severity: high
+  difficulty: medium
+  tags: [notification, timing, order]
+
+- id: NOTIFY_004
+  category: notification
+  axis: spec_alignment
+  name: template_variable_nil
+  plan: "Handle nil values in email templates"
+  bug_description: "Template variable user.name is null causing error"
+  correct: "user?.name ?: \"Valued Customer\""
+  incorrect: "user.name // throws NPE if null"
+  severity: medium
+  difficulty: easy
+  tags: [notification, template, null]
+
+- id: NOTIFY_005
+  category: notification
+  axis: spec_alignment
+  name: recipient_mixup
+  plan: "Send email to correct recipient"
+  bug_description: "Email sent to wrong user due to variable scope"
+  correct: "emailService.send(order.user.email, template)"
+  incorrect: "emailService.send(user.email, template) // wrong user variable"
+  severity: critical
+  difficulty: medium
+  tags: [notification, recipient, privacy]
+
+- id: NOTIFY_006
+  category: notification
+  axis: spec_alignment
+  name: bulk_rate_limit
+  plan: "Respect email provider rate limits"
+  bug_description: "Mass email send gets blocked by rate limit"
+  correct: "users.chunked(100).forEach { chunk -> delay(1000); sendBatch(chunk) }"
+  incorrect: "users.forEach { sendEmail(it) } // no rate limiting"
+  severity: medium
+  difficulty: medium
+  tags: [notification, bulk, rate_limit]
+
 # =============================================================================
-# Spring Boot Specific (5 patterns) - Implicit Knowledge
+# Spring Boot Specific (17 patterns) - Implicit Knowledge
 # =============================================================================
 
 - id: SPRING_001
@@ -331,8 +643,152 @@
   difficulty: medium
   tags: [spring, security, exception]
 
+- id: SPRING_006
+  category: spring
+  axis: implicit_knowledge
+  name: circular_dependency
+  plan: "OrderService depends on PaymentService"
+  bug_description: "Circular dependency - OrderService -> PaymentService -> OrderService"
+  correct: "Use @Lazy or refactor to break cycle"
+  incorrect: "// OrderService and PaymentService inject each other"
+  severity: high
+  difficulty: hard
+  tags: [spring, dependency, circular]
+
+- id: SPRING_007
+  category: spring
+  axis: implicit_knowledge
+  name: cacheable_key_missing
+  plan: "Cache product by ID"
+  bug_description: "@Cacheable without key - uses all parameters by default, causing cache misses"
+  correct: "@Cacheable(value = [\"products\"], key = \"#productId\")"
+  incorrect: "@Cacheable(\"products\")"
+  severity: medium
+  difficulty: medium
+  tags: [spring, cache, configuration]
+
+- id: SPRING_008
+  category: spring
+  axis: implicit_knowledge
+  name: repository_query_not_used
+  plan: "Find active orders efficiently"
+  bug_description: "Reimplementing findByStatus everywhere instead of using existing repository query method"
+  correct: "orderRepository.findByStatus(OrderStatus.ACTIVE)"
+  incorrect: "orderRepository.findAll().filter { it.status == OrderStatus.ACTIVE }"
+  severity: medium
+  difficulty: easy
+  tags: [spring, repository, dry]
+
+- id: SPRING_009
+  category: spring
+  axis: implicit_knowledge
+  name: enum_string_comparison
+  plan: "Check order status"
+  bug_description: "String literal comparison instead of enum constant comparison"
+  correct: "order.status == OrderStatus.PENDING"
+  incorrect: "order.status.name == \"PENDING\""
+  severity: medium
+  difficulty: easy
+  tags: [spring, enum, type_safety]
+
+- id: SPRING_010
+  category: spring
+  axis: implicit_knowledge
+  name: event_listener_order
+  plan: "Process order events in sequence"
+  bug_description: "@EventListener order dependency not specified - listeners execute in undefined order"
+  correct: "@Order(1) @EventListener fun handleEvent()"
+  incorrect: "@EventListener fun handleEvent() // no @Order"
+  severity: high
+  difficulty: medium
+  tags: [spring, event, order]
+
+- id: SPRING_011
+  category: spring
+  axis: implicit_knowledge
+  name: orphan_removal_missing
+  plan: "Delete order with its items"
+  bug_description: "orphanRemoval = false - child records orphaned when parent deleted"
+  correct: "@OneToMany(mappedBy = \"order\", orphanRemoval = true, cascade = [CascadeType.ALL])"
+  incorrect: "@OneToMany(mappedBy = \"order\") // no orphanRemoval"
+  severity: high
+  difficulty: medium
+  tags: [spring, jpa, cascade]
+
+- id: SPRING_012
+  category: spring
+  axis: implicit_knowledge
+  name: async_outside_commit
+  plan: "Send notification after order saved"
+  bug_description: "@Async called inside transaction - notification sent before commit, may reference uncommitted data"
+  correct: "@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)"
+  incorrect: "@Async inside @Transactional method"
+  severity: critical
+  difficulty: hard
+  tags: [spring, async, transaction]
+
+- id: SPRING_013
+  category: spring
+  axis: implicit_knowledge
+  name: dto_validation_missing
+  plan: "Validate nested request objects"
+  bug_description: "@Valid missing on nested DTO - validation annotations in nested object ignored"
+  correct: "data class OrderRequest(@field:Valid val items: List<OrderItemRequest>)"
+  incorrect: "data class OrderRequest(val items: List<OrderItemRequest>) // no @Valid"
+  severity: high
+  difficulty: easy
+  tags: [spring, validation, dto]
+
+- id: SPRING_014
+  category: spring
+  axis: implicit_knowledge
+  name: save_or_update_race
+  plan: "Find or create order record"
+  bug_description: "Race condition between findById and save - duplicate records possible"
+  correct: "Use @Lock(LockModeType.PESSIMISTIC_WRITE) or INSERT ... ON CONFLICT"
+  incorrect: "findById(id) ?: save(newEntity) // no locking"
+  severity: high
+  difficulty: hard
+  tags: [spring, concurrency, race_condition]
+
+- id: SPRING_015
+  category: spring
+  axis: implicit_knowledge
+  name: modifying_skips_listeners
+  plan: "Archive orders and trigger audit"
+  bug_description: "@Modifying bulk update skips @EntityListeners - audit callbacks not triggered"
+  correct: "findAll then save each entity to trigger listeners"
+  incorrect: "@Modifying @Query(\"UPDATE Order o SET o.status = :status\") // skips listeners"
+  severity: high
+  difficulty: medium
+  tags: [spring, jpa, listeners]
+
+- id: SPRING_016
+  category: spring
+  axis: implicit_knowledge
+  name: projection_vs_entity
+  plan: "Load only needed order fields for report"
+  bug_description: "Loading full entity when only specific fields needed - wasted memory and bandwidth"
+  correct: "Use interface projection or @Query with constructor expression"
+  incorrect: "findAll().map { listOf(it.id, it.total) }"
+  severity: medium
+  difficulty: medium
+  tags: [spring, jpa, projection]
+
+- id: SPRING_017
+  category: spring
+  axis: implicit_knowledge
+  name: entitygraph_fetch_strategy
+  plan: "Load orders with items and products"
+  bug_description: "Multiple eager fetches causing cartesian product - N*M records returned"
+  correct: "Use @EntityGraph with subgraphs or multiple queries"
+  incorrect: "@EntityGraph(attributePaths = [\"items\", \"items.product\", \"payments\"]) // cartesian product"
+  severity: high
+  difficulty: hard
+  tags: [spring, jpa, entitygraph]
+
 # =============================================================================
-# False Positive (5 patterns)
+# False Positive (13 patterns)
 # =============================================================================
 
 - id: FP_001
@@ -399,6 +855,110 @@
   difficulty: easy
   tags: [false_positive, calculation, baseline]
   misleading_points: "None - proper decimal handling"
+
+- id: FP_006
+  category: false_positive
+  axis: false_positive
+  name: complex_nested_transaction
+  plan: "Properly nested transactions"
+  bug_description: null
+  correct: "@Transactional(propagation = Propagation.REQUIRES_NEW) correctly used"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, transaction, complex]
+  misleading_points: "Nested transactions look suspicious but are correct"
+
+- id: FP_007
+  category: false_positive
+  axis: false_positive
+  name: complex_state_machine
+  plan: "Complete state machine implementation"
+  bug_description: null
+  correct: "All transitions validated with proper enum state machine"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, state, complex]
+  misleading_points: "Complex state logic but all paths valid"
+
+- id: FP_008
+  category: false_positive
+  axis: false_positive
+  name: intentional_no_validation
+  plan: "Admin bypass for testing"
+  bug_description: null
+  correct: "Intentional skip validation for admin override"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, validation, intentional]
+  misleading_points: "Looks like missing validation but intentional"
+
+- id: FP_009
+  category: false_positive
+  axis: false_positive
+  name: intentional_raw_sql
+  plan: "Performance-critical raw SQL"
+  bug_description: null
+  correct: "@Query with nativeQuery and proper parameter binding"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, sql, intentional]
+  misleading_points: "Raw SQL looks dangerous but is properly sanitized"
+
+- id: FP_010
+  category: false_positive
+  axis: false_positive
+  name: intentional_modifying_query
+  plan: "Bulk update without entity listeners"
+  bug_description: null
+  correct: "@Modifying @Query for performance - listeners not needed"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, modifying, intentional]
+  misleading_points: "@Modifying looks wrong but listeners not needed here"
+
+- id: FP_011
+  category: false_positive
+  axis: false_positive
+  name: intentional_no_index
+  plan: "Low cardinality column without index"
+  bug_description: null
+  correct: "Index would hurt more than help for this column"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, index, intentional]
+  misleading_points: "Missing index is intentional decision"
+
+- id: FP_012
+  category: false_positive
+  axis: false_positive
+  name: optimized_counter_cache
+  plan: "Denormalized count field for performance"
+  bug_description: null
+  correct: "@Formula or dedicated count field with proper sync"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, denormalization]
+  misleading_points: "Denormalization looks wrong but correct pattern"
+
+- id: FP_013
+  category: false_positive
+  axis: false_positive
+  name: optimized_cache_warming
+  plan: "Pre-warm cache on startup"
+  bug_description: null
+  correct: "@PostConstruct cache warming with intentional full load"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, cache]
+  misleading_points: "Full table load looks like bug but intentional"
 
 # =============================================================================
 # Performance (8 patterns) - Implicit Knowledge

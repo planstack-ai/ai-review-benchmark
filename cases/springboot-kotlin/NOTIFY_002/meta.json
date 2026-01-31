@@ -1,0 +1,21 @@
+{
+  "case_id": "NOTIFY_002",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "async_error_swallowed",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Background job fails silently - user not notified",
+  "bug_anchor": "catch (e: Exception) {\n            logger.error(\"Failed to send email to ${recipient.customerEmail}: ${e.message}\")",
+  "correct_implementation": "catch (e: Exception) { logger.error(...); notifyAdmin(e); throw e }",
+  "severity": "high",
+  "tags": [
+    "notification",
+    "async",
+    "error"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_012",
+  "category": "false_positive",
+  "axis": "false_positive",
+  "name": "optimized_counter_cache",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": "Denormalized count field that could become inconsistent with actual data",
+  "correct_implementation": null,
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "denormalization"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "misleading_points": "Denormalized counter field looks like it could get out of sync, but it's properly maintained with database triggers and validated with constraints"
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_010",
+  "category": "false_positive",
+  "axis": "false_positive",
+  "name": "intentional_modifying_query",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": "@Modifying annotation without clearing entity manager",
+  "correct_implementation": null,
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "modifying",
+    "intentional"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "misleading_points": "@Modifying query looks wrong because it doesn't clear entity manager or trigger entity listeners, but this is intentional for bulk performance optimization"
+}

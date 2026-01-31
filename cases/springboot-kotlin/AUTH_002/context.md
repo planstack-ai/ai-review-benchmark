@@ -22,7 +22,7 @@ CREATE TABLE cart_items (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     cart_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
+    quantity INT NOT NULL DEFAULT 1,
     unit_price DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE
 );
@@ -30,104 +30,113 @@ CREATE TABLE cart_items (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "users")
-public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+data class User(
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
     
     @Column(unique = true, nullable = false)
-    private String username;
+    val username: String,
     
     @Column(unique = true, nullable = false)
-    private String email;
+    val email: String,
     
     @CreationTimestamp
-    private LocalDateTime createdAt;
-    
-    // constructors, getters, setters
-}
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
 
 @Entity
 @Table(name = "carts")
-public class Cart {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+data class Cart(
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
     
     @Column(name = "user_id", nullable = false)
-    private Long userId;
+    val userId: Long,
     
-    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<CartItem> items = new ArrayList<>();
+    @OneToMany(mappedBy = "cart", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val items: MutableList<CartItem> = mutableListOf(),
     
     @CreationTimestamp
-    private LocalDateTime createdAt;
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+) {
+    fun getTotalAmount(): BigDecimal = items.sumOf { it.getTotalPrice() }
 }
 
 @Entity
 @Table(name = "cart_items")
-public class CartItem {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+data class CartItem(
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cart_id", nullable = false)
-    private Cart cart;
+    @JoinColumn(name = "cart_id")
+    val cart: Cart,
     
     @Column(name = "product_id", nullable = false)
-    private Long productId;
+    val productId: Long,
     
     @Column(nullable = false)
-    private Integer quantity;
+    val quantity: Int,
     
     @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal unitPrice;
-    
-    // constructors, getters, setters
+    val unitPrice: BigDecimal
+) {
+    fun getTotalPrice(): BigDecimal = unitPrice.multiply(BigDecimal(quantity))
 }
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByUsername(String username);
+interface UserRepository : JpaRepository<User, Long> {
+    fun findByUsername(username: String): User?
 }
 
 @Repository
-public interface CartRepository extends JpaRepository<Cart, Long> {
-    Optional<Cart> findByUserId(Long userId);
-    boolean existsByIdAndUserId(Long cartId, Long userId);
+interface CartRepository : JpaRepository<Cart, Long> {
+    fun findByUserId(userId: Long): Cart?
 }
 
 @Repository
-public interface CartItemRepository extends JpaRepository<CartItem, Long> {
-    List<CartItem> findByCartId(Long cartId);
-    Optional<CartItem> findByCartIdAndProductId(Long cartId, Long productId);
+interface CartItemRepository : JpaRepository<CartItem, Long>
+
+@Service
+interface UserService {
+    fun getCurrentUser(): User
+    fun findByUsername(username: String): User?
 }
 
 @Service
-public interface UserService {
-    User getCurrentUser();
-    Optional<User> findByUsername(String username);
-}
-
-@Component
-public class SecurityUtils {
-    public static final String CURRENT_USER_ATTR = "currentUser";
+class UserServiceImpl(
+    private val userRepository: UserRepository
+) : UserService {
     
-    public Long getCurrentUserId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof UserDetails userDetails) {
-            return ((CustomUserDetails) userDetails).getUserId();
-        }
-        throw new SecurityException("No authenticated user found");
+    override fun getCurrentUser(): User {
+        val authentication = SecurityContextHolder.getContext().authentication
+        return userRepository.findByUsername(authentication.name)
+            ?: throw UsernameNotFoundException("User not found")
+    }
+    
+    override fun findByUsername(username: String): User? {
+        return userRepository.findByUsername(username)
     }
 }
+
+data class AddItemRequest(
+    val productId: Long,
+    val quantity: Int
+)
+
+data class UpdateItemRequest(
+    val quantity: Int
+)
+
+@ResponseStatus(HttpStatus.FORBIDDEN)
+class UnauthorizedCartAccessException(message: String) : RuntimeException(message)
+
+@ResponseStatus(HttpStatus.NOT_FOUND)
+class CartNotFoundException(message: String) : RuntimeException(message)
 ```

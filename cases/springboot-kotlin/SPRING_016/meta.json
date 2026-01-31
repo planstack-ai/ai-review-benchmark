@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_016",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "projection_vs_entity",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Loading full entity when only specific fields needed - wasted memory and bandwidth",
+  "bug_anchor": "fun generateSalesReport(): List<OrderSummary> {\n        val orders = orderRepository.findAll()\n        return orders.map { OrderSummary(",
+  "correct_implementation": "Use interface projection or @Query with constructor expression to select only needed fields",
+  "severity": "medium",
+  "tags": ["spring", "jpa", "projection"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

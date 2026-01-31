@@ -1,124 +1,111 @@
 package com.example.ecommerce.service
 
-import com.example.ecommerce.dto.OrderConfirmationDto
-import com.example.ecommerce.entity.Order
-import com.example.ecommerce.entity.Customer
+import com.example.ecommerce.model.Order
+import com.example.ecommerce.model.OrderItem
 import com.example.ecommerce.repository.OrderRepository
-import com.example.ecommerce.repository.CustomerRepository
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Optional
 
 @Service
 @Transactional
-class OrderNotificationService {
+class OrderNotificationService(
+    private val orderRepository: OrderRepository,
+    private val mailSender: JavaMailSender,
+    @Value("\${app.notification.from-email}") private val fromEmail: String,
+    @Value("\${app.notification.support-email}") private val supportEmail: String
+) {
 
-            private val logger: Logger = LoggerFactory.getLogger(OrderNotificationService.class")
-            private val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"")
+    private val logger = LoggerFactory.getLogger(OrderNotificationService::class.java)
 
-    @Autowired
-    private JavaMailSender mailSender
-
-    @Autowired
-    private OrderRepository orderRepository
-
-    @Autowired
-    private CustomerRepository customerRepository
-
-    @Value("${app.notification.from-email:noreply@example.com}")
-    private String fromEmail
-
-    @Value("${app.notification.subject-prefix:Order Confirmation}")
-    private String subjectPrefix
-
-    fun processOrderConfirmation(orderId: Long): {
-        logger.info("Processing order confirmation for order ID: {}", orderId)
+    fun processOrderConfirmation(orderId: Long) {
+        logger.info("Processing order confirmation for order ID: $orderId")
         
-        Optional<Order> orderOpt = orderRepository.findById(orderId)
-        if (orderOpt.isEmpty()) {
-            logger.warn("Order not found with ID: {}", orderId)
-            return
-        }
-
-        Order order = orderOpt.get()
-        if (shouldSendConfirmation(order)) {
-            OrderConfirmationDto confirmationDto = buildConfirmationDto(order)
-            sendOrderConfirmationEmail(confirmationDto)
-            updateOrderNotificationStatus(order)
-        }
+        val order = orderRepository.findById(orderId)
+            .orElseThrow { IllegalArgumentException("Order not found with ID: $orderId") }
+        
+        validateOrderForNotification(order)
+        sendOrderConfirmationEmail(order)
+        updateOrderNotificationStatus(order)
+        
+        logger.info("Order confirmation processing completed for order ID: $orderId")
     }
 
     @Async
-    fun sendOrderConfirmationEmail(confirmationDto: OrderConfirmationDto): {
-        SimpleMailMessage message = new SimpleMailMessage()
-        message.setFrom(fromEmail)
-        message.setTo(confirmationDto.CustomerEmail)
-        message.setSubject(buildEmailSubject(confirmationDto.OrderNumber))
-        message.setText(buildEmailContent(confirmationDto))
-
+    fun sendOrderConfirmationEmail(order: Order) {
+        logger.debug("Sending confirmation email for order ${order.id} to ${order.customerEmail}")
+        
+        val emailContent = buildEmailContent(order)
+        val subject = "Order Confirmation #${order.orderNumber}"
+        
+        val message = SimpleMailMessage().apply {
+            setFrom(fromEmail)
+            setTo(order.customerEmail)
+            setSubject(subject)
+            setText(emailContent)
+        }
+        
         mailSender.send(message)
-        logger.info("Order confirmation email sent successfully for order: {}", confirmationDto.OrderNumber)
+        logger.info("Confirmation email sent successfully for order ${order.id}")
     }
 
-    private fun shouldSendConfirmation(order: Order): boolean {
-        return order.Status.equals("CONFIRMED") && 
-               !order.isNotificationSent() && 
-               order.Customer != null &&
-               order.Customer.getEmail() != null
+    private fun validateOrderForNotification(order: Order) {
+        require(order.customerEmail.isNotBlank()) { 
+            "Customer email is required for order ${order.id}" 
+        }
+        require(order.status == "CONFIRMED") { 
+            "Order ${order.id} must be in CONFIRMED status to send notification" 
+        }
     }
 
-    private fun buildConfirmationDto(order: Order): OrderConfirmationDto {
-        Customer customer = order.Customer
-        OrderConfirmationDto dto = new OrderConfirmationDto()
-        dto.setOrderNumber(order.OrderNumber)
-        dto.setCustomerName(customer.FirstName + " " + customer.LastName)
-        dto.setCustomerEmail(customer.Email)
-        dto.setOrderDate(order.CreatedAt)
-        dto.setTotalAmount(order.TotalAmount)
-        dto.setShippingAddress(formatShippingAddress(order))
-        return dto
+    private fun buildEmailContent(order: Order): String {
+        val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm")
+        val orderDate = order.createdAt.format(formatter)
+        
+        return buildString {
+            appendLine("Dear ${order.customerName},")
+            appendLine()
+            appendLine("Thank you for your order! We're excited to confirm that we've received your order and it's being processed.")
+            appendLine()
+            appendLine("Order Details:")
+            appendLine("Order Number: ${order.orderNumber}")
+            appendLine("Order Date: $orderDate")
+            appendLine("Total Amount: ${formatCurrency(order.totalAmount)}")
+            appendLine()
+            appendLine("Items Ordered:")
+            order.items.forEach { item ->
+                appendLine("- ${item.productName} (Qty: ${item.quantity}) - ${formatCurrency(item.unitPrice)}")
+            }
+            appendLine()
+            appendLine("Shipping Address:")
+            appendLine("${order.shippingAddress.fullName}")
+            appendLine("${order.shippingAddress.streetAddress}")
+            appendLine("${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zipCode}")
+            appendLine()
+            appendLine("We'll send you another email with tracking information once your order ships.")
+            appendLine()
+            appendLine("If you have any questions, please contact us at $supportEmail")
+            appendLine()
+            appendLine("Thank you for your business!")
+            appendLine("The E-Commerce Team")
+        }
     }
 
-    private fun buildEmailSubject(orderNumber: String): String {
-        return String.format("%s - Order #%s", subjectPrefix, orderNumber)
+    private fun formatCurrency(amount: BigDecimal): String {
+        return "$${String.format("%.2f", amount)}"
     }
 
-    private fun buildEmailContent(dto: OrderConfirmationDto): String {
-        StringBuilder content = new StringBuilder()
-        content.append("Dear ").append(dto.CustomerName).append(",\n\n")
-        content.append("Thank you for your order! Here are the details:\n\n")
-        content.append("Order Number: ").append(dto.OrderNumber).append("\n")
-        content.append("Order Date: ").append(dto.OrderDate.format(DATE_FORMATTER)).append("\n")
-        content.append("Total Amount: $").append(dto.TotalAmount).append("\n")
-        content.append("Shipping Address: ").append(dto.ShippingAddress).append("\n\n")
-        content.append("Your order will be processed within 1-2 business days.\n\n")
-        content.append("Best regards,\nThe E-Commerce Team")
-        return content.toString()
-    }
-
-    private fun formatShippingAddress(order: Order): String {
-        return String.format("%s, %s, %s %s", 
-            order.ShippingStreet,
-            order.ShippingCity,
-            order.ShippingState,
-            order.ShippingZipCode)
-    }
-
-    private fun updateOrderNotificationStatus(order: Order): {
-        order.setNotificationSent(true)
-        order.setNotificationSentAt(LocalDateTime.now())
+    private fun updateOrderNotificationStatus(order: Order) {
+        order.emailSentAt = LocalDateTime.now()
+        order.notificationStatus = "SENT"
         orderRepository.save(order)
-        logger.debug("Updated notification status for order: {}", order.OrderNumber)
+        logger.debug("Updated notification status for order ${order.id}")
     }
 }

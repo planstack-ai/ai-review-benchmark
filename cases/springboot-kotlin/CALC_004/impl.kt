@@ -1,109 +1,96 @@
-package com.example.ecommerce.service
+package com.example.orderservice.service
 
-import com.example.ecommerce.model.Order
-import com.example.ecommerce.model.OrderItem
-import com.example.ecommerce.repository.OrderRepository
-import org.springframework.beans.factory.annotation.Autowired
+import com.example.orderservice.model.Order
+import com.example.orderservice.model.OrderItem
+import com.example.orderservice.model.OrderTotal
+import com.example.orderservice.repository.OrderRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.util.List
-import java.util.Optional
+import java.time.LocalDateTime
 
 @Service
 @Transactional
-class OrderCalculationService {
+class OrderCalculationService(
+    private val orderRepository: OrderRepository
+) {
 
-    @Autowired
-    private OrderRepository orderRepository
-
-    @Autowired
-    private TaxCalculationService taxCalculationService
-
-    @Autowired
-    private DiscountService discountService
-
-    fun calculateOrderTotal(orderId: Long): BigDecimal {
-        Optional<Order> orderOpt = orderRepository.findById(orderId)
-        if (orderOpt.isEmpty()) {
-            throw new IllegalArgumentException("Order not found with id: " + orderId)
-        }
-
-        Order order = orderOpt.get()
-        return calculateOrderTotal(order)
-    }
-
-    fun calculateOrderTotal(order: Order): BigDecimal {
-        BigDecimal subtotal = calculateSubtotal(order.Items)
-        BigDecimal discountAmount = discountService.calculateDiscount(order)
-        BigDecimal taxableAmount = subtotal.subtract(discountAmount)
-        BigDecimal taxAmount = taxCalculationService.calculateTax(taxableAmount, order.ShippingAddress)
-        BigDecimal shippingCost = calculateShippingCost(order)
+    fun calculateOrderTotal(orderId: Long): OrderTotal {
+        val order = orderRepository.findById(orderId)
+            ?: throw IllegalArgumentException("Order not found: $orderId")
         
-        return subtotal.subtract(discountAmount).add(taxAmount).add(shippingCost)
+        return calculateTotal(order)
     }
 
-    private fun calculateSubtotal(List<OrderItem> items): BigDecimal {
-        if (items == null || items.isEmpty()) {
-            return BigDecimal.ZERO
-        }
+    fun processOrderCalculation(order: Order): Order {
+        val total = calculateTotal(order)
+        val updatedOrder = order.copy(
+            total = total,
+            lastCalculated = LocalDateTime.now()
+        )
+        return orderRepository.save(updatedOrder)
+    }
 
-        return items.stream()
-                .map(item -> calculateItemSubtotal(item).setScale(2, RoundingMode.HALF_UP))
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
+    private fun calculateTotal(order: Order): OrderTotal {
+        val subtotal = calculateSubtotal(order.items)
+        val taxAmount = calculateTax(subtotal, order.taxRate)
+        val shippingCost = calculateShipping(order)
+        val discountAmount = calculateDiscount(order, subtotal)
+        
+        val finalTotal = subtotal
+            .add(taxAmount)
+            .add(shippingCost)
+            .subtract(discountAmount)
+            .setScale(2, RoundingMode.HALF_UP)
+
+        return OrderTotal(
+            subtotal = subtotal,
+            taxAmount = taxAmount,
+            shippingCost = shippingCost,
+            discountAmount = discountAmount,
+            total = finalTotal
+        )
+    }
+
+    private fun calculateSubtotal(items: List<OrderItem>): BigDecimal {
+        return if (items.isEmpty()) {
+            BigDecimal.ZERO
+        } else {
+            items.map { calculateItemSubtotal(it).setScale(2, RoundingMode.HALF_UP) }
+                .reduce(BigDecimal::add)
+        }
     }
 
     private fun calculateItemSubtotal(item: OrderItem): BigDecimal {
-        BigDecimal unitPrice = item.UnitPrice
-        BigDecimal quantity = BigDecimal(item.Quantity)
-        return unitPrice.multiply(quantity)
+        return item.unitPrice.multiply(BigDecimal.valueOf(item.quantity.toLong()))
     }
 
-    private fun calculateShippingCost(order: Order): BigDecimal {
-        BigDecimal baseShippingRate = BigDecimal("5.99")
-        BigDecimal weightMultiplier = BigDecimal("0.50")
-        
-        BigDecimal totalWeight = order.Items.stream()
-                .map(item -> item.Product.getWeight().multiply(BigDecimal(item.Quantity)))
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-
-        BigDecimal weightBasedCost = totalWeight.multiply(weightMultiplier)
-        BigDecimal totalShipping = baseShippingRate.add(weightBasedCost)
-
-        if (order.ShippingMethod.equals("EXPRESS")) {
-            totalShipping = totalShipping.multiply(BigDecimal("1.5"))
-        }
-
-        return totalShipping.setScale(2, RoundingMode.HALF_UP)
+    private fun calculateTax(subtotal: BigDecimal, taxRate: BigDecimal): BigDecimal {
+        return subtotal.multiply(taxRate)
+            .setScale(2, RoundingMode.HALF_UP)
     }
 
-    @Transactional
-    fun updateOrderTotals(orderId: Long): Order {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow { new IllegalArgumentException("Order not found" })
-
-        BigDecimal calculatedTotal = calculateOrderTotal(order)
-        order.setTotalAmount(calculatedTotal)
-        
-        return orderRepository.save(order)
+    private fun calculateShipping(order: Order): BigDecimal {
+        return when {
+            order.subtotalThreshold != null && 
+            order.total?.subtotal?.compareTo(order.subtotalThreshold) ?: -1 >= 0 -> BigDecimal.ZERO
+            order.shippingMethod == "EXPRESS" -> BigDecimal("15.99")
+            order.shippingMethod == "STANDARD" -> BigDecimal("7.99")
+            else -> BigDecimal("5.99")
+        }.setScale(2, RoundingMode.HALF_UP)
     }
 
-    fun validateOrderTotal(order: Order): boolean {
-        BigDecimal calculatedTotal = calculateOrderTotal(order)
-        BigDecimal storedTotal = order.TotalAmount
-        
-        if (storedTotal == null) {
-            return false
-        }
-        
-        return calculatedTotal.compareTo(storedTotal) == 0
+    private fun calculateDiscount(order: Order, subtotal: BigDecimal): BigDecimal {
+        val discountRate = order.discountRate ?: BigDecimal.ZERO
+        return subtotal.multiply(discountRate)
+            .setScale(2, RoundingMode.HALF_UP)
     }
 
-    private fun isEligibleForFreeShipping(order: Order): boolean {
-        BigDecimal freeShippingThreshold = BigDecimal("75.00")
-        BigDecimal subtotal = calculateSubtotal(order.Items)
-        return subtotal.compareTo(freeShippingThreshold) >= 0
+    fun validateOrderCalculation(order: Order): Boolean {
+        val calculatedTotal = calculateTotal(order)
+        return order.total?.let { existingTotal ->
+            existingTotal.total.compareTo(calculatedTotal.total) == 0
+        } ?: false
     }
 }

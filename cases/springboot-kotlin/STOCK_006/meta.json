@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_006",
+  "category": "stock",
+  "axis": "spec_alignment",
+  "name": "stock_restoration_overflow",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Cancellation processing can drive stock beyond max capacity",
+  "bug_anchor": "product.stockQuantity += quantity",
+  "correct_implementation": "stock = minOf(stock + cancelledQty, maxStock)",
+  "severity": "high",
+  "tags": [
+    "stock",
+    "cancellation",
+    "overflow"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

@@ -1,109 +1,106 @@
 package com.example.ecommerce.service
 
 import com.example.ecommerce.entity.Product
+import com.example.ecommerce.entity.PriceHistory
 import com.example.ecommerce.repository.ProductRepository
+import com.example.ecommerce.repository.PriceHistoryRepository
 import com.example.ecommerce.dto.PriceUpdateRequest
 import com.example.ecommerce.exception.ProductNotFoundException
 import com.example.ecommerce.exception.InvalidPriceException
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.util.List
-import java.util.Optional
 
 @Service
 @Transactional
-class ProductPriceService {
+class ProductPriceService(
+    private val productRepository: ProductRepository,
+    private val priceHistoryRepository: PriceHistoryRepository
+) {
 
-    @Autowired
-    private ProductRepository productRepository
-
-    @Autowired
-    private AuditService auditService
-
-    fun updateProductPrice(productId: Long, priceRequest: PriceUpdateRequest): Product {
-        validatePriceRequest(priceRequest)
+    fun updateProductPrice(productId: Long, priceUpdateRequest: PriceUpdateRequest): Product {
+        val product = findProductById(productId)
+        val newPrice = priceUpdateRequest.newPrice
         
-        Product product = findProductById(productId)
-        BigDecimal oldPrice = product.Price
-        BigDecimal newPrice = priceRequest.NewPrice
+        validatePriceUpdate(product, newPrice)
         
-        if (isPriceChangeSignificant(oldPrice, newPrice)) {
-            logPriceChange(product, oldPrice, newPrice)
+        val oldPrice = product.price
+        product.price = newPrice
+        product.lastModified = LocalDateTime.now()
+        product.modifiedBy = getCurrentUsername()
+        
+        val updatedProduct = productRepository.save(product)
+        recordPriceHistory(product, oldPrice, newPrice)
+        
+        return updatedProduct
+    }
+
+    fun bulkUpdatePrices(priceUpdates: List<PriceUpdateRequest>): List<Product> {
+        return priceUpdates.map { request ->
+            updateProductPrice(request.productId, request)
         }
-        
-        product.setPrice(newPrice)
-        product.setLastModified(LocalDateTime.now())
-        product.setModifiedBy(getCurrentUsername())
-        
-        Product savedProduct = productRepository.save(product)
-        auditService.logPriceUpdate(productId, oldPrice, newPrice, getCurrentUsername())
-        
-        return savedProduct
     }
 
-    fun List<Product> updateMultipleProductPrices(List<PriceUpdateRequest> priceRequests) {
-        return priceRequests.stream()
-                .map(request -> updateProductPrice(request.ProductId, request))
-                .toList()
+    fun getPriceHistory(productId: Long): List<PriceHistory> {
+        val product = findProductById(productId)
+        return priceHistoryRepository.findByProductIdOrderByChangedAtDesc(productId)
     }
 
-    fun calculateDiscountedPrice(productId: Long, discountPercentage: BigDecimal): BigDecimal {
-        Product product = findProductById(productId)
-        BigDecimal currentPrice = product.Price
-        BigDecimal discountAmount = currentPrice.multiply(discountPercentage).divide(BigDecimal("100"))
-        return currentPrice.subtract(discountAmount)
+    fun applyDiscountToCategory(categoryId: Long, discountPercentage: BigDecimal): List<Product> {
+        val products = productRepository.findByCategoryId(categoryId)
+        
+        return products.map { product ->
+            val discountedPrice = calculateDiscountedPrice(product.price, discountPercentage)
+            val priceUpdateRequest = PriceUpdateRequest(
+                productId = product.id!!,
+                newPrice = discountedPrice,
+                reason = "Category discount applied: ${discountPercentage}%"
+            )
+            updateProductPrice(product.id!!, priceUpdateRequest)
+        }
     }
 
     private fun findProductById(productId: Long): Product {
-        Optional<Product> productOpt = productRepository.findById(productId)
-        if (productOpt.isEmpty()) {
-            throw new ProductNotFoundException("Product with ID " + productId + " not found")
-        }
-        return productOpt.get()
+        return productRepository.findById(productId)
+            .orElseThrow { ProductNotFoundException("Product with ID $productId not found") }
     }
 
-    private fun validatePriceRequest(priceRequest: PriceUpdateRequest): {
-        if (priceRequest.NewPrice == null) {
-            throw new InvalidPriceException("Price cannot be null")
-        }
-        if (priceRequest.NewPrice.compareTo(BigDecimal.ZERO) < 0) {
-            throw new InvalidPriceException("Price cannot be negative")
-        }
-        if (priceRequest.NewPrice.scale() > 2) {
-            throw new InvalidPriceException("Price cannot have more than 2 decimal places")
+    private fun validatePriceUpdate(product: Product, newPrice: BigDecimal) {
+        when {
+            newPrice <= BigDecimal.ZERO -> 
+                throw InvalidPriceException("Price must be greater than zero")
+            newPrice > BigDecimal("999999.99") -> 
+                throw InvalidPriceException("Price cannot exceed 999,999.99")
+            newPrice == product.price -> 
+                throw InvalidPriceException("New price must be different from current price")
         }
     }
 
-    private fun isPriceChangeSignificant(oldPrice: BigDecimal, newPrice: BigDecimal): boolean {
-        BigDecimal changePercentage = newPrice.subtract(oldPrice)
-                .divide(oldPrice, 4, BigDecimal.ROUND_HALF_UP)
-                .multiply(BigDecimal("100"))
-                .abs()
-        return changePercentage.compareTo(BigDecimal("10")) > 0
+    private fun calculateDiscountedPrice(originalPrice: BigDecimal, discountPercentage: BigDecimal): BigDecimal {
+        val discountAmount = originalPrice.multiply(discountPercentage).divide(BigDecimal("100"))
+        return originalPrice.subtract(discountAmount).setScale(2, BigDecimal.ROUND_HALF_UP)
     }
 
-    private fun logPriceChange(product: Product, oldPrice: BigDecimal, newPrice: BigDecimal): {
-        String logMessage = String.format("Significant price change for product %s: %s -> %s", 
-                product.Name, oldPrice, newPrice)
-        System.out.println(logMessage)
+    private fun recordPriceHistory(product: Product, oldPrice: BigDecimal, newPrice: BigDecimal) {
+        val priceHistory = PriceHistory(
+            productId = product.id!!,
+            oldPrice = oldPrice,
+            newPrice = newPrice,
+            changedBy = getCurrentUsername(),
+            changedAt = LocalDateTime.now(),
+            reason = "Price updated via admin interface"
+        )
+        priceHistoryRepository.save(priceHistory)
     }
 
     private fun getCurrentUsername(): String {
-        Authentication authentication = SecurityContextHolder.Context.getAuthentication()
-        return authentication != null ? authentication.Name : "system"
+        return SecurityContextHolder.getContext().authentication?.name ?: "system"
     }
 
     @Transactional(readOnly = true)
-    fun getProductWithPrice(productId: Long): Product {
-        return findProductById(productId)
-    }
-
-    fun isValidPriceRange(price: BigDecimal, minPrice: BigDecimal, maxPrice: BigDecimal): boolean {
-        return price.compareTo(minPrice) >= 0 && price.compareTo(maxPrice) <= 0
+    fun validatePriceChangePermissions(userId: Long): Boolean {
+        return productRepository.existsById(userId)
     }
 }

@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_006",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "circular_dependency",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Circular dependency - OrderService -> PaymentService -> OrderService causes Spring initialization failure",
+  "bug_anchor": "constructor(private val paymentService: PaymentService) {",
+  "correct_implementation": "Use @Lazy annotation to break circular dependency: constructor(@Lazy private val paymentService: PaymentService) or refactor to use event-driven architecture",
+  "severity": "high",
+  "tags": ["spring", "dependency", "circular"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "AUTH_006",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "access_other_points",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Can access other user's points via API",
+  "bug_anchor": "fun getUserPoints(userId: Long)",
+  "correct_implementation": "fun getUserPoints(userId: Long, currentUser: UserPrincipal) with validation that userId == currentUser.id",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "points",
+    "api"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

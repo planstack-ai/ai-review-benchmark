@@ -1,29 +1,32 @@
-# Campaign Period Check Implementation Plan
+# Campaign Period Validation Service
 
 ## Overview
 
-This feature implements a campaign discount system that validates whether a campaign is currently active based on its configured time period. The system must ensure that discounts are only applied when the current time falls within the campaign's valid start and end dates, providing accurate promotional pricing for customers.
+The system needs to validate whether a campaign is currently active based on its configured time period. This validation is critical for ensuring that campaign discounts and promotions are only applied during their intended timeframe. The service must handle various time-related scenarios including timezone considerations, boundary conditions, and different date formats.
 
 ## Requirements
 
-1. Create a campaign entity that stores start date, end date, and discount percentage
-2. Implement a service method that checks if a campaign is currently active
-3. The active check must compare the current system time against the campaign's start and end dates
-4. Apply the campaign discount only when the campaign is determined to be active
-5. Return the original price when no active campaign exists
-6. Support campaigns with different discount percentages
-7. Handle timezone considerations appropriately for date comparisons
-8. Provide a method to calculate the final price after applying valid campaign discounts
+1. The service must validate if the current timestamp falls within a campaign's start and end date range
+2. Campaign start and end dates must be inclusive (valid on both boundary dates)
+3. The service must handle timezone-aware date comparisons using the system's default timezone
+4. Campaign validation must return a boolean result indicating active status
+5. The service must accept campaign objects containing start date, end date, and campaign identifier
+6. Date validation must work with LocalDateTime objects for precise time comparison
+7. The service must be implemented as a Spring Boot service component with proper dependency injection
+8. Campaign period validation must be performed before any discount calculations
+9. The service must handle null or missing date values gracefully
+10. Validation results must be logged for audit purposes
 
 ## Constraints
 
-1. Campaign start date must be before or equal to the end date
-2. Discount percentage must be between 0 and 100
-3. The system must handle null or missing campaign data gracefully
-4. Time comparisons must be precise to avoid edge case errors at campaign boundaries
-5. The service must not apply expired campaigns even if they exist in the system
-6. Future campaigns (not yet started) should not be applied
+1. Campaign start date cannot be after the campaign end date
+2. Both start and end dates are required fields and cannot be null
+3. Past campaigns (end date before current time) must be marked as inactive
+4. Future campaigns (start date after current time) must be marked as inactive
+5. The service must not modify campaign data during validation
+6. Time comparisons must account for millisecond precision
+7. The validation must complete within reasonable performance bounds for high-traffic scenarios
 
 ## References
 
-See context.md for existing date/time handling patterns and service layer implementations used in the codebase.
+See context.md for existing campaign management implementations and related service patterns used in the codebase.

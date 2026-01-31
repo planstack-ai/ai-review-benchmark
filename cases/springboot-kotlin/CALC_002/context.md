@@ -6,10 +6,10 @@
 CREATE TABLE orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_id BIGINT NOT NULL,
-    subtotal DECIMAL(19,2) NOT NULL,
-    discount_amount DECIMAL(19,2) DEFAULT 0.00,
-    tax_amount DECIMAL(19,2) DEFAULT 0.00,
-    total_amount DECIMAL(19,2) NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL,
+    discount_amount DECIMAL(10,2) DEFAULT 0.00,
+    tax_amount DECIMAL(10,2) DEFAULT 0.00,
+    total_amount DECIMAL(10,2) NOT NULL,
     status VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -18,95 +18,111 @@ CREATE TABLE order_items (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
-    quantity INTEGER NOT NULL,
-    unit_price DECIMAL(19,2) NOT NULL,
-    line_total DECIMAL(19,2) NOT NULL,
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    line_total DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 ```
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "orders")
-public class Order {
+data class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "customer_id", nullable = false)
-    private Long customerId;
+    val customerId: Long,
     
-    @Column(name = "subtotal", precision = 19, scale = 2, nullable = false)
-    private BigDecimal subtotal;
+    @Column(name = "subtotal", precision = 10, scale = 2, nullable = false)
+    val subtotal: BigDecimal,
     
-    @Column(name = "discount_amount", precision = 19, scale = 2)
-    private BigDecimal discountAmount = BigDecimal.ZERO;
+    @Column(name = "discount_amount", precision = 10, scale = 2)
+    val discountAmount: BigDecimal = BigDecimal.ZERO,
     
-    @Column(name = "tax_amount", precision = 19, scale = 2)
-    private BigDecimal taxAmount = BigDecimal.ZERO;
+    @Column(name = "tax_amount", precision = 10, scale = 2)
+    val taxAmount: BigDecimal = BigDecimal.ZERO,
     
-    @Column(name = "total_amount", precision = 19, scale = 2, nullable = false)
-    private BigDecimal totalAmount;
+    @Column(name = "total_amount", precision = 10, scale = 2, nullable = false)
+    val totalAmount: BigDecimal,
     
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    val status: OrderStatus,
     
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<OrderItem> items = new ArrayList<>();
+    @Column(name = "created_at")
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
-    // constructors, getters, setters
-}
+    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val items: List<OrderItem> = emptyList()
+)
 
 @Entity
 @Table(name = "order_items")
-public class OrderItem {
+data class OrderItem(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    @JoinColumn(name = "order_id")
+    val order: Order,
     
     @Column(name = "product_id", nullable = false)
-    private Long productId;
+    val productId: Long,
     
     @Column(nullable = false)
-    private Integer quantity;
+    val quantity: Int,
     
-    @Column(name = "unit_price", precision = 19, scale = 2, nullable = false)
-    private BigDecimal unitPrice;
+    @Column(name = "unit_price", precision = 10, scale = 2, nullable = false)
+    val unitPrice: BigDecimal,
     
-    @Column(name = "line_total", precision = 19, scale = 2, nullable = false)
-    private BigDecimal lineTotal;
-    
-    // constructors, getters, setters
-}
+    @Column(name = "line_total", precision = 10, scale = 2, nullable = false)
+    val lineTotal: BigDecimal
+)
 
-public enum OrderStatus {
+enum class OrderStatus {
     PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
 }
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByCustomerId(Long customerId);
-    List<Order> findByStatus(OrderStatus status);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByCustomerId(customerId: Long): List<Order>
+    fun findByStatus(status: OrderStatus): List<Order>
 }
 
 @Repository
-public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
-    List<OrderItem> findByOrderId(Long orderId);
+interface OrderItemRepository : JpaRepository<OrderItem, Long> {
+    fun findByOrderId(orderId: Long): List<OrderItem>
 }
 
-public interface TaxCalculationService {
-    BigDecimal calculateTax(BigDecimal taxableAmount);
+object TaxConstants {
+    val STANDARD_TAX_RATE: BigDecimal = BigDecimal("0.10")
+    val TAX_SCALE = 2
+    val ROUNDING_MODE = RoundingMode.HALF_UP
 }
 
-public class TaxConstants {
-    public static final BigDecimal STANDARD_TAX_RATE = new BigDecimal("0.10");
-    public static final int CURRENCY_SCALE = 2;
-    public static final RoundingMode CURRENCY_ROUNDING = RoundingMode.HALF_UP;
+@Service
+interface OrderService {
+    fun createOrder(customerId: Long, items: List<OrderItemRequest>): Order
+    fun calculateOrderTotals(subtotal: BigDecimal, discountAmount: BigDecimal): OrderTotals
+    fun findOrderById(id: Long): Order?
 }
+
+data class OrderItemRequest(
+    val productId: Long,
+    val quantity: Int,
+    val unitPrice: BigDecimal
+)
+
+data class OrderTotals(
+    val subtotal: BigDecimal,
+    val discountAmount: BigDecimal,
+    val taxableAmount: BigDecimal,
+    val taxAmount: BigDecimal,
+    val totalAmount: BigDecimal
+)
 ```

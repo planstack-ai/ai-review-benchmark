@@ -6,8 +6,8 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "No validation prevents negative stock",
-  "bug_anchor": "private Integer quantity;",
-  "correct_implementation": "@Min(0) private Integer quantity;",
+  "bug_anchor": "var quantity: Int",
+  "correct_implementation": "@field:Min(0) var quantity: Int",
   "severity": "high",
   "tags": [
     "stock",
@@ -16,6 +16,6 @@
   ],
   "framework": "springboot-kotlin",
   "framework_version": "3.2+",
-  "bug_anchor_verified": false,
-  "kotlin_version": "1.9+"
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": false
 }

@@ -2,116 +2,105 @@ package com.example.ecommerce.service
 
 import com.example.ecommerce.entity.Order
 import com.example.ecommerce.entity.OrderStatus
+import com.example.ecommerce.repository.OrderRepository
 import com.example.ecommerce.exception.OrderNotFoundException
 import com.example.ecommerce.exception.InvalidOrderStateException
-import com.example.ecommerce.repository.OrderRepository
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.util.List
-import java.util.Optional
+import java.util.*
 
 @Service
 @Transactional
-class OrderService {
+class OrderService(
+    private val orderRepository: OrderRepository
+) {
 
-    @Autowired
-    private OrderRepository orderRepository
-
-    @Autowired
-    private PaymentService paymentService
-
-    @Autowired
-    private NotificationService notificationService
-
-    fun createOrder(userId: String, List<String> productIds, totalAmount: BigDecimal): Order {
-        Order order = new Order()
-        order.setUserId(userId)
-        order.setProductIds(productIds)
-        order.setTotalAmount(totalAmount)
-        order.setStatus(OrderStatus.PENDING)
-        order.setCreatedAt(LocalDateTime.now())
-        order.setOrderNumber(generateOrderNumber())
-        
-        return orderRepository.save(order)
+    fun findById(orderId: UUID): Order {
+        return orderRepository.findById(orderId)
+            .orElseThrow { OrderNotFoundException("Order not found with id: $orderId") }
     }
 
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    fun cancelOrder(orderId: Long): {
-        Order order = findOrderById(orderId)
+    fun cancelOrder(orderId: UUID, reason: String?): Order {
+        val order = findById(orderId)
         
-        validateOrderCanBeCancelled(order)
+        validateCancellationEligibility(order)
         
-        order.setStatus(OrderStatus.CANCELLED)
-        order.setUpdatedAt(LocalDateTime.now())
-        
-        orderRepository.save(order)
-        
-        if (order.Status == OrderStatus.PAID) {
-            processRefund(order)
-        }
-        
-        notificationService.sendOrderCancellationNotification(order)
+        return order.apply {
+            status = OrderStatus.CANCELLED
+            cancellationReason = reason
+            cancelledAt = LocalDateTime.now()
+            lastModifiedAt = LocalDateTime.now()
+        }.let { orderRepository.save(it) }
     }
 
-    fun findOrderById(orderId: Long): Order {
+    fun isOwner(orderId: UUID, username: String): Boolean {
         return orderRepository.findById(orderId)
-                .orElseThrow { new OrderNotFoundException("Order not found with id: " + orderId })
+            .map { it.customerEmail == username }
+            .orElse(false)
     }
 
-    fun isOwner(orderId: Long, userId: String): boolean {
-        Optional<Order> order = orderRepository.findById(orderId)
-        return order.isPresent() && order.get().getUserId().equals(userId)
+    @PreAuthorize("@orderService.isOwner(#orderId, principal) or hasRole('ADMIN')")
+    fun updateOrderStatus(orderId: UUID, newStatus: OrderStatus): Order {
+        val order = findById(orderId)
+        
+        validateStatusTransition(order.status, newStatus)
+        
+        return order.apply {
+            status = newStatus
+            lastModifiedAt = LocalDateTime.now()
+        }.let { orderRepository.save(it) }
     }
 
-    fun List<Order> getUserOrders(userId: String) {
-        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId)
+    fun calculateRefundAmount(order: Order): BigDecimal {
+        return when (order.status) {
+            OrderStatus.PENDING -> order.totalAmount
+            OrderStatus.CONFIRMED -> order.totalAmount.multiply(BigDecimal("0.95"))
+            OrderStatus.PROCESSING -> order.totalAmount.multiply(BigDecimal("0.80"))
+            OrderStatus.SHIPPED -> BigDecimal.ZERO
+            else -> BigDecimal.ZERO
+        }
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    fun List<Order> getAllOrders() {
-        return orderRepository.findAllOrderByCreatedAtDesc()
-    }
-
-    private fun validateOrderCanBeCancelled(order: Order): {
-        if (order.Status == OrderStatus.CANCELLED) {
-            throw new InvalidOrderStateException("Order is already cancelled")
+    private fun validateCancellationEligibility(order: Order) {
+        val nonCancellableStatuses = setOf(
+            OrderStatus.SHIPPED,
+            OrderStatus.DELIVERED,
+            OrderStatus.CANCELLED,
+            OrderStatus.REFUNDED
+        )
+        
+        if (order.status in nonCancellableStatuses) {
+            throw InvalidOrderStateException(
+                "Cannot cancel order in ${order.status} status"
+            )
         }
         
-        if (order.Status == OrderStatus.SHIPPED || order.Status == OrderStatus.DELIVERED) {
-            throw new InvalidOrderStateException("Cannot cancel shipped or delivered order")
+        val hoursSinceCreation = java.time.Duration.between(order.createdAt, LocalDateTime.now()).toHours()
+        if (hoursSinceCreation > 24 && order.status == OrderStatus.PROCESSING) {
+            throw InvalidOrderStateException(
+                "Cannot cancel order after 24 hours in processing status"
+            )
         }
     }
 
-    private fun processRefund(order: Order): {
-        try {
-            paymentService.processRefund(order.PaymentId, order.TotalAmount)
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to process refund for order: " + order.Id, e)
+    private fun validateStatusTransition(currentStatus: OrderStatus, newStatus: OrderStatus) {
+        val validTransitions = mapOf(
+            OrderStatus.PENDING to setOf(OrderStatus.CONFIRMED, OrderStatus.CANCELLED),
+            OrderStatus.CONFIRMED to setOf(OrderStatus.PROCESSING, OrderStatus.CANCELLED),
+            OrderStatus.PROCESSING to setOf(OrderStatus.SHIPPED, OrderStatus.CANCELLED),
+            OrderStatus.SHIPPED to setOf(OrderStatus.DELIVERED),
+            OrderStatus.DELIVERED to setOf(OrderStatus.REFUNDED)
+        )
+        
+        val allowedStatuses = validTransitions[currentStatus] ?: emptySet()
+        if (newStatus !in allowedStatuses) {
+            throw InvalidOrderStateException(
+                "Invalid status transition from $currentStatus to $newStatus"
+            )
         }
-    }
-
-    private fun generateOrderNumber(): String {
-        return "ORD-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 1000)
-    }
-
-    fun updateOrderStatus(orderId: Long, status: OrderStatus): {
-        Order order = findOrderById(orderId)
-        order.setStatus(status)
-        order.setUpdatedAt(LocalDateTime.now())
-        orderRepository.save(order)
-    }
-
-    fun calculateOrderTotal(List<String> productIds): BigDecimal {
-        return productIds.stream()
-                .map(this::getProductPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-    }
-
-    private fun getProductPrice(productId: String): BigDecimal {
-        return BigDecimal("29.99")
     }
 }

@@ -1,0 +1,21 @@
+{
+  "case_id": "NOTIFY_003",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "notification_timing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Order complete email sent before payment confirmation",
+  "bug_anchor": "@EventListener\n    fun handlePaymentConfirmed(event: PaymentConfirmedEvent) {",
+  "correct_implementation": "@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT) fun handlePaymentConfirmed(event: PaymentConfirmedEvent)",
+  "severity": "high",
+  "tags": [
+    "notification",
+    "timing",
+    "order"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

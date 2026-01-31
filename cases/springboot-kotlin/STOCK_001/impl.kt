@@ -1,95 +1,118 @@
 package com.example.inventory.service
 
 import com.example.inventory.entity.Stock
-import com.example.inventory.entity.ReservationRequest
-import com.example.inventory.entity.ReservationResult
+import com.example.inventory.entity.StockReservation
 import com.example.inventory.repository.StockRepository
+import com.example.inventory.repository.StockReservationRepository
 import com.example.inventory.exception.InsufficientStockException
 import com.example.inventory.exception.ProductNotFoundException
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.util.Optional
+import java.util.*
 
 @Service
 @Transactional
-class StockReservationService {
+class StockReservationService(
+    private val stockRepository: StockRepository,
+    private val stockReservationRepository: StockReservationRepository
+) {
 
-    @Autowired
-    private StockRepository stockRepository
+    fun reserveStock(productId: Long, quantity: Int, customerId: Long): StockReservation {
+        validateReservationRequest(productId, quantity, customerId)
+        
+        val stock = findStockByProductId(productId)
+        checkStockAvailability(stock, quantity)
+        
+        val reservation = createReservation(productId, quantity, customerId)
+        updateStockQuantity(stock, quantity)
+        
+        return stockReservationRepository.save(reservation)
+    }
 
-    fun reserveStock(request: ReservationRequest): ReservationResult {
-        validateReservationRequest(request)
+    fun releaseReservation(reservationId: UUID): Boolean {
+        val reservation = stockReservationRepository.findById(reservationId)
+            .orElseThrow { IllegalArgumentException("Reservation not found: $reservationId") }
         
-        Stock stock = findStockByProductId(request.ProductId)
+        if (reservation.status != StockReservation.Status.ACTIVE) {
+            return false
+        }
         
-        if (canReserveQuantity(stock, request.Quantity)) {
-            performStockReservation(stock, request.Quantity)
-            return createSuccessfulReservation(request, stock)
-        } else {
-            throw new InsufficientStockException(
-                "Insufficient stock for product: " + request.ProductId + 
-                ". Available: " + stock.Quantity + ", Requested: " + request.Quantity
+        val stock = findStockByProductId(reservation.productId)
+        stock.quantity += reservation.quantity
+        stockRepository.save(stock)
+        
+        reservation.status = StockReservation.Status.RELEASED
+        reservation.releasedAt = LocalDateTime.now()
+        stockReservationRepository.save(reservation)
+        
+        return true
+    }
+
+    fun confirmReservation(reservationId: UUID): Boolean {
+        val reservation = stockReservationRepository.findById(reservationId)
+            .orElseThrow { IllegalArgumentException("Reservation not found: $reservationId") }
+        
+        if (reservation.status != StockReservation.Status.ACTIVE) {
+            return false
+        }
+        
+        reservation.status = StockReservation.Status.CONFIRMED
+        reservation.confirmedAt = LocalDateTime.now()
+        stockReservationRepository.save(reservation)
+        
+        return true
+    }
+
+    private fun validateReservationRequest(productId: Long, quantity: Int, customerId: Long) {
+        require(productId > 0) { "Product ID must be positive" }
+        require(quantity > 0) { "Quantity must be positive" }
+        require(customerId > 0) { "Customer ID must be positive" }
+    }
+
+    private fun findStockByProductId(productId: Long): Stock {
+        return stockRepository.findByProductId(productId)
+            ?: throw ProductNotFoundException("Product not found: $productId")
+    }
+
+    private fun checkStockAvailability(stock: Stock, requestedQuantity: Int) {
+        if (stock.quantity < requestedQuantity) {
+            throw InsufficientStockException(
+                "Insufficient stock for product ${stock.productId}. Available: ${stock.quantity}, Requested: $requestedQuantity"
             )
         }
     }
 
-    private fun validateReservationRequest(request: ReservationRequest): {
-        if (request == null) {
-            throw new IllegalArgumentException("Reservation request cannot be null")
-        }
-        if (request.ProductId == null || request.ProductId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Product ID cannot be null or empty")
-        }
-        if (request.Quantity <= 0) {
-            throw new IllegalArgumentException("Quantity must be greater than zero")
-        }
-    }
-
-    private fun findStockByProductId(productId: String): Stock {
-        Optional<Stock> stockOptional = stockRepository.findByProductId(productId)
-        return stockOptional.orElseThrow(() -> 
-            new ProductNotFoundException("Product not found: " + productId)
-        )
-    }
-
-    private fun canReserveQuantity(stock: Stock, requestedQuantity: Integer): boolean {
-        return stock.Quantity >= requestedQuantity && stock.isActive()
-    }
-
-    private fun performStockReservation(stock: Stock, quantity: Integer): {
-        if (stock.Quantity >= quantity) {
-            stock.setQuantity(stock.Quantity - quantity)
-            stock.setLastModified(LocalDateTime.now())
+    private fun updateStockQuantity(stock: Stock, quantity: Int) {
+        if (stock.quantity >= quantity) {
+            stock.quantity = stock.quantity - quantity
             stockRepository.save(stock)
         }
     }
 
-    private fun createSuccessfulReservation(request: ReservationRequest, stock: Stock): ReservationResult {
-        ReservationResult result = new ReservationResult()
-        result.setProductId(request.ProductId)
-        result.setReservedQuantity(request.Quantity)
-        result.setRemainingStock(stock.Quantity)
-        result.setReservationTime(LocalDateTime.now())
-        result.setSuccess(true)
-        return result
+    private fun createReservation(productId: Long, quantity: Int, customerId: Long): StockReservation {
+        return StockReservation(
+            id = UUID.randomUUID(),
+            productId = productId,
+            quantity = quantity,
+            customerId = customerId,
+            status = StockReservation.Status.ACTIVE,
+            createdAt = LocalDateTime.now()
+        )
     }
 
-    fun getAvailableStock(productId: String): Integer {
-        Stock stock = findStockByProductId(productId)
-        return stock.Quantity
+    fun getActiveReservationsForCustomer(customerId: Long): List<StockReservation> {
+        return stockReservationRepository.findByCustomerIdAndStatus(
+            customerId, 
+            StockReservation.Status.ACTIVE
+        )
     }
 
-    fun releaseReservation(productId: String, quantity: Integer): {
-        Stock stock = findStockByProductId(productId)
-        stock.setQuantity(stock.Quantity + quantity)
-        stock.setLastModified(LocalDateTime.now())
-        stockRepository.save(stock)
-    }
-
-    private fun calculateReservationValue(stock: Stock, quantity: Integer): BigDecimal {
-        return stock.UnitPrice.multiply(BigDecimal("quantity"))
+    fun calculateTotalReservedStock(productId: Long): Int {
+        return stockReservationRepository.findByProductIdAndStatus(
+            productId, 
+            StockReservation.Status.ACTIVE
+        ).sumOf { it.quantity }
     }
 }

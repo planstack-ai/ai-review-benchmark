@@ -1,0 +1,21 @@
+{
+  "case_id": "STOCK_003",
+  "category": "stock",
+  "axis": "spec_alignment",
+  "name": "cart_stock_divergence",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Cart quantity not revalidated - stock may deplete while cart abandoned",
+  "bug_anchor": "val order = createOrderFromCart(cart)",
+  "correct_implementation": "validateStockAvailability(cart.items) before checkout",
+  "severity": "high",
+  "tags": [
+    "stock",
+    "cart",
+    "validation"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

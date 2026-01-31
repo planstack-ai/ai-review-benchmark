@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_008",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "past_delivery_date",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Past delivery dates accepted - no validation ensures delivery date is in the future. Orders can be created with delivery dates in the past or today, which is not operationally feasible",
+  "bug_anchor": "deliveryDate: LocalDate",
+  "correct_implementation": "@field:Future var deliveryDate: LocalDate",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "validation",
+    "future"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

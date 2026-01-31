@@ -7,10 +7,10 @@ CREATE TABLE campaigns (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    budget DECIMAL(19,2) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    budget DECIMAL(19,2) NOT NULL,
-    status VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -20,7 +20,6 @@ CREATE TABLE campaign_metrics (
     campaign_id BIGINT NOT NULL,
     impressions BIGINT DEFAULT 0,
     clicks BIGINT DEFAULT 0,
-    conversions BIGINT DEFAULT 0,
     spend DECIMAL(19,2) DEFAULT 0.00,
     recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
@@ -29,111 +28,97 @@ CREATE TABLE campaign_metrics (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "campaigns")
-public class Campaign {
+data class Campaign(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(nullable = false)
-    private String name;
+    val name: String,
     
-    private String description;
-    
-    @Column(name = "start_date", nullable = false)
-    private LocalDate startDate;
-    
-    @Column(name = "end_date", nullable = false)
-    private LocalDate endDate;
+    val description: String? = null,
     
     @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal budget;
+    val budget: BigDecimal,
+    
+    @Column(name = "start_date", nullable = false)
+    val startDate: LocalDate,
+    
+    @Column(name = "end_date", nullable = false)
+    val endDate: LocalDate,
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private CampaignStatus status;
+    val status: CampaignStatus = CampaignStatus.DRAFT,
     
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
-}
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+)
 
-public enum CampaignStatus {
-    DRAFT, ACTIVE, PAUSED, COMPLETED, EXPIRED
+enum class CampaignStatus {
+    DRAFT, ACTIVE, PAUSED, COMPLETED, CANCELLED
 }
 
 @Entity
 @Table(name = "campaign_metrics")
-public class CampaignMetrics {
+data class CampaignMetrics(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "campaign_id", nullable = false)
-    private Long campaignId;
+    val campaignId: Long,
     
-    private Long impressions = 0L;
-    private Long clicks = 0L;
-    private Long conversions = 0L;
+    val impressions: Long = 0,
+    val clicks: Long = 0,
     
     @Column(precision = 19, scale = 2)
-    private BigDecimal spend = BigDecimal.ZERO;
+    val spend: BigDecimal = BigDecimal.ZERO,
     
     @CreationTimestamp
     @Column(name = "recorded_at")
-    private LocalDateTime recordedAt;
-    
-    // constructors, getters, setters
+    val recordedAt: LocalDateTime = LocalDateTime.now()
+)
+
+@Repository
+interface CampaignRepository : JpaRepository<Campaign, Long> {
+    fun findByStatus(status: CampaignStatus): List<Campaign>
+    fun findByStartDateLessThanEqualAndEndDateGreaterThanEqual(
+        startDate: LocalDate, 
+        endDate: LocalDate
+    ): List<Campaign>
 }
 
 @Repository
-public interface CampaignRepository extends JpaRepository<Campaign, Long> {
-    
-    List<Campaign> findByStatus(CampaignStatus status);
-    
-    @Query("SELECT c FROM Campaign c WHERE c.startDate <= :date AND c.endDate >= :date")
-    List<Campaign> findActiveCampaignsOnDate(@Param("date") LocalDate date);
-    
-    List<Campaign> findByEndDateBefore(LocalDate date);
-    
-    @Query("SELECT c FROM Campaign c WHERE c.endDate = :date AND c.status = :status")
-    List<Campaign> findByEndDateAndStatus(@Param("date") LocalDate date, @Param("status") CampaignStatus status);
+interface CampaignMetricsRepository : JpaRepository<CampaignMetrics, Long> {
+    fun findByCampaignIdAndRecordedAtBetween(
+        campaignId: Long,
+        startTime: LocalDateTime,
+        endTime: LocalDateTime
+    ): List<CampaignMetrics>
 }
 
 @Service
-public interface CampaignService {
-    Campaign createCampaign(Campaign campaign);
-    Optional<Campaign> findById(Long id);
-    List<Campaign> findActiveCampaigns();
-    void updateCampaignStatus(Long campaignId, CampaignStatus status);
-    boolean isCampaignActive(Long campaignId);
+interface CampaignService {
+    fun createCampaign(request: CreateCampaignRequest): Campaign
+    fun updateCampaignStatus(campaignId: Long, status: CampaignStatus): Campaign
+    fun getActiveCampaigns(): List<Campaign>
+    fun getCampaignById(id: Long): Campaign?
 }
 
-@Component
-public class TimeUtils {
-    
-    public LocalDate getCurrentDate() {
-        return LocalDate.now();
-    }
-    
-    public LocalDateTime getCurrentDateTime() {
-        return LocalDateTime.now();
-    }
-    
-    public LocalDateTime getEndOfDay(LocalDate date) {
-        return date.atTime(LocalTime.MAX);
-    }
-    
-    public LocalDateTime getStartOfDay(LocalDate date) {
-        return date.atStartOfDay();
-    }
-}
+data class CreateCampaignRequest(
+    val name: String,
+    val description: String? = null,
+    val budget: BigDecimal,
+    val startDate: LocalDate,
+    val endDate: LocalDate
+)
 ```

@@ -2,30 +2,31 @@
 
 ## Overview
 
-This system implements order access control to ensure users can only view and access their own orders. The application must prevent unauthorized access to orders belonging to other users while maintaining proper authentication and authorization mechanisms. This is a critical security feature that protects customer privacy and prevents data breaches in an e-commerce or order management system.
+This system implements order access control to ensure users can only view and access their own orders. The authorization mechanism prevents unauthorized access to other users' order information, maintaining data privacy and security in the e-commerce platform.
 
 ## Requirements
 
-1. Users must be authenticated before accessing any order-related endpoints
-2. Users can only retrieve orders that belong to their own account
-3. The system must validate user ownership before returning order details
-4. Unauthorized access attempts to other users' orders must be rejected with appropriate HTTP status codes
-5. The order retrieval endpoint must accept an order ID parameter
-6. The system must return proper error messages for unauthorized access attempts
-7. Valid order access requests must return complete order information
-8. The authentication mechanism must properly identify the current user
-9. Order ownership validation must occur on every order access request
-10. The system must handle cases where the requested order does not exist
+1. Users must only be able to access orders that belong to them
+2. The system must verify user ownership before returning order details
+3. Access attempts to orders belonging to other users must be rejected
+4. The system must return appropriate error responses for unauthorized access attempts
+5. User authentication must be validated before processing any order access requests
+6. The authorization check must occur at the service or controller level
+7. Order retrieval endpoints must include user context validation
+8. The system must handle cases where orders do not exist
+9. Error messages must not reveal information about orders belonging to other users
+10. The authorization mechanism must be consistent across all order-related endpoints
 
 ## Constraints
 
-1. Order IDs must be validated for proper format before processing
-2. Error responses must not leak information about the existence of orders belonging to other users
-3. The system must handle null or empty authentication contexts gracefully
-4. Database queries must be optimized to prevent performance issues during ownership validation
-5. Logging must capture unauthorized access attempts for security monitoring
-6. The system must maintain consistent behavior across all order-related operations
+- Orders without valid user associations must be inaccessible
+- Anonymous or unauthenticated requests must be rejected
+- The system must not expose order existence for unauthorized users
+- Database queries must include user filtering to prevent data leakage
+- Authorization failures must return HTTP 403 Forbidden status
+- Non-existent orders must return HTTP 404 Not Found status
+- User identity must be extracted from authenticated session or token
 
 ## References
 
-See context.md for existing user authentication, order entity definitions, and repository implementations that should be leveraged in this authorization system.
+See context.md for existing authentication patterns and user management implementations in the codebase.

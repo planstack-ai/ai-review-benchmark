@@ -1,0 +1,21 @@
+{
+  "case_id": "CALC_009",
+  "category": "calculation",
+  "axis": "spec_alignment",
+  "name": "minimum_order_amount",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Minimum check on pre-discount amount instead of post-discount",
+  "bug_anchor": "val orderAmount = order.subtotal",
+  "correct_implementation": "val orderAmount = order.finalAmount",
+  "severity": "medium",
+  "tags": [
+    "calculation",
+    "validation",
+    "minimum"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}
