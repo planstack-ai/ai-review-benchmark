@@ -7,23 +7,23 @@ This service implements a discount calculation system for an e-commerce platform
 ## Requirements
 
 1. Create a discount calculation service that accepts customer type and order amount as inputs
-2. Apply a 10% discount rate for customers identified as "members"
-3. Apply no discount (0%) for customers who are not members
+2. Apply a 10% discount rate for customers identified as members
+3. Apply no discount (0%) for non-member customers
 4. Return the discounted amount as the final calculation result
 5. Handle decimal precision appropriately for monetary calculations
-6. Provide clear method signatures that indicate the discount calculation purpose
-7. Implement proper input validation for order amounts
-8. Support both member and non-member customer types through a clear classification system
+6. Implement proper input validation for order amounts
+7. Use appropriate data types for financial calculations
+8. Provide clear method signatures that indicate the discount calculation purpose
 
 ## Constraints
 
 1. Order amounts must be positive values greater than zero
-2. Discount rates must be expressed as percentages (10% = 0.10 in decimal form)
-3. Final calculated amounts should maintain appropriate decimal precision for currency
-4. Customer type classification must be case-insensitive
-5. The service should handle null or invalid inputs gracefully
-6. Discount application should only occur for valid member classifications
+2. Discount rates must be expressed as percentages (0-100 range)
+3. Member status must be clearly identifiable through input parameters
+4. Calculated discount amounts should maintain appropriate decimal precision
+5. Invalid inputs should be handled gracefully with appropriate error responses
+6. The service should be stateless and thread-safe
 
 ## References
 
-See context.md for existing service patterns and integration requirements within the Spring Boot application structure.
+See context.md for existing discount calculation patterns and service implementations in the codebase.

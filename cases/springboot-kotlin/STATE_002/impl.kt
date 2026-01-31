@@ -1,113 +1,144 @@
-package com.codereviewer.service
+package com.example.benchmark.service
 
-import com.codereviewer.entity.BenchmarkExecution
-import com.codereviewer.entity.ExecutionStatus
-import com.codereviewer.repository.BenchmarkExecutionRepository
-import com.codereviewer.exception.ExecutionNotFoundException
-import com.codereviewer.exception.InvalidStateTransitionException
-import org.springframework.beans.factory.annotation.Autowired
+import com.example.benchmark.entity.CodeReviewTask
+import com.example.benchmark.entity.TaskStatus
+import com.example.benchmark.repository.CodeReviewTaskRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.util.List
-import java.util.Optional
+import java.util.*
 
 @Service
 @Transactional
-class BenchmarkExecutionService {
+class CodeReviewBenchmarkService(
+    private val taskRepository: CodeReviewTaskRepository
+) {
 
-    @Autowired
-    private BenchmarkExecutionRepository executionRepository
-
-    fun createExecution(benchmarkName: String, userId: String): BenchmarkExecution {
-        BenchmarkExecution execution = new BenchmarkExecution()
-        execution.setBenchmarkName(benchmarkName)
-        execution.setUserId(userId)
-        execution.setStatus(ExecutionStatus.PENDING)
-        execution.setCreatedAt(LocalDateTime.now())
-        execution.setScore(BigDecimal.ZERO)
-        execution.setProgress(0)
-        
-        return executionRepository.save(execution)
+    fun createReviewTask(
+        repositoryUrl: String,
+        complexity: String,
+        estimatedHours: BigDecimal
+    ): CodeReviewTask {
+        val task = CodeReviewTask(
+            id = UUID.randomUUID(),
+            repositoryUrl = repositoryUrl,
+            complexity = complexity,
+            estimatedHours = estimatedHours,
+            status = TaskStatus.PENDING,
+            createdAt = LocalDateTime.now()
+        )
+        return taskRepository.save(task)
     }
 
-    fun startExecution(executionId: Long): BenchmarkExecution {
-        BenchmarkExecution execution = findExecutionById(executionId)
-        
-        if (!canTransitionToRunning(execution.Status)) {
-            throw new InvalidStateTransitionException("Cannot start execution from status: " + execution.Status)
+    fun assignReviewer(taskId: UUID, reviewerId: UUID): CodeReviewTask? {
+        return taskRepository.findById(taskId)?.let { task ->
+            if (task.status == TaskStatus.PENDING) {
+                val updatedTask = task.copy(
+                    reviewerId = reviewerId,
+                    status = TaskStatus.IN_PROGRESS,
+                    assignedAt = LocalDateTime.now()
+                )
+                taskRepository.save(updatedTask)
+            } else {
+                throw IllegalStateException("Task ${task.id} is not available for assignment")
+            }
         }
-        
-        execution.setStatus(ExecutionStatus.RUNNING)
-        execution.setStartedAt(LocalDateTime.now())
-        execution.setProgress(0)
-        
-        return executionRepository.save(execution)
     }
 
-    fun updateProgress(executionId: Long, progressPercentage: int, currentScore: BigDecimal): BenchmarkExecution {
-        BenchmarkExecution execution = findExecutionById(executionId)
-        
-        validateProgressUpdate(execution, progressPercentage)
-        
-        execution.setProgress(progressPercentage)
-        execution.setScore(currentScore)
-        execution.setLastUpdatedAt(LocalDateTime.now())
-        
-        if (progressPercentage >= 100) {
-            execution.setStatus(ExecutionStatus.COMPLETED)
-            execution.setCompletedAt(LocalDateTime.now())
+    fun submitReview(taskId: UUID, score: Int, feedback: String): CodeReviewTask? {
+        return taskRepository.findById(taskId)?.let { task ->
+            validateReviewSubmission(task, score)
+            
+            val completedTask = task.copy(
+                status = TaskStatus.COMPLETED,
+                reviewScore = score,
+                reviewFeedback = feedback,
+                completedAt = LocalDateTime.now(),
+                actualHours = calculateActualHours(task)
+            )
+            taskRepository.save(completedTask)
         }
-        
-        return executionRepository.save(execution)
     }
 
-    fun failExecution(executionId: Long, errorMessage: String): BenchmarkExecution {
-        BenchmarkExecution execution = findExecutionById(executionId)
-        
-        if (execution.Status == ExecutionStatus.COMPLETED) {
-            throw new InvalidStateTransitionException("Cannot fail a completed execution")
+    fun updateTaskPriority(taskId: UUID, newPriority: Int): CodeReviewTask? {
+        return taskRepository.findById(taskId)?.let { task ->
+            if (task.status != TaskStatus.COMPLETED) {
+                val updatedTask = task.copy(
+                    priority = newPriority,
+                    lastModified = LocalDateTime.now()
+                )
+                taskRepository.save(updatedTask)
+            } else {
+                task
+            }
         }
-        
-        execution.setStatus(ExecutionStatus.FAILED)
-        execution.setErrorMessage(errorMessage)
-        execution.setCompletedAt(LocalDateTime.now())
-        
-        return executionRepository.save(execution)
     }
 
-    fun List<BenchmarkExecution> getExecutionsByUser(userId: String) {
-        return executionRepository.findByUserIdOrderByCreatedAtDesc(userId)
-    }
-
-    fun List<BenchmarkExecution> getRunningExecutions() {
-        return executionRepository.findByStatus(ExecutionStatus.RUNNING)
-    }
-
-    private fun findExecutionById(executionId: Long): BenchmarkExecution {
-        Optional<BenchmarkExecution> execution = executionRepository.findById(executionId)
-        if (execution.isEmpty()) {
-            throw new ExecutionNotFoundException("Execution not found with id: " + executionId)
+    fun cancelTask(taskId: UUID): CodeReviewTask? {
+        return taskRepository.findById(taskId)?.let { task ->
+            if (task.status in listOf(TaskStatus.PENDING, TaskStatus.IN_PROGRESS)) {
+                val cancelledTask = task.copy(
+                    status = TaskStatus.CANCELLED,
+                    cancelledAt = LocalDateTime.now()
+                )
+                taskRepository.save(cancelledTask)
+            } else {
+                throw IllegalStateException("Cannot cancel task in ${task.status} status")
+            }
         }
-        return execution.get()
     }
 
-    private fun canTransitionToRunning(currentStatus: ExecutionStatus): boolean {
-        return currentStatus == ExecutionStatus.PENDING
+    private fun validateReviewSubmission(task: CodeReviewTask, score: Int) {
+        require(task.status == TaskStatus.IN_PROGRESS) {
+            "Task must be in progress to submit review"
+        }
+        require(score in 1..10) {
+            "Review score must be between 1 and 10"
+        }
+        require(task.reviewerId != null) {
+            "Task must have an assigned reviewer"
+        }
     }
 
-    private fun validateProgressUpdate(execution: BenchmarkExecution, progressPercentage: int): {
-        if (execution.Status != ExecutionStatus.RUNNING) {
-            throw new InvalidStateTransitionException("Cannot update progress for execution with status: " + execution.Status)
+    private fun calculateActualHours(task: CodeReviewTask): BigDecimal? {
+        return task.assignedAt?.let { assigned ->
+            val hoursWorked = java.time.Duration.between(assigned, LocalDateTime.now()).toHours()
+            BigDecimal.valueOf(hoursWorked)
         }
-        
-        if (progressPercentage < 0 || progressPercentage > 100) {
-            throw new IllegalArgumentException("Progress percentage must be between 0 and 100")
+    }
+
+    fun getTasksByStatus(status: TaskStatus): List<CodeReviewTask> {
+        return taskRepository.findByStatus(status)
+    }
+
+    fun getTaskStatistics(): Map<String, Any> {
+        val allTasks = taskRepository.findAll()
+        return mapOf(
+            "totalTasks" to allTasks.size,
+            "completedTasks" to allTasks.count { it.status == TaskStatus.COMPLETED },
+            "averageScore" to calculateAverageScore(allTasks),
+            "averageCompletionTime" to calculateAverageCompletionTime(allTasks)
+        )
+    }
+
+    private fun calculateAverageScore(tasks: List<CodeReviewTask>): BigDecimal {
+        val completedTasks = tasks.filter { it.status == TaskStatus.COMPLETED && it.reviewScore != null }
+        return if (completedTasks.isNotEmpty()) {
+            BigDecimal.valueOf(completedTasks.mapNotNull { it.reviewScore }.average())
+        } else {
+            BigDecimal.ZERO
         }
-        
-        if (progressPercentage < execution.Progress) {
-            throw new IllegalArgumentException("Progress cannot go backwards")
+    }
+
+    private fun calculateAverageCompletionTime(tasks: List<CodeReviewTask>): BigDecimal {
+        val completedTasks = tasks.filter { it.actualHours != null }
+        return if (completedTasks.isNotEmpty()) {
+            completedTasks.mapNotNull { it.actualHours }
+                .fold(BigDecimal.ZERO) { acc, hours -> acc.add(hours) }
+                .divide(BigDecimal.valueOf(completedTasks.size.toLong()))
+        } else {
+            BigDecimal.ZERO
         }
     }
 }

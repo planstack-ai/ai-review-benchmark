@@ -5,10 +5,9 @@
 ```sql
 CREATE TABLE orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    order_number VARCHAR(50) NOT NULL UNIQUE,
     customer_id BIGINT NOT NULL,
-    total_amount DECIMAL(10,2) NOT NULL,
-    status VARCHAR(20) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    total_amount DECIMAL(19,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -18,49 +17,65 @@ CREATE TABLE order_items (
     order_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
     quantity INT NOT NULL,
-    unit_price DECIMAL(10,2) NOT NULL,
+    unit_price DECIMAL(19,2) NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 ```
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "orders")
-public class Order {
+data class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @Column(name = "order_number", nullable = false, unique = true)
-    private String orderNumber;
+    val id: Long = 0,
     
     @Column(name = "customer_id", nullable = false)
-    private Long customerId;
-    
-    @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount;
+    val customerId: Long,
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private OrderStatus status;
+    @Column(nullable = false)
+    val status: OrderStatus,
+    
+    @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
+    val totalAmount: BigDecimal,
     
     @CreationTimestamp
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false)
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "updated_at", nullable = false)
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
     
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<OrderItem> items = new ArrayList<>();
-    
-    // constructors, getters, setters
-}
+    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val items: List<OrderItem> = emptyList()
+)
 
-public enum OrderStatus {
+@Entity
+@Table(name = "order_items")
+data class OrderItem(
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false)
+    val order: Order,
+    
+    @Column(name = "product_id", nullable = false)
+    val productId: Long,
+    
+    @Column(nullable = false)
+    val quantity: Int,
+    
+    @Column(name = "unit_price", nullable = false, precision = 19, scale = 2)
+    val unitPrice: BigDecimal
+)
+
+enum class OrderStatus {
     PENDING,
     CONFIRMED,
     PROCESSING,
@@ -68,77 +83,41 @@ public enum OrderStatus {
     DELIVERED,
     COMPLETED,
     CANCELLED,
-    REFUNDED
-}
-
-@Entity
-@Table(name = "order_items")
-public class OrderItem {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    REFUNDED;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
-    
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
-    
-    @Column(name = "quantity", nullable = false)
-    private Integer quantity;
-    
-    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal unitPrice;
-    
-    // constructors, getters, setters
+    companion object {
+        val TERMINAL_STATES = setOf(COMPLETED, CANCELLED, REFUNDED)
+        val ACTIVE_STATES = setOf(PENDING, CONFIRMED, PROCESSING, SHIPPED)
+        val FULFILLED_STATES = setOf(DELIVERED, COMPLETED)
+    }
 }
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    Optional<Order> findByOrderNumber(String orderNumber);
-    
-    List<Order> findByCustomerId(Long customerId);
-    
-    List<Order> findByStatus(OrderStatus status);
-    
-    List<Order> findByStatusIn(Set<OrderStatus> statuses);
-    
-    @Query("SELECT o FROM Order o WHERE o.createdAt BETWEEN :startDate AND :endDate")
-    List<Order> findOrdersInDateRange(@Param("startDate") LocalDateTime startDate, 
-                                     @Param("endDate") LocalDateTime endDate);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByCustomerId(customerId: Long): List<Order>
+    fun findByStatus(status: OrderStatus): List<Order>
+    fun findByStatusIn(statuses: Set<OrderStatus>): List<Order>
+    fun countByCustomerIdAndStatus(customerId: Long, status: OrderStatus): Long
 }
 
 @Service
-public interface OrderService {
-    Order createOrder(CreateOrderRequest request);
-    
-    Order updateOrderStatus(Long orderId, OrderStatus newStatus);
-    
-    List<Order> getOrdersByCustomer(Long customerId);
-    
-    boolean isOrderCompleted(Long orderId);
+interface OrderService {
+    fun findOrderById(id: Long): Order?
+    fun updateOrderStatus(orderId: Long, newStatus: OrderStatus): Order
+    fun getOrdersByCustomer(customerId: Long): List<Order>
 }
 
-public final class OrderConstants {
-    public static final Set<OrderStatus> COMPLETED_STATUSES = Set.of(
-        OrderStatus.DELIVERED,
-        OrderStatus.COMPLETED
-    );
+@RestController
+@RequestMapping("/api/orders")
+class OrderController(
+    private val orderService: OrderService
+) {
     
-    public static final Set<OrderStatus> ACTIVE_STATUSES = Set.of(
-        OrderStatus.PENDING,
-        OrderStatus.CONFIRMED,
-        OrderStatus.PROCESSING,
-        OrderStatus.SHIPPED
-    );
-    
-    public static final Set<OrderStatus> TERMINAL_STATUSES = Set.of(
-        OrderStatus.COMPLETED,
-        OrderStatus.CANCELLED,
-        OrderStatus.REFUNDED
-    );
-    
-    private OrderConstants() {}
+    @GetMapping("/{id}")
+    fun getOrder(@PathVariable id: Long): ResponseEntity<Order> {
+        return orderService.findOrderById(id)
+            ?.let { ResponseEntity.ok(it) }
+            ?: ResponseEntity.notFound().build()
+    }
 }
 ```

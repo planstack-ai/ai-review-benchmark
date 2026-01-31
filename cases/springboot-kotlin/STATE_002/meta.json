@@ -7,7 +7,7 @@
   "expected_detection": true,
   "bug_description": "Race condition - no optimistic locking on state update",
   "bug_anchor": "// no version field",
-  "correct_implementation": "@Version private Long version;",
+  "correct_implementation": "@Version var version: Long = 0",
   "severity": "high",
   "tags": [
     "state",
@@ -16,6 +16,6 @@
   ],
   "framework": "springboot-kotlin",
   "framework_version": "3.2+",
-  "bug_anchor_verified": false,
-  "kotlin_version": "1.9+"
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": false
 }

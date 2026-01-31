@@ -6,7 +6,7 @@
   "difficulty": "hard",
   "expected_detection": true,
   "bug_description": "Check-then-act race condition between stock check and reservation",
-  "bug_anchor": "if (stock.getQuantity(\") >= quantity\") { stock.setQuantity(stock.getQuantity(\") - quantity\"); }",
+  "bug_anchor": "if (stock.quantity >= quantity) { stock.quantity = stock.quantity - quantity }",
   "correct_implementation": "stockRepository.decrementIfAvailable(productId, quantity)",
   "severity": "critical",
   "tags": [
@@ -16,6 +16,6 @@
   ],
   "framework": "springboot-kotlin",
   "framework_version": "3.2+",
-  "bug_anchor_verified": true,
-  "kotlin_version": "1.9+"
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
 }

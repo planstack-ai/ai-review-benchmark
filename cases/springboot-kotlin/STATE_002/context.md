@@ -7,7 +7,6 @@ CREATE TABLE accounts (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     account_number VARCHAR(20) UNIQUE NOT NULL,
     balance DECIMAL(19,2) NOT NULL DEFAULT 0.00,
-    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     version BIGINT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -16,10 +15,9 @@ CREATE TABLE accounts (
 CREATE TABLE transactions (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     account_id BIGINT NOT NULL,
-    transaction_type VARCHAR(20) NOT NULL,
     amount DECIMAL(19,2) NOT NULL,
-    reference_number VARCHAR(50) UNIQUE NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    transaction_type ENUM('CREDIT', 'DEBIT') NOT NULL,
+    reference VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
@@ -27,112 +25,90 @@ CREATE TABLE transactions (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "accounts")
-public class Account {
+data class Account(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "account_number", unique = true, nullable = false)
-    private String accountNumber;
+    val accountNumber: String,
     
     @Column(name = "balance", precision = 19, scale = 2, nullable = false)
-    private BigDecimal balance = BigDecimal.ZERO;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private AccountStatus status = AccountStatus.ACTIVE;
+    val balance: BigDecimal = BigDecimal.ZERO,
     
     @Version
     @Column(name = "version", nullable = false)
-    private Long version = 0L;
+    val version: Long = 0,
     
     @CreationTimestamp
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
-}
+    @Column(name = "updated_at", nullable = false)
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+)
 
 @Entity
 @Table(name = "transactions")
-public class Transaction {
+data class Transaction(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "account_id", nullable = false)
-    private Long accountId;
+    val accountId: Long,
+    
+    @Column(name = "amount", precision = 19, scale = 2, nullable = false)
+    val amount: BigDecimal,
     
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)
-    private TransactionType transactionType;
+    val type: TransactionType,
     
-    @Column(name = "amount", precision = 19, scale = 2, nullable = false)
-    private BigDecimal amount;
-    
-    @Column(name = "reference_number", unique = true, nullable = false)
-    private String referenceNumber;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private TransactionStatus status = TransactionStatus.PENDING;
+    @Column(name = "reference")
+    val reference: String? = null,
     
     @CreationTimestamp
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
-    // constructors, getters, setters
-}
+    @Column(name = "created_at", nullable = false, updatable = false)
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
 
-public enum AccountStatus {
-    ACTIVE, SUSPENDED, CLOSED
-}
-
-public enum TransactionType {
-    DEPOSIT, WITHDRAWAL, TRANSFER_IN, TRANSFER_OUT
-}
-
-public enum TransactionStatus {
-    PENDING, COMPLETED, FAILED, CANCELLED
+enum class TransactionType {
+    CREDIT, DEBIT
 }
 
 @Repository
-public interface AccountRepository extends JpaRepository<Account, Long> {
-    Optional<Account> findByAccountNumber(String accountNumber);
+interface AccountRepository : JpaRepository<Account, Long> {
+    fun findByAccountNumber(accountNumber: String): Account?
     
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
     @Query("SELECT a FROM Account a WHERE a.id = :id")
-    Optional<Account> findByIdWithLock(Long id);
+    fun findByIdWithLock(id: Long): Account?
 }
 
 @Repository
-public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    List<Transaction> findByAccountIdAndStatus(Long accountId, TransactionStatus status);
-    Optional<Transaction> findByReferenceNumber(String referenceNumber);
+interface TransactionRepository : JpaRepository<Transaction, Long> {
+    fun findByAccountIdOrderByCreatedAtDesc(accountId: Long): List<Transaction>
 }
 
 @Service
-public interface AccountService {
-    Account findByAccountNumber(String accountNumber);
-    void processTransaction(String accountNumber, TransactionType type, BigDecimal amount, String referenceNumber);
+interface AccountService {
+    fun getAccount(accountNumber: String): Account?
+    fun updateBalance(accountId: Long, amount: BigDecimal, type: TransactionType, reference: String?): Account
 }
 
-public class InsufficientFundsException extends RuntimeException {
-    public InsufficientFundsException(String message) {
-        super(message);
-    }
-}
+data class BalanceUpdateRequest(
+    val accountNumber: String,
+    val amount: BigDecimal,
+    val type: TransactionType,
+    val reference: String? = null
+)
 
-public class AccountNotFoundException extends RuntimeException {
-    public AccountNotFoundException(String message) {
-        super(message);
-    }
-}
+class InsufficientFundsException(message: String) : RuntimeException(message)
+class AccountNotFoundException(message: String) : RuntimeException(message)
+class ConcurrentUpdateException(message: String) : RuntimeException(message)
 ```

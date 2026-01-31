@@ -6,8 +6,8 @@
 CREATE TABLE orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_id BIGINT NOT NULL,
-    total_amount DECIMAL(19,2) NOT NULL,
     status VARCHAR(20) NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -17,69 +17,65 @@ CREATE TABLE order_items (
     order_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
     quantity INT NOT NULL,
-    unit_price DECIMAL(19,2) NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 ```
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "orders")
-public class Order {
+data class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "customer_id", nullable = false)
-    private Long customerId;
-    
-    @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
-    private BigDecimal totalAmount;
+    val customerId: Long,
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status;
+    var status: OrderStatus,
+    
+    @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
+    val totalAmount: BigDecimal,
+    
+    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val items: List<OrderItem> = emptyList(),
     
     @CreationTimestamp
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<OrderItem> items = new ArrayList<>();
-    
-    // constructors, getters, setters
-}
+    @Column(name = "updated_at", nullable = false)
+    var updatedAt: LocalDateTime = LocalDateTime.now()
+)
 
 @Entity
 @Table(name = "order_items")
-public class OrderItem {
+data class OrderItem(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    val order: Order,
     
     @Column(name = "product_id", nullable = false)
-    private Long productId;
+    val productId: Long,
     
     @Column(nullable = false)
-    private Integer quantity;
+    val quantity: Int,
     
-    @Column(name = "unit_price", nullable = false, precision = 19, scale = 2)
-    private BigDecimal unitPrice;
-    
-    // constructors, getters, setters
-}
+    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
+    val unitPrice: BigDecimal
+)
 
-public enum OrderStatus {
+enum class OrderStatus {
     PENDING,
     CONFIRMED,
     PROCESSING,
@@ -89,31 +85,40 @@ public enum OrderStatus {
 }
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByCustomerId(Long customerId);
-    List<Order> findByStatus(OrderStatus status);
-    Optional<Order> findByIdAndCustomerId(Long id, Long customerId);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByCustomerId(customerId: Long): List<Order>
+    fun findByStatus(status: OrderStatus): List<Order>
+    fun findByCustomerIdAndStatus(customerId: Long, status: OrderStatus): List<Order>
 }
 
 @Service
-public interface OrderService {
-    Order createOrder(Long customerId, List<OrderItem> items);
-    Order confirmOrder(Long orderId);
-    Order cancelOrder(Long orderId);
-    Order updateOrderStatus(Long orderId, OrderStatus newStatus);
-    Optional<Order> findById(Long orderId);
+interface OrderService {
+    fun createOrder(customerId: Long, items: List<OrderItemRequest>): Order
+    fun confirmOrder(orderId: Long): Order
+    fun cancelOrder(orderId: Long): Order
+    fun getOrder(orderId: Long): Order?
+    fun getOrdersByCustomer(customerId: Long): List<Order>
 }
 
-@Component
-public class OrderValidator {
-    public boolean isValidStatusTransition(OrderStatus from, OrderStatus to) {
-        return switch (from) {
-            case PENDING -> to == OrderStatus.CONFIRMED || to == OrderStatus.CANCELLED;
-            case CONFIRMED -> to == OrderStatus.PROCESSING || to == OrderStatus.CANCELLED;
-            case PROCESSING -> to == OrderStatus.SHIPPED;
-            case SHIPPED -> to == OrderStatus.DELIVERED;
-            default -> false;
-        };
+data class OrderItemRequest(
+    val productId: Long,
+    val quantity: Int,
+    val unitPrice: BigDecimal
+)
+
+@ControllerAdvice
+class GlobalExceptionHandler {
+    
+    @ExceptionHandler(IllegalStateException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun handleIllegalStateException(ex: IllegalStateException): ErrorResponse {
+        return ErrorResponse("INVALID_STATE", ex.message ?: "Invalid state transition")
     }
 }
+
+data class ErrorResponse(
+    val code: String,
+    val message: String,
+    val timestamp: LocalDateTime = LocalDateTime.now()
+)
 ```

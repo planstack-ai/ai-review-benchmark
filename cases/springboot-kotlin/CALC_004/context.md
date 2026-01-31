@@ -15,7 +15,7 @@ CREATE TABLE order_items (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
-    quantity INTEGER NOT NULL,
+    quantity INT NOT NULL,
     unit_price DECIMAL(10,2) NOT NULL,
     discount_percentage DECIMAL(5,2) DEFAULT 0.00,
     FOREIGN KEY (order_id) REFERENCES orders(id)
@@ -24,101 +24,82 @@ CREATE TABLE order_items (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "orders")
-public class Order {
+data class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "customer_id", nullable = false)
-    private Long customerId;
+    val customerId: Long,
     
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    val status: OrderStatus = OrderStatus.PENDING,
     
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<OrderItem> items = new ArrayList<>();
+    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val items: List<OrderItem> = emptyList(),
     
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
-}
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+)
 
 @Entity
 @Table(name = "order_items")
-public class OrderItem {
+data class OrderItem(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    val order: Order,
     
     @Column(name = "product_id", nullable = false)
-    private Long productId;
+    val productId: Long,
     
     @Column(nullable = false)
-    private Integer quantity;
+    val quantity: Int,
     
     @Column(name = "unit_price", precision = 10, scale = 2, nullable = false)
-    private BigDecimal unitPrice;
+    val unitPrice: BigDecimal,
     
     @Column(name = "discount_percentage", precision = 5, scale = 2)
-    private BigDecimal discountPercentage = BigDecimal.ZERO;
-    
-    // constructors, getters, setters
-}
+    val discountPercentage: BigDecimal = BigDecimal.ZERO
+)
 
-public enum OrderStatus {
+enum class OrderStatus {
     PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
 }
-```
 
-```java
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    @Query("SELECT o FROM Order o JOIN FETCH o.items WHERE o.id = :id")
-    Optional<Order> findByIdWithItems(Long id);
-    
-    List<Order> findByCustomerIdAndStatus(Long customerId, OrderStatus status);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByCustomerId(customerId: Long): List<Order>
+    fun findByStatus(status: OrderStatus): List<Order>
 }
 
 @Repository
-public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
-    List<OrderItem> findByOrderId(Long orderId);
-}
-```
-
-```java
-public final class MonetaryConstants {
-    public static final int CURRENCY_SCALE = 2;
-    public static final RoundingMode DEFAULT_ROUNDING_MODE = RoundingMode.HALF_UP;
-    public static final BigDecimal HUNDRED = new BigDecimal("100");
-    
-    private MonetaryConstants() {}
+interface OrderItemRepository : JpaRepository<OrderItem, Long> {
+    fun findByOrderId(orderId: Long): List<OrderItem>
 }
 
 @Service
-public interface OrderService {
-    Order createOrder(Long customerId, List<OrderItemRequest> items);
-    Order findOrderById(Long id);
-    BigDecimal calculateOrderTotal(Long orderId);
-    void updateOrderStatus(Long orderId, OrderStatus status);
+interface OrderCalculationService {
+    fun calculateOrderTotal(orderId: Long): BigDecimal
+    fun calculateItemSubtotal(orderItem: OrderItem): BigDecimal
 }
 
-public record OrderItemRequest(
-    Long productId,
-    Integer quantity,
-    BigDecimal unitPrice,
-    BigDecimal discountPercentage
-) {}
+object PricingConstants {
+    val TAX_RATE: BigDecimal = BigDecimal("0.0875")
+    val SHIPPING_THRESHOLD: BigDecimal = BigDecimal("50.00")
+    val STANDARD_SHIPPING: BigDecimal = BigDecimal("5.99")
+    val CURRENCY_SCALE = 2
+    val CALCULATION_SCALE = 4
+}
 ```

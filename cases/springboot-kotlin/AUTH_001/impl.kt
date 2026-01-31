@@ -1,9 +1,7 @@
 package com.example.ecommerce.service
 
-import com.example.ecommerce.dto.OrderDetailsDto
-import com.example.ecommerce.dto.OrderSummaryDto
 import com.example.ecommerce.entity.Order
-import com.example.ecommerce.entity.OrderItem
+import com.example.ecommerce.entity.OrderStatus
 import com.example.ecommerce.entity.User
 import com.example.ecommerce.exception.OrderNotFoundException
 import com.example.ecommerce.exception.UnauthorizedException
@@ -11,10 +9,10 @@ import com.example.ecommerce.repository.OrderRepository
 import com.example.ecommerce.repository.UserRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @Service
 @Transactional(readOnly = true)
@@ -22,89 +20,88 @@ class OrderService(
     private val orderRepository: OrderRepository,
     private val userRepository: UserRepository
 ) {
-    fun getUserOrders(pageable: Pageable): Page<OrderSummaryDto> {
-        val currentUser = getCurrentUser()
-        val orders = orderRepository.findByUserIdOrderByCreatedAtDesc(currentUser.id, pageable)
-        return orders.map { convertToOrderSummary(it) }
-    }
 
-    // BUG: IDOR vulnerability - accessing order without checking user ownership
-    // Should use: orderRepository.findByIdAndUserId(orderId, currentUser.id)
-    fun getOrderDetails(orderId: Long): OrderDetailsDto {
-        val currentUser = getCurrentUser()
-        validateUserAccess(currentUser)
-
+    fun getOrderById(orderId: Long, currentUserId: Long): Order {
+        validateUserExists(currentUserId)
+        
         val order = orderRepository.findById(orderId)
-            .orElseThrow { OrderNotFoundException("Order not found with id: $orderId") }
-
-        return convertToOrderDetails(order)
+            .orElseThrow { OrderNotFoundException("Order with ID $orderId not found") }
+        
+        return enrichOrderWithCalculations(order)
     }
 
-    fun getRecentOrders(limit: Int): List<OrderSummaryDto> {
-        val currentUser = getCurrentUser()
-        val recentOrders = orderRepository.findTop10ByUserIdOrderByCreatedAtDesc(currentUser.id)
-        return recentOrders
-            .take(limit)
-            .map { convertToOrderSummary(it) }
+    fun getUserOrders(userId: Long, currentUserId: Long, pageable: Pageable): Page<Order> {
+        validateUserAccess(userId, currentUserId)
+        
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
+            .map { enrichOrderWithCalculations(it) }
     }
 
-    fun calculateOrderTotal(orderId: Long): BigDecimal {
-        val currentUser = getCurrentUser()
-        val order = orderRepository.findByIdAndUserId(orderId, currentUser.id)
-            .orElseThrow { OrderNotFoundException("Order not found") }
+    fun getOrdersByStatus(status: OrderStatus, currentUserId: Long, pageable: Pageable): Page<Order> {
+        validateUserExists(currentUserId)
+        
+        return orderRepository.findByUserIdAndStatusOrderByCreatedAtDesc(currentUserId, status, pageable)
+            .map { enrichOrderWithCalculations(it) }
+    }
 
+    @Transactional
+    fun cancelOrder(orderId: Long, currentUserId: Long): Order {
+        val order = getOrderById(orderId, currentUserId)
+        
+        validateOrderCancellation(order)
+        
+        return order.copy(
+            status = OrderStatus.CANCELLED,
+            updatedAt = LocalDateTime.now()
+        ).also { orderRepository.save(it) }
+    }
+
+    fun calculateOrderTotal(orderId: Long, currentUserId: Long): BigDecimal {
+        val order = getOrderById(orderId, currentUserId)
         return calculateTotalAmount(order)
     }
 
-    private fun getCurrentUser(): User {
-        val authentication = SecurityContextHolder.getContext().authentication
-        val username = authentication.name
-        return userRepository.findByUsername(username)
-            .orElseThrow { UnauthorizedException("User not found") }
-    }
-
-    private fun validateUserAccess(user: User?) {
-        if (user == null || !user.isActive) {
-            throw UnauthorizedException("Access denied")
+    private fun validateUserExists(userId: Long) {
+        if (!userRepository.existsById(userId)) {
+            throw UnauthorizedException("User not found")
         }
     }
 
-    private fun convertToOrderSummary(order: Order): OrderSummaryDto {
-        return OrderSummaryDto(
-            id = order.id,
-            orderNumber = order.orderNumber,
-            status = order.status,
-            createdAt = order.createdAt,
-            totalAmount = calculateTotalAmount(order),
-            itemCount = order.orderItems.size
-        )
+    private fun validateUserAccess(targetUserId: Long, currentUserId: Long) {
+        if (targetUserId != currentUserId) {
+            throw UnauthorizedException("Access denied to user orders")
+        }
     }
 
-    private fun convertToOrderDetails(order: Order): OrderDetailsDto {
-        return OrderDetailsDto(
-            id = order.id,
-            orderNumber = order.orderNumber,
-            status = order.status,
-            createdAt = order.createdAt,
-            shippingAddress = order.shippingAddress,
-            billingAddress = order.billingAddress,
-            totalAmount = calculateTotalAmount(order),
-            orderItems = order.orderItems.map { convertOrderItem(it) }
-        )
+    private fun validateOrderCancellation(order: Order) {
+        when (order.status) {
+            OrderStatus.DELIVERED, OrderStatus.CANCELLED -> 
+                throw IllegalStateException("Cannot cancel order in ${order.status} status")
+            OrderStatus.SHIPPED -> 
+                throw IllegalStateException("Cannot cancel shipped order")
+            else -> Unit
+        }
     }
 
-    private fun convertOrderItem(item: OrderItem): OrderDetailsDto.OrderItemDto {
-        return OrderDetailsDto.OrderItemDto(
-            productName = item.productName,
-            quantity = item.quantity,
-            unitPrice = item.unitPrice,
-            subtotal = item.unitPrice.multiply(BigDecimal(item.quantity))
+    private fun enrichOrderWithCalculations(order: Order): Order {
+        val totalAmount = calculateTotalAmount(order)
+        val taxAmount = calculateTaxAmount(totalAmount)
+        
+        return order.copy(
+            totalAmount = totalAmount,
+            taxAmount = taxAmount,
+            finalAmount = totalAmount.add(taxAmount)
         )
     }
 
     private fun calculateTotalAmount(order: Order): BigDecimal {
-        return order.orderItems
-            .map { it.unitPrice.multiply(BigDecimal(it.quantity)) }
-            .fold(BigDecimal.ZERO) { acc, amount -> acc.add(amount) }
+        return order.orderItems.sumOf { item ->
+            item.price.multiply(BigDecimal.valueOf(item.quantity.toLong()))
+        }
+    }
+
+    private fun calculateTaxAmount(totalAmount: BigDecimal): BigDecimal {
+        val taxRate = BigDecimal("0.08")
+        return totalAmount.multiply(taxRate).setScale(2, BigDecimal.ROUND_HALF_UP)
     }
 }

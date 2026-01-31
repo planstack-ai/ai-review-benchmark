@@ -57,6 +57,13 @@ FRAMEWORK_CONFIG = {
         "orm": "Spring Data JPA",
         "patterns_file": "patterns_springboot_java.yaml",
     },
+    "springboot-kotlin": {
+        "impl_ext": ".kt",
+        "language": "Kotlin",
+        "expert_role": "Senior Spring Boot Kotlin developer",
+        "orm": "Spring Data JPA",
+        "patterns_file": "patterns_springboot_kotlin.yaml",
+    },
 }
 
 
@@ -225,6 +232,37 @@ It should contain realistic Spring Boot/Java code that would exist before the im
 - Include proper Spring annotations (@Entity, @Repository, @Service, etc.)
 
 Generate only the markdown content, no explanations."""
+    elif framework == "springboot-kotlin":
+        prompt = f"""Generate a context.md file for an AI code review benchmark test case.
+
+This file represents the EXISTING CODEBASE that a code reviewer can reference.
+It should contain realistic Spring Boot/Kotlin code that would exist before the implementation under review.
+
+## Pattern Information
+- Category: {category}
+- Feature: {name}
+- Requirement: {plan}
+
+## Requirements for context.md
+
+1. Start with "# Existing Codebase" heading
+2. Include a "## Schema" section with JPA entity definitions
+3. Include a "## Entities" section with relevant JPA entities and repositories
+4. Include useful repository methods, service interfaces, and constants that SHOULD be used by the implementation
+5. The code should hint at the correct approach without explicitly stating it
+6. Use realistic Spring Boot conventions and idiomatic Kotlin patterns
+7. Keep it focused (100-150 lines max)
+
+## Important
+- Do NOT include the implementation under review
+- Do NOT include comments like "use this for X" - let the code speak for itself
+- Make it look like real production code extracted from a Spring Boot Kotlin app
+- Use Kotlin 1.9+ syntax and Spring Boot 3.2+ patterns
+- Use BigDecimal for monetary calculations
+- Include proper Spring annotations (@Entity, @Repository, @Service, etc.)
+- Use idiomatic Kotlin: data classes, nullable types, extension functions where appropriate
+
+Generate only the markdown content, no explanations."""
     else:
         prompt = f"""Generate a context.md file for an AI code review benchmark test case.
 
@@ -264,7 +302,7 @@ def generate_plan_md(client: Any, pattern: dict[str, Any]) -> str:
     is_fp = category == "false_positive"
 
     framework = CONFIG["framework"]
-    framework_names = {"django": "Django", "springboot-java": "Spring Boot (Java)", "rails": "Rails"}
+    framework_names = {"django": "Django", "springboot-java": "Spring Boot (Java)", "springboot-kotlin": "Spring Boot (Kotlin)", "rails": "Rails"}
     framework_name = framework_names.get(framework, "Rails")
 
     prompt = f"""Generate a plan.md file for an AI code review benchmark test case.
@@ -472,6 +510,87 @@ The implementation MUST be consistent with the following existing codebase:
 - Do NOT wrap in markdown code blocks (no ```java)
 - Do NOT add any explanation before or after the code"""
 
+    elif framework == "springboot-kotlin":
+        if is_fp:
+            prompt = f"""Generate a Kotlin service class for an AI code review benchmark (Spring Boot).
+
+## Pattern Information
+- Feature: {name.replace('_', ' ').title()}
+- Requirement: {plan}
+
+## Existing Codebase (context.md)
+The implementation MUST be consistent with the following existing codebase:
+
+{context_content}
+
+## Requirements
+
+1. Generate a complete, working Kotlin service class (40-100 lines)
+2. The implementation should be CORRECT - no bugs
+3. Follow Spring Boot conventions and idiomatic Kotlin style
+4. Include realistic method structure with private helpers
+5. Use meaningful variable names and clear logic flow
+6. This is a FALSE POSITIVE test - the code should pass review
+
+## CRITICAL: Consistency with Existing Codebase
+- MUST use existing entity classes, methods, and fields exactly as defined in context.md
+- MUST use existing constants (e.g., DiscountConstants) instead of redefining them
+- MUST use existing repository methods instead of creating new ones
+- MUST NOT call methods that don't exist in the entity definitions
+- MUST match the exact method signatures and return types from context.md
+
+## Important
+- Do NOT add any comments explaining the code is correct
+- Do NOT add TODO or FIXME comments
+- Make it look like natural production code
+- The code should be reviewable (not too simple, not too complex)
+- Use BigDecimal for monetary calculations
+- Include proper Spring annotations (@Service, @Transactional, etc.)
+- Use idiomatic Kotlin: data classes, nullable types, let/apply/also where appropriate
+
+## Output Format
+- Output ONLY raw Kotlin code
+- Start with package declaration and imports
+- Do NOT wrap in markdown code blocks (no ```kotlin)
+- Do NOT add any explanation before or after the code"""
+
+        else:
+            prompt = f"""Generate a Kotlin service class for an AI code review benchmark (Spring Boot).
+
+## Pattern Information
+- Feature: {name.replace('_', ' ').title()}
+- Requirement: {plan}
+
+## Bug to Embed
+- Description: {bug_description}
+- Incorrect pattern: {incorrect}
+- Correct pattern (for reference, do NOT use): {correct}
+
+## Requirements
+
+1. Generate a complete, working Kotlin service class (40-100 lines)
+2. The implementation MUST contain the bug described above
+3. The bug should be SUBTLE - not obvious at first glance
+4. Follow Spring Boot conventions and idiomatic Kotlin style otherwise
+5. Include realistic method structure with private helpers
+6. Use meaningful variable names and clear logic flow
+
+## Critical Rules
+- Do NOT add comments like "// BUG:" or "// TODO:" or "// FIXME:"
+- Do NOT add any comments that hint at the bug
+- Do NOT add comments explaining what's wrong
+- The buggy code should look natural and intentional
+- A reviewer should need to carefully read the code to find the bug
+- Use BigDecimal for monetary calculations
+- Include proper Spring annotations (@Service, @Transactional, etc.)
+- Use idiomatic Kotlin: data classes, nullable types, let/apply/also where appropriate
+
+## Output Format
+- Output ONLY raw Kotlin code
+- Start with package declaration and imports
+- Do NOT wrap in markdown code blocks (no ```kotlin)
+- Do NOT add any explanation before or after the code"""
+
     else:  # Rails
         if is_fp:
             prompt = f"""Generate a Ruby service class for an AI code review benchmark.
@@ -557,6 +676,8 @@ The implementation MUST be consistent with the following existing codebase:
         content = content[7:]
     elif content.startswith("```java"):
         content = content[7:]
+    elif content.startswith("```kotlin"):
+        content = content[9:]
     elif content.startswith("```"):
         content = content[3:]
     if content.endswith("```"):
@@ -606,6 +727,10 @@ def generate_meta_json(pattern: dict[str, Any]) -> dict[str, Any]:
         meta["framework"] = "springboot-java"
         meta["framework_version"] = "3.2+"
         meta["java_version"] = "21+"
+    elif framework == "springboot-kotlin":
+        meta["framework"] = "springboot-kotlin"
+        meta["framework_version"] = "3.2+"
+        meta["kotlin_version"] = "1.9+"
 
     return meta
 
@@ -743,7 +868,7 @@ def main() -> None:
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Model to use (default: {DEFAULT_MODEL})")
     parser.add_argument(
         "--framework",
-        choices=["rails", "django", "springboot-java"],
+        choices=["rails", "django", "springboot-java", "springboot-kotlin"],
         default="rails",
         help="Target framework (default: rails)",
     )

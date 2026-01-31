@@ -16,138 +16,143 @@ CREATE TABLE order_items (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_id BIGINT NOT NULL,
     product_name VARCHAR(255) NOT NULL,
-    quantity INTEGER NOT NULL,
+    quantity INT NOT NULL,
     unit_price DECIMAL(19,2) NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 
-CREATE TABLE notification_events (
+CREATE TABLE notification_logs (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    event_type VARCHAR(100) NOT NULL,
-    recipient_email VARCHAR(255) NOT NULL,
+    order_id BIGINT NOT NULL,
+    notification_type VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL,
-    retry_count INTEGER DEFAULT 0,
+    error_message TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 ```
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "orders")
-public class Order {
+data class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "customer_email", nullable = false)
-    private String customerEmail;
+    val customerEmail: String,
     
     @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
-    private BigDecimal totalAmount;
+    val totalAmount: BigDecimal,
     
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
-    
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<OrderItem> items = new ArrayList<>();
+    val status: OrderStatus,
     
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
     
-    // constructors, getters, setters
-}
+    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val items: List<OrderItem> = emptyList()
+)
 
 @Entity
 @Table(name = "order_items")
-public class OrderItem {
+data class OrderItem(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
-    private Order order;
+    val order: Order,
     
     @Column(name = "product_name", nullable = false)
-    private String productName;
+    val productName: String,
     
-    @Column(nullable = false)
-    private Integer quantity;
+    val quantity: Int,
     
     @Column(name = "unit_price", nullable = false, precision = 19, scale = 2)
-    private BigDecimal unitPrice;
-    
-    // constructors, getters, setters
-}
+    val unitPrice: BigDecimal
+)
 
 @Entity
-@Table(name = "notification_events")
-public class NotificationEvent {
+@Table(name = "notification_logs")
+data class NotificationLog(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
-    @Column(name = "event_type", nullable = false)
-    private String eventType;
-    
-    @Column(name = "recipient_email", nullable = false)
-    private String recipientEmail;
+    @Column(name = "order_id", nullable = false)
+    val orderId: Long,
     
     @Enumerated(EnumType.STRING)
-    private NotificationStatus status;
+    @Column(name = "notification_type")
+    val notificationType: NotificationType,
     
-    @Column(name = "retry_count")
-    private Integer retryCount = 0;
+    @Enumerated(EnumType.STRING)
+    val status: NotificationStatus,
+    
+    @Column(name = "error_message")
+    val errorMessage: String? = null,
     
     @CreationTimestamp
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    // constructors, getters, setters
-}
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
 
-public enum OrderStatus {
+enum class OrderStatus {
     PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
 }
 
-public enum NotificationStatus {
-    PENDING, SENT, FAILED, RETRY_EXHAUSTED
+enum class NotificationType {
+    ORDER_CONFIRMATION, SHIPPING_UPDATE, DELIVERY_CONFIRMATION
+}
+
+enum class NotificationStatus {
+    PENDING, SENT, FAILED, RETRY
 }
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByStatus(OrderStatus status);
-    Optional<Order> findByIdAndStatus(Long id, OrderStatus status);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByCustomerEmail(email: String): List<Order>
+    fun findByStatus(status: OrderStatus): List<Order>
 }
 
 @Repository
-public interface NotificationEventRepository extends JpaRepository<NotificationEvent, Long> {
-    List<NotificationEvent> findByStatusAndRetryCountLessThan(NotificationStatus status, Integer maxRetries);
-    Optional<NotificationEvent> findByEventTypeAndRecipientEmail(String eventType, String email);
+interface NotificationLogRepository : JpaRepository<NotificationLog, Long> {
+    fun findByOrderIdAndNotificationType(orderId: Long, type: NotificationType): List<NotificationLog>
+    fun findByStatusAndNotificationType(status: NotificationStatus, type: NotificationType): List<NotificationLog>
+}
+
+interface EmailService {
+    fun sendOrderConfirmationEmail(order: Order): Boolean
 }
 
 @Service
-public interface EmailService {
-    void sendOrderConfirmationEmail(String recipientEmail, Order order);
-}
-
-public final class NotificationConstants {
-    public static final String ORDER_CONFIRMATION_EVENT = "ORDER_CONFIRMATION";
-    public static final int MAX_RETRY_ATTEMPTS = 3;
-    public static final String ASYNC_EXECUTOR = "notificationExecutor";
+class EmailServiceImpl : EmailService {
+    private val logger = LoggerFactory.getLogger(EmailServiceImpl::class.java)
     
-    private NotificationConstants() {}
+    override fun sendOrderConfirmationEmail(order: Order): Boolean {
+        return try {
+            // Simulate email sending logic
+            Thread.sleep(100)
+            if (order.customerEmail.contains("invalid")) {
+                throw RuntimeException("Invalid email address")
+            }
+            logger.info("Order confirmation email sent to ${order.customerEmail}")
+            true
+        } catch (e: Exception) {
+            logger.error("Failed to send email to ${order.customerEmail}: ${e.message}")
+            false
+        }
+    }
 }
 ```

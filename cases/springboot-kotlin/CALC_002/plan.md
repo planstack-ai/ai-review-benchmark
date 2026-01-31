@@ -2,28 +2,29 @@
 
 ## Overview
 
-This service implements a tax calculation system for e-commerce orders that applies discounts before calculating taxes. The business requirement is to ensure customers receive the benefit of tax calculations on the already-discounted price, which is a common practice in retail to provide better customer value and comply with standard accounting practices.
+This service handles tax calculations for e-commerce orders, applying discounts before calculating tax amounts. The system must ensure proper order of operations when processing financial calculations to maintain accuracy and compliance with tax regulations.
 
 ## Requirements
 
-1. Create a service class that calculates the total amount for an order
-2. Apply any discount amount to the original price first
-3. Calculate 10% tax on the discounted price (not the original price)
-4. Return the final total as discounted price plus tax
-5. Accept three parameters: original price, discount amount, and tax rate
-6. Use BigDecimal for all monetary calculations to ensure precision
-7. The tax rate should be configurable but default to 10% (0.10)
-8. Return the calculated total with proper decimal precision
+1. Calculate the subtotal from item prices and quantities
+2. Apply discount amount to the subtotal to get the discounted total
+3. Calculate tax as 10% of the discounted total (after discount is applied)
+4. Return the final total including the calculated tax amount
+5. Accept input parameters for items (price and quantity), discount amount, and return calculated totals
+6. Provide separate values for subtotal, discount applied, tax amount, and final total
+7. Handle decimal precision appropriately for monetary calculations
+8. Process multiple items in a single order calculation
 
 ## Constraints
 
-1. Original price must be greater than zero
-2. Discount amount cannot be negative
-3. Discount amount cannot exceed the original price
-4. Tax rate must be between 0 and 1 (representing 0% to 100%)
-5. All monetary values should be rounded to 2 decimal places
-6. Throw appropriate exceptions for invalid input parameters
+1. Tax rate is fixed at 10% and cannot be modified
+2. Discount must be applied before tax calculation, never after
+3. All monetary values must be handled with appropriate decimal precision
+4. Negative discounts are not allowed
+5. Item quantities must be positive integers
+6. Item prices must be positive values
+7. The service must return structured data containing all calculation components
 
 ## References
 
-See context.md for examples of existing calculation services and standard patterns used in the codebase.
+See context.md for existing service patterns and architectural guidelines within the Spring Boot application structure.

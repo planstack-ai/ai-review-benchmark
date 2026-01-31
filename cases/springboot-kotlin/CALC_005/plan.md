@@ -2,28 +2,31 @@
 
 ## Overview
 
-This service provides tax calculation functionality for an e-commerce platform. The system must apply a standardized tax rate to product prices to determine the total amount customers need to pay. The tax calculation is a critical component that affects order processing, pricing display, and financial reporting.
+The system requires a tax calculation service that applies a standardized tax rate to monetary amounts. This service will be used across the application to ensure consistent tax calculations for financial transactions, product pricing, and billing operations. The tax rate is currently set at 10% and should be applied uniformly to all taxable amounts.
 
 ## Requirements
 
-1. Create a REST endpoint that accepts a product price and returns the total amount including tax
+1. Create a service class that calculates tax amounts for given monetary values
 2. Apply a fixed tax rate of 10% to all calculations
-3. Accept price input as a decimal number with up to 2 decimal places
-4. Return the calculated total amount rounded to 2 decimal places
-5. Handle price inputs greater than zero
-6. Provide appropriate HTTP status codes for successful and error responses
-7. Include proper request and response data validation
-8. Return results in JSON format with clear field names
+3. Accept decimal input values representing monetary amounts
+4. Return the calculated tax amount as a decimal value
+5. Expose the tax calculation functionality through a REST API endpoint
+6. The endpoint should accept a monetary amount as input parameter
+7. The endpoint should return the calculated tax amount in the response
+8. Handle standard HTTP methods appropriately for the calculation operation
+9. Ensure the service can be injected and used by other components
+10. Maintain precision appropriate for financial calculations
 
 ## Constraints
 
-1. Price input must be a positive number greater than zero
-2. Price input cannot exceed 999999.99 (maximum supported amount)
-3. Tax rate must remain constant at 10% and not be configurable
-4. All monetary calculations must maintain precision to avoid rounding errors
-5. Invalid input should return appropriate error messages
-6. Null or empty price values should be rejected
+1. Input amounts must be non-negative values
+2. The tax rate must remain constant at 10% throughout the application
+3. Calculations should handle decimal precision without rounding errors
+4. Invalid input should result in appropriate error responses
+5. The service should not accept null or negative monetary amounts
+6. API responses should follow standard JSON format
+7. The tax rate should not be configurable or modifiable at runtime
 
 ## References
 
-See context.md for existing service patterns and architectural guidelines used in the codebase.
+See context.md for examples of existing service implementations and API patterns used in the codebase.
