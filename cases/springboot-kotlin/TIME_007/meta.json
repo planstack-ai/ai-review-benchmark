@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_007",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "business_day_calculation",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Weekends not excluded from business days - code adds calendar days instead of business days, so weekends and holidays are incorrectly counted",
+  "bug_anchor": "currentDate = currentDate.plusDays(1)",
+  "correct_implementation": "while (remainingDays > 0) { currentDate = currentDate.plusDays(1); if (currentDate.dayOfWeek != DayOfWeek.SATURDAY && currentDate.dayOfWeek != DayOfWeek.SUNDAY) remainingDays-- }",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "business_day",
+    "holiday"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

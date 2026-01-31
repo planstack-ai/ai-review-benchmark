@@ -1,0 +1,17 @@
+{
+  "case_id": "FP_008",
+  "category": "false_positive",
+  "axis": "false_positive",
+  "name": "intentional_no_validation",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": "if (isAdminOverride) { return product }",
+  "correct_implementation": null,
+  "severity": null,
+  "tags": ["false_positive", "validation", "intentional"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "misleading_points": "Appears to skip validation which looks like a security issue, but is intentionally designed for admin override functionality with proper authorization"
+}

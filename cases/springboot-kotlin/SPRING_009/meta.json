@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_009",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "enum_string_comparison",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "String literal comparison of enum name instead of direct enum constant comparison, bypassing type safety and causing potential runtime errors with typos",
+  "bug_anchor": "order.status.name == \"PENDING\"",
+  "correct_implementation": "order.status == OrderStatus.PENDING",
+  "severity": "medium",
+  "tags": ["spring", "enum", "type_safety"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

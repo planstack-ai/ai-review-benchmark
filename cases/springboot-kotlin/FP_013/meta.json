@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_013",
+  "category": "false_positive",
+  "axis": "false_positive",
+  "name": "optimized_cache_warming",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": "Loading entire table into memory on application startup",
+  "correct_implementation": null,
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "cache"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "misleading_points": "Full table load on startup looks like it will cause memory issues, but the table is small, static, and critical for performance"
+}

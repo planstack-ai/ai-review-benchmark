@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_004",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "date_only_comparison",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Time truncation causes next-day treatment - comparing full LocalDateTime instead of just date component causes orders with different times to not match",
+  "bug_anchor": "order.deliveryDate == targetDateTime",
+  "correct_implementation": "order.deliveryDate.toLocalDate() == targetDate",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "date",
+    "comparison"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

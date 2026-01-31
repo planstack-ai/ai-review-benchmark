@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_006",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "year_crossing",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Year crossing logic error - when day is 31 and month is 12 (December 31), the code correctly handles it, but for other month-end dates, manual arithmetic fails to handle all edge cases correctly compared to using date.plusDays(1)",
+  "bug_anchor": "LocalDate.of(year, month, day + 1)",
+  "correct_implementation": "currentDate.plusDays(1)",
+  "severity": "high",
+  "tags": [
+    "time",
+    "year_end",
+    "boundary"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_011",
+  "category": "false_positive",
+  "axis": "false_positive",
+  "name": "intentional_no_index",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": "Boolean column without index despite being used in WHERE clause",
+  "correct_implementation": null,
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "index",
+    "intentional"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "misleading_points": "Missing index on boolean column looks like performance issue, but index would actually hurt performance due to low cardinality and uniform distribution"
+}

@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_014",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "save_or_update_race",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Race condition between findById and save - duplicate records possible",
+  "bug_anchor": "val existing = orderRepository.findByExternalId(request.externalId)\n        return if (existing != null) {\n            existing\n        } else {\n            val order = Order(\n                externalId = request.externalId,\n                customerEmail = request.customerEmail,\n                totalAmount = request.totalAmount,\n                status = \"PENDING\"\n            )\n            orderRepository.save(order)",
+  "correct_implementation": "Use @Lock(LockModeType.PESSIMISTIC_WRITE) or database UNIQUE constraint with INSERT ... ON CONFLICT",
+  "severity": "high",
+  "tags": ["spring", "concurrency", "race_condition"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}
