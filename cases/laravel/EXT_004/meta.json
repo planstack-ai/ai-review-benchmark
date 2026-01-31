@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_004",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "retry_duplicate_order",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Network retry creates duplicate order records",
+  "bug_anchor": "Order::create($processedData)",
+  "correct_implementation": "Order::firstOrCreate(['idempotency_key' => $key], $data)",
+  "severity": "critical",
+  "tags": [
+    "external",
+    "retry",
+    "duplicate"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

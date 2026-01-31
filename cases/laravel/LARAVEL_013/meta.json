@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_013",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "queue_connection_sync",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Queue uses sync driver in production - blocks HTTP request",
+  "bug_anchor": "$queueConnection = 'sync'",
+  "correct_implementation": "QUEUE_CONNECTION=redis in production .env",
+  "severity": "high",
+  "tags": [
+    "laravel",
+    "queue",
+    "config"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

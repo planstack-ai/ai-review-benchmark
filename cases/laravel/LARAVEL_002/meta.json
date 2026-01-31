@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_002",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "accessor_mutator_infinite_loop",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Accessor calls itself via $this->price causing infinite loop",
+  "bug_anchor": "$this->price / 100",
+  "correct_implementation": "return $this->attributes['price'] / 100",
+  "severity": "high",
+  "tags": [
+    "laravel",
+    "accessor",
+    "loop"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

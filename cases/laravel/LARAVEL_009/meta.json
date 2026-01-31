@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_009",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "config_not_cached",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "config() called in loop - should use cached value",
+  "bug_anchor": "$taxRate = config('shop.tax_rate', 0.08)",
+  "correct_implementation": "$taxRate = config('shop.tax_rate'); foreach ($items as $item) { ... }",
+  "severity": "medium",
+  "tags": [
+    "laravel",
+    "config",
+    "performance"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

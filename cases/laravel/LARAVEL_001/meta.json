@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_001",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "scope_not_used",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Existing scope not used - duplicating where clause everywhere",
+  "bug_anchor": "->where('is_active', true)",
+  "correct_implementation": "Product::active()->get()",
+  "severity": "medium",
+  "tags": [
+    "laravel",
+    "scope",
+    "dry"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

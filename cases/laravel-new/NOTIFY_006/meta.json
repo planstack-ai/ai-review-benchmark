@@ -1,0 +1,21 @@
+{
+  "case_id": "NOTIFY_006",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "bulk_rate_limit",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Mass email send gets blocked by rate limit",
+  "bug_anchor": "Mail::to($user->email)->send($mailable)",
+  "correct_implementation": "User::chunk(100, fn($users) => $users->each(fn($u) => SendEmailJob::dispatch($u)))",
+  "severity": "medium",
+  "tags": [
+    "notification",
+    "bulk",
+    "rate_limit"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

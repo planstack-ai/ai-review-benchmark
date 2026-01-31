@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_010",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "route_model_binding_wrong",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Route model binding uses id instead of uuid",
+  "bug_anchor": "$this->orderModel->where('uuid', $identifier)",
+  "correct_implementation": "Route::get('/orders/{order:uuid}', ...)",
+  "severity": "high",
+  "tags": [
+    "laravel",
+    "routing",
+    "binding"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

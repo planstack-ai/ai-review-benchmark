@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_020",
+  "category": "false_positive",
+  "axis": null,
+  "name": "optimized_async_write",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Queue job with eventual consistency design",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "async"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

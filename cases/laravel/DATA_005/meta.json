@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_005",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "master_data_history",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Product name/price change affects past order display",
+  "bug_anchor": "'product_id' => $product->id",
+  "correct_implementation": "$orderItem->product_name = $product->name; // snapshot",
+  "severity": "medium",
+  "tags": [
+    "data",
+    "history",
+    "snapshot"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

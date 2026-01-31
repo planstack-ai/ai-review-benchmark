@@ -1,0 +1,21 @@
+{
+  "case_id": "NOTIFY_005",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "recipient_mixup",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Email sent to wrong user due to variable scope",
+  "bug_anchor": "Mail::to($this->user->email)",
+  "correct_implementation": "Mail::to($order->user->email)",
+  "severity": "critical",
+  "tags": [
+    "notification",
+    "recipient",
+    "privacy"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

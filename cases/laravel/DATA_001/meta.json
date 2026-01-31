@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_001",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "no_foreign_key",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "No foreign key constraint - orphan order records when user deleted",
+  "bug_anchor": "$user->delete()",
+  "correct_implementation": "$table->foreignId('user_id')->constrained()->onDelete('cascade')",
+  "severity": "high",
+  "tags": [
+    "data",
+    "foreign_key",
+    "integrity"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

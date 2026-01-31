@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_007",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "api_response_not_validated",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "External API response not validated - crashes on unexpected format",
+  "bug_anchor": "$status = $response->json()['status']",
+  "correct_implementation": "$validated = Validator::make($response->json(), ['status' => 'required'])",
+  "severity": "high",
+  "tags": [
+    "external",
+    "api",
+    "validation"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

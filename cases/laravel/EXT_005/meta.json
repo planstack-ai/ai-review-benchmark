@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_005",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "inventory_sync_delay",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "External warehouse stock not synced - overselling occurs",
+  "bug_anchor": "$available = $localStock",
+  "correct_implementation": "$available = $localStock - $pendingSync",
+  "severity": "high",
+  "tags": [
+    "external",
+    "inventory",
+    "sync"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

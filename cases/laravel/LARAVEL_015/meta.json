@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_015",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "collection_method_chain",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Collection methods return new instance - original unchanged",
+  "bug_anchor": "$items->sortBy('product.priority')",
+  "correct_implementation": "$items = $items->sortBy('price')->filter(...)",
+  "severity": "medium",
+  "tags": [
+    "laravel",
+    "collection",
+    "immutable"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_006",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "column_default_null",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "New nullable column causes NPE in downstream code",
+  "bug_anchor": "$order->priority",
+  "correct_implementation": "$table->integer('priority')->default(0)->nullable(false)",
+  "severity": "medium",
+  "tags": [
+    "data",
+    "default",
+    "null"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

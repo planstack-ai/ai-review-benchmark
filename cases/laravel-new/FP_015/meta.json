@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_015",
+  "category": "false_positive",
+  "axis": null,
+  "name": "intentional_eager_load",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Extra with() for downstream use in views",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "eager_load",
+    "intentional"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

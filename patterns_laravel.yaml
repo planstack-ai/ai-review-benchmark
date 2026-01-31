@@ -1,9 +1,9 @@
 # AI Code Review Benchmark - Laravel Bug Pattern Definitions
-# 60 patterns (50 bugs + 10 false positives) for Laravel e-commerce order processing
-# Version: 1.0
+# 107 patterns (87 bugs + 20 false positives) for Laravel e-commerce order processing
+# Version: 2.2
 
 # =============================================================================
-# Price Calculation (10 patterns) - Spec Alignment
+# Price Calculation (11 patterns) - Spec Alignment
 # =============================================================================
 
 - id: CALC_001
@@ -126,8 +126,20 @@
   difficulty: hard
   tags: [calculation, overflow, bulk]
 
+- id: CALC_011
+  category: calculation
+  axis: spec_alignment
+  name: calculation_order_mismatch
+  plan: "Multi-step price calculation with quantity discount, customer discount, tax, and promotional discount"
+  bug_description: "Calculation order differs from specification; customer type adjustment applied before tax causes premium customers to pay more tax; promotional discount missing entirely"
+  correct: "Apply discounts in order: quantity discount -> customer discount -> tax -> promotional discount"
+  incorrect: "Customer adjustment applied to discounted subtotal before tax; promotional discount not implemented"
+  severity: critical
+  difficulty: medium
+  tags: [calculation, spec_violation, pricing, tax]
+
 # =============================================================================
-# User & Authorization (7 patterns) - Spec Alignment
+# User & Authorization (8 patterns) - Spec Alignment
 # =============================================================================
 
 - id: AUTH_001
@@ -213,6 +225,18 @@
   severity: high
   difficulty: medium
   tags: [authorization, coupon, ownership]
+
+- id: AUTH_008
+  category: authorization
+  axis: implicit_knowledge
+  name: privilege_escalation
+  plan: "Implement role-based access control with hierarchical permissions"
+  bug_description: "Role hierarchy bypass allows managers to access ALL resources regardless of action permissions; owner check bypasses permission matrix entirely"
+  correct: "accessible_resources should respect action-specific permissions; owner check should not bypass role requirements"
+  incorrect: "$resourceClass::all() for managers; bypassing permission check for resource owners"
+  severity: critical
+  difficulty: medium
+  tags: [authorization, security, privilege_escalation, rbac]
 
 # =============================================================================
 # Inventory & Quantity (8 patterns) - Spec Alignment
@@ -315,7 +339,7 @@
   tags: [inventory, bundle, calculation]
 
 # =============================================================================
-# State Transitions (6 patterns) - Spec Alignment
+# State Transitions (7 patterns) - Spec Alignment
 # =============================================================================
 
 - id: STATE_001
@@ -390,8 +414,20 @@
   difficulty: easy
   tags: [state, refund, status]
 
+- id: STATE_007
+  category: state
+  axis: spec_alignment
+  name: delivery_status_regression
+  plan: "Delivery status can only move forward"
+  bug_description: "Delivered can regress to shipping status"
+  correct: "if ($order->isDelivered() && $newStatus === 'shipping') throw new InvalidTransitionException"
+  incorrect: "$order->delivery_status = $newStatus without check"
+  severity: medium
+  difficulty: medium
+  tags: [state, delivery, regression]
+
 # =============================================================================
-# Time & Duration (6 patterns) - Spec Alignment
+# Time & Duration (8 patterns) - Spec Alignment
 # =============================================================================
 
 - id: TIME_001
@@ -445,6 +481,30 @@
 - id: TIME_005
   category: time
   axis: spec_alignment
+  name: month_end_processing
+  plan: "Handle month-end dates correctly"
+  bug_description: "Invalid date error - adding month to Jan 31 creates Feb 31"
+  correct: "Carbon::parse($date)->addMonthNoOverflow()"
+  incorrect: "Carbon::parse($date)->addMonth()"
+  severity: high
+  difficulty: hard
+  tags: [time, month_end, validation]
+
+- id: TIME_006
+  category: time
+  axis: spec_alignment
+  name: year_crossing
+  plan: "Handle year boundary correctly"
+  bug_description: "Year crossing logic error - December 31 to January 1 fails"
+  correct: "Carbon::parse($date)->addDay()"
+  incorrect: "$date->setDay($date->day + 1)"
+  severity: high
+  difficulty: hard
+  tags: [time, year_end, boundary]
+
+- id: TIME_007
+  category: time
+  axis: spec_alignment
   name: business_day_calculation
   plan: "Calculate delivery in business days"
   bug_description: "Weekends and holidays not excluded from business days"
@@ -454,7 +514,7 @@
   difficulty: medium
   tags: [time, business_day, holiday]
 
-- id: TIME_006
+- id: TIME_008
   category: time
   axis: spec_alignment
   name: past_delivery_date
@@ -467,7 +527,7 @@
   tags: [time, validation, future]
 
 # =============================================================================
-# Notifications & Email (4 patterns) - Spec Alignment
+# Notifications & Email (6 patterns) - Spec Alignment
 # =============================================================================
 
 - id: NOTIFY_001
@@ -509,6 +569,18 @@
 - id: NOTIFY_004
   category: notification
   axis: spec_alignment
+  name: template_variable_nil
+  plan: "Handle null values in Blade email templates"
+  bug_description: "Template variable $user->name is null causing error"
+  correct: "{{ $user?->name ?? 'Valued Customer' }}"
+  incorrect: "{{ $user->name }}"
+  severity: medium
+  difficulty: easy
+  tags: [notification, template, nil]
+
+- id: NOTIFY_005
+  category: notification
+  axis: spec_alignment
   name: recipient_mixup
   plan: "Send email to correct recipient"
   bug_description: "Email sent to wrong user due to variable scope"
@@ -517,6 +589,18 @@
   severity: critical
   difficulty: medium
   tags: [notification, recipient, privacy]
+
+- id: NOTIFY_006
+  category: notification
+  axis: spec_alignment
+  name: bulk_rate_limit
+  plan: "Respect email provider rate limits"
+  bug_description: "Mass email send gets blocked by rate limit"
+  correct: "User::chunk(100, fn($users) => $users->each(fn($u) => SendEmailJob::dispatch($u)))"
+  incorrect: "User::all()->each(fn($u) => Mail::to($u)->send(...))"
+  severity: medium
+  difficulty: medium
+  tags: [notification, bulk, rate_limit]
 
 # =============================================================================
 # Performance (9 patterns) - Implicit Knowledge
@@ -631,7 +715,379 @@
   tags: [performance, queue, async]
 
 # =============================================================================
-# False Positive (10 patterns)
+# Data Integrity (7 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: DATA_001
+  category: data
+  axis: implicit_knowledge
+  name: no_foreign_key
+  plan: "Maintain referential integrity between orders and users"
+  bug_description: "No foreign key constraint - orphan order records when user deleted"
+  correct: "$table->foreignId('user_id')->constrained()->onDelete('cascade')"
+  incorrect: "$table->unsignedBigInteger('user_id')"
+  severity: high
+  difficulty: medium
+  tags: [data, foreign_key, integrity]
+
+- id: DATA_002
+  category: data
+  axis: implicit_knowledge
+  name: unique_constraint_missing
+  plan: "Ensure unique email addresses for users"
+  bug_description: "Unique constraint missing at DB level - race condition allows duplicates"
+  correct: "$table->unique('email')"
+  incorrect: "'email' => 'required|unique:users' (without DB constraint)"
+  severity: critical
+  difficulty: easy
+  tags: [data, unique, constraint]
+
+- id: DATA_003
+  category: data
+  axis: implicit_knowledge
+  name: optimistic_lock_missing
+  plan: "Prevent concurrent edit overwrites on orders"
+  bug_description: "No optimistic locking - last write wins, losing intermediate changes"
+  correct: "use HasVersion trait or manual lock_version check"
+  incorrect: "$order->update($data) without version check"
+  severity: high
+  difficulty: medium
+  tags: [data, locking, concurrent]
+
+- id: DATA_004
+  category: data
+  axis: implicit_knowledge
+  name: soft_delete_in_query
+  plan: "Exclude soft-deleted products from catalog"
+  bug_description: "Deleted products appear in search - SoftDeletes trait not applied"
+  correct: "use SoftDeletes; // in model"
+  incorrect: "Product::all() without soft delete trait"
+  severity: high
+  difficulty: easy
+  tags: [data, soft_delete, query]
+
+- id: DATA_005
+  category: data
+  axis: implicit_knowledge
+  name: master_data_history
+  plan: "Preserve historical product data in order items"
+  bug_description: "Product name/price change affects past order display"
+  correct: "$orderItem->product_name = $product->name; // snapshot"
+  incorrect: "$orderItem->product_id only, display via relation"
+  severity: medium
+  difficulty: hard
+  tags: [data, history, snapshot]
+
+- id: DATA_006
+  category: data
+  axis: implicit_knowledge
+  name: column_default_null
+  plan: "Add priority column to orders table"
+  bug_description: "New nullable column causes NPE in downstream code"
+  correct: "$table->integer('priority')->default(0)->nullable(false)"
+  incorrect: "$table->integer('priority')->nullable()"
+  severity: medium
+  difficulty: medium
+  tags: [data, default, null]
+
+- id: DATA_007
+  category: data
+  axis: implicit_knowledge
+  name: cascade_delete_missing
+  plan: "Delete order items when order is deleted"
+  bug_description: "Order items orphaned when parent order deleted - no cascade"
+  correct: "$table->foreignId('order_id')->constrained()->onDelete('cascade')"
+  incorrect: "$table->foreignId('order_id')->constrained()"
+  severity: high
+  difficulty: easy
+  tags: [data, cascade, delete]
+
+# =============================================================================
+# External Integration (7 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: EXT_001
+  category: external
+  axis: implicit_knowledge
+  name: payment_timeout_unhandled
+  plan: "Handle payment gateway timeout gracefully"
+  bug_description: "Payment timeout leaves order in unknown state - no recovery"
+  correct: "try { Http::timeout(30)->post(...) } catch (ConnectionException $e) { $order->markPendingVerification(); }"
+  incorrect: "Http::post($paymentUrl) without timeout handling"
+  severity: critical
+  difficulty: hard
+  tags: [external, payment, timeout]
+
+- id: EXT_002
+  category: external
+  axis: implicit_knowledge
+  name: webhook_not_idempotent
+  plan: "Process payment webhooks idempotently"
+  bug_description: "Same webhook processed multiple times - duplicate order updates"
+  correct: "if (WebhookLog::where('event_id', $eventId)->exists()) return;"
+  incorrect: "processWebhook($payload) without idempotency check"
+  severity: critical
+  difficulty: medium
+  tags: [external, webhook, idempotency]
+
+- id: EXT_003
+  category: external
+  axis: implicit_knowledge
+  name: api_call_in_transaction
+  plan: "Charge payment after order saved"
+  bug_description: "Payment charged inside transaction - charge succeeds even if rollback"
+  correct: "DB::transaction(...); $this->chargePayment();"
+  incorrect: "DB::transaction(function() { $order->save(); $this->chargePayment(); })"
+  severity: critical
+  difficulty: hard
+  tags: [external, transaction, api]
+
+- id: EXT_004
+  category: external
+  axis: implicit_knowledge
+  name: retry_duplicate_order
+  plan: "Handle order creation retries safely"
+  bug_description: "Network retry creates duplicate order records"
+  correct: "Order::firstOrCreate(['idempotency_key' => $key], $data)"
+  incorrect: "Order::create($data)"
+  severity: critical
+  difficulty: hard
+  tags: [external, retry, duplicate]
+
+- id: EXT_005
+  category: external
+  axis: implicit_knowledge
+  name: inventory_sync_delay
+  plan: "Account for warehouse API sync delay"
+  bug_description: "External warehouse stock not synced - overselling occurs"
+  correct: "$available = $localStock - $pendingSync"
+  incorrect: "$available = $localStock"
+  severity: high
+  difficulty: hard
+  tags: [external, inventory, sync]
+
+- id: EXT_006
+  category: external
+  axis: implicit_knowledge
+  name: shipping_error_swallowed
+  plan: "Handle shipping API errors properly"
+  bug_description: "Shipping API error swallowed - order marked as shipped incorrectly"
+  correct: "if (!$response->successful()) throw new ShippingException($response->body())"
+  incorrect: "$response = Http::post(...); $order->update(['shipped' => true])"
+  severity: high
+  difficulty: medium
+  tags: [external, shipping, error]
+
+- id: EXT_007
+  category: external
+  axis: implicit_knowledge
+  name: api_response_not_validated
+  plan: "Validate external API response structure"
+  bug_description: "External API response not validated - crashes on unexpected format"
+  correct: "$validated = Validator::make($response->json(), ['status' => 'required'])"
+  incorrect: "$status = $response->json()['status']"
+  severity: high
+  difficulty: medium
+  tags: [external, api, validation]
+
+# =============================================================================
+# Laravel-Specific (16 patterns) - Implicit Knowledge
+# =============================================================================
+
+- id: LARAVEL_001
+  category: laravel
+  axis: implicit_knowledge
+  name: scope_not_used
+  plan: "Filter active products in catalog"
+  bug_description: "Existing scope not used - duplicating where clause everywhere"
+  correct: "Product::active()->get()"
+  incorrect: "Product::where('is_active', true)->whereNull('deleted_at')->get()"
+  severity: medium
+  difficulty: easy
+  tags: [laravel, scope, dry]
+
+- id: LARAVEL_002
+  category: laravel
+  axis: implicit_knowledge
+  name: accessor_mutator_infinite_loop
+  plan: "Format price attribute for display"
+  bug_description: "Accessor calls itself via $this->price causing infinite loop"
+  correct: "return $this->attributes['price'] / 100"
+  incorrect: "return $this->price / 100"
+  severity: high
+  difficulty: medium
+  tags: [laravel, accessor, loop]
+
+- id: LARAVEL_003
+  category: laravel
+  axis: implicit_knowledge
+  name: event_listener_order
+  plan: "Process order events in correct sequence"
+  bug_description: "Event listener order not guaranteed - inventory updated before validation"
+  correct: "EventServiceProvider with explicit listener order or priority"
+  incorrect: "Multiple listeners assuming execution order"
+  severity: high
+  difficulty: hard
+  tags: [laravel, event, order]
+
+- id: LARAVEL_004
+  category: laravel
+  axis: implicit_knowledge
+  name: middleware_order_wrong
+  plan: "Apply authentication before authorization"
+  bug_description: "Authorization middleware runs before auth - user is null"
+  correct: "['auth', 'can:manage-orders']"
+  incorrect: "['can:manage-orders', 'auth']"
+  severity: critical
+  difficulty: medium
+  tags: [laravel, middleware, order]
+
+- id: LARAVEL_005
+  category: laravel
+  axis: implicit_knowledge
+  name: job_outside_after_commit
+  plan: "Send notification after order saved"
+  bug_description: "Job dispatched inside transaction - runs even on rollback"
+  correct: "DB::afterCommit(fn() => NotifyJob::dispatch($order))"
+  incorrect: "DB::transaction(function() use ($order) { $order->save(); NotifyJob::dispatch($order); })"
+  severity: critical
+  difficulty: medium
+  tags: [laravel, job, transaction]
+
+- id: LARAVEL_006
+  category: laravel
+  axis: implicit_knowledge
+  name: mass_assignment_unguarded
+  plan: "Create order from request data"
+  bug_description: "Mass assignment vulnerability - is_admin can be set via request"
+  correct: "$order = Order::create($request->only(['quantity', 'product_id']))"
+  incorrect: "$order = Order::create($request->all())"
+  severity: critical
+  difficulty: easy
+  tags: [laravel, security, mass_assignment]
+
+- id: LARAVEL_007
+  category: laravel
+  axis: implicit_knowledge
+  name: facade_mock_not_reset
+  plan: "Test email sending in isolation"
+  bug_description: "Facade mock leaks to next test - false positives"
+  correct: "Mail::fake() in setUp, parent::tearDown() resets"
+  incorrect: "Mail::fake() without cleanup between tests"
+  severity: medium
+  difficulty: medium
+  tags: [laravel, testing, facade]
+
+- id: LARAVEL_008
+  category: laravel
+  axis: implicit_knowledge
+  name: service_container_binding
+  plan: "Register payment service in container"
+  bug_description: "Using bind() instead of singleton() - new instance every resolve"
+  correct: "$this->app->singleton(PaymentService::class)"
+  incorrect: "$this->app->bind(PaymentService::class)"
+  severity: high
+  difficulty: medium
+  tags: [laravel, container, binding]
+
+- id: LARAVEL_009
+  category: laravel
+  axis: implicit_knowledge
+  name: config_not_cached
+  plan: "Read configuration in service"
+  bug_description: "config() called in loop - should use cached value"
+  correct: "$taxRate = config('shop.tax_rate'); foreach ($items as $item) { ... }"
+  incorrect: "foreach ($items as $item) { $tax = config('shop.tax_rate') * $item->price; }"
+  severity: medium
+  difficulty: easy
+  tags: [laravel, config, performance]
+
+- id: LARAVEL_010
+  category: laravel
+  axis: implicit_knowledge
+  name: route_model_binding_wrong
+  plan: "Resolve order by UUID in route"
+  bug_description: "Route model binding uses id instead of uuid"
+  correct: "Route::get('/orders/{order:uuid}', ...)"
+  incorrect: "Route::get('/orders/{order}', ...) with uuid in URL"
+  severity: high
+  difficulty: medium
+  tags: [laravel, routing, binding]
+
+- id: LARAVEL_011
+  category: laravel
+  axis: implicit_knowledge
+  name: policy_not_registered
+  plan: "Authorize order access with policy"
+  bug_description: "Policy not registered - authorization always fails silently"
+  correct: "Gate::policy(Order::class, OrderPolicy::class)"
+  incorrect: "OrderPolicy exists but not registered in AuthServiceProvider"
+  severity: critical
+  difficulty: medium
+  tags: [laravel, policy, authorization]
+
+- id: LARAVEL_012
+  category: laravel
+  axis: implicit_knowledge
+  name: observer_transaction
+  plan: "Update inventory when order created"
+  bug_description: "Observer fires before transaction commits - inventory updated on rollback"
+  correct: "use afterCommit property in Observer"
+  incorrect: "Observer::created() without afterCommit"
+  severity: high
+  difficulty: hard
+  tags: [laravel, observer, transaction]
+
+- id: LARAVEL_013
+  category: laravel
+  axis: implicit_knowledge
+  name: queue_connection_sync
+  plan: "Process order in background"
+  bug_description: "Queue uses sync driver in production - blocks HTTP request"
+  correct: "QUEUE_CONNECTION=redis in production .env"
+  incorrect: "QUEUE_CONNECTION=sync in production"
+  severity: high
+  difficulty: easy
+  tags: [laravel, queue, config]
+
+- id: LARAVEL_014
+  category: laravel
+  axis: implicit_knowledge
+  name: eloquent_boot_static
+  plan: "Add global scope in model boot"
+  bug_description: "boot() not static - called on every instantiation instead of once"
+  correct: "protected static function boot()"
+  incorrect: "protected function boot()"
+  severity: high
+  difficulty: medium
+  tags: [laravel, eloquent, boot]
+
+- id: LARAVEL_015
+  category: laravel
+  axis: implicit_knowledge
+  name: collection_method_chain
+  plan: "Sort and filter order items"
+  bug_description: "Collection methods return new instance - original unchanged"
+  correct: "$items = $items->sortBy('price')->filter(...)"
+  incorrect: "$items->sortBy('price'); $items->filter(...); // original unchanged"
+  severity: medium
+  difficulty: easy
+  tags: [laravel, collection, immutable]
+
+- id: LARAVEL_016
+  category: laravel
+  axis: implicit_knowledge
+  name: carbon_mutable_bug
+  plan: "Calculate delivery date from order date"
+  bug_description: "Carbon mutability modifies original date unexpectedly"
+  correct: "$deliveryDate = $order->created_at->copy()->addDays(3)"
+  incorrect: "$deliveryDate = $order->created_at->addDays(3)"
+  severity: high
+  difficulty: medium
+  tags: [laravel, carbon, mutable]
+
+# =============================================================================
+# False Positive (20 patterns)
 # =============================================================================
 
 - id: FP_001
@@ -672,39 +1128,39 @@
 
 - id: FP_004
   category: false_positive
-  name: intentional_raw_query
-  plan: "Performance-critical raw query"
+  name: standard_scope
+  plan: "Standard scope usage"
   bug_description: null
-  correct: "DB::select with bindings"
+  correct: "scopeActive, scopePublished correctly implemented"
   incorrect: null
   severity: null
-  difficulty: medium
-  tags: [false_positive, sql, intentional]
-  misleading_points: "Raw SQL looks dangerous but uses bindings"
+  difficulty: easy
+  tags: [false_positive, scope, baseline]
+  misleading_points: "None - standard implementation"
 
 - id: FP_005
   category: false_positive
-  name: intentional_update_mass
-  plan: "Mass update without model events"
+  name: standard_observer
+  plan: "Standard Observer usage"
   bug_description: null
-  correct: "Intentional update() for performance"
+  correct: "created, updated, deleted hooks properly used"
   incorrect: null
   severity: null
-  difficulty: medium
-  tags: [false_positive, mass_update, intentional]
-  misleading_points: "update() looks wrong but events not needed"
+  difficulty: easy
+  tags: [false_positive, observer, baseline]
+  misleading_points: "None - standard implementation"
 
 - id: FP_006
   category: false_positive
-  name: complex_pipeline
-  plan: "Complex query with pipeline pattern"
+  name: complex_nested_transaction
+  plan: "Properly nested transactions"
   bug_description: null
-  correct: "Pipeline with multiple filters"
+  correct: "DB::transaction with savepoints"
   incorrect: null
   severity: null
   difficulty: medium
-  tags: [false_positive, pipeline, complex]
-  misleading_points: "Complex query but correctly structured"
+  tags: [false_positive, transaction, complex]
+  misleading_points: "Nested transactions look suspicious but are correct"
 
 - id: FP_007
   category: false_positive
@@ -720,36 +1176,156 @@
 
 - id: FP_008
   category: false_positive
-  name: intentional_no_soft_delete
-  plan: "Hard delete for compliance"
+  name: complex_state_machine
+  plan: "Complete state machine implementation"
   bug_description: null
-  correct: "forceDelete() for GDPR compliance"
+  correct: "All transitions validated and tested"
   incorrect: null
   severity: null
   difficulty: medium
-  tags: [false_positive, delete, intentional]
-  misleading_points: "Hard delete looks wrong but required for compliance"
+  tags: [false_positive, state, complex]
+  misleading_points: "Complex state logic but all paths valid"
 
 - id: FP_009
+  category: false_positive
+  name: complex_calculation
+  plan: "Multi-step price calculation"
+  bug_description: null
+  correct: "Tax, discount, shipping correctly ordered"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, calculation, complex]
+  misleading_points: "Complex math but order is correct"
+
+- id: FP_010
+  category: false_positive
+  name: complex_authorization
+  plan: "Role-based access control with Gates and Policies"
+  bug_description: null
+  correct: "Proper Gate and Policy checks at all levels"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, authorization, complex]
+  misleading_points: "Complex permissions but all correct"
+
+- id: FP_011
+  category: false_positive
+  name: intentional_no_validation
+  plan: "Admin bypass for internal tools"
+  bug_description: null
+  correct: "Intentional withoutValidation for admin seeder"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, validation, intentional]
+  misleading_points: "Looks like missing validation but intentional for admin"
+
+- id: FP_012
+  category: false_positive
+  name: intentional_raw_sql
+  plan: "Performance-critical raw SQL"
+  bug_description: null
+  correct: "DB::select with proper bindings and sanitization"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, sql, intentional]
+  misleading_points: "Raw SQL looks dangerous but is properly bound"
+
+- id: FP_013
+  category: false_positive
+  name: intentional_update_mass
+  plan: "Bulk update without model events"
+  bug_description: null
+  correct: "Intentional update() or updateQuietly() for performance"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, update, intentional]
+  misleading_points: "update() looks wrong but events not needed"
+
+- id: FP_014
+  category: false_positive
+  name: intentional_no_index
+  plan: "Low cardinality column without index"
+  bug_description: null
+  correct: "Boolean column where index would hurt more than help"
+  incorrect: null
+  severity: null
+  difficulty: medium
+  tags: [false_positive, index, intentional]
+  misleading_points: "Missing index is intentional decision"
+
+- id: FP_015
   category: false_positive
   name: intentional_eager_load
   plan: "Preload for known N+1 prevention"
   bug_description: null
-  correct: "Extra with() for downstream use"
+  correct: "Extra with() for downstream use in views"
   incorrect: null
   severity: null
   difficulty: medium
   tags: [false_positive, eager_load, intentional]
   misleading_points: "Extra with() looks wasteful but used later"
 
-- id: FP_010
+- id: FP_016
+  category: false_positive
+  name: optimized_counter_cache
+  plan: "Counter cache for count queries"
+  bug_description: null
+  correct: "withCount() or denormalized count field properly maintained"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, counter_cache]
+  misleading_points: "Looks like denormalization but correct pattern"
+
+- id: FP_017
   category: false_positive
   name: optimized_batch_insert
   plan: "Bulk insert for performance"
   bug_description: null
-  correct: "insert() or upsert() with proper data"
+  correct: "insert() or upsert() with proper data handling"
   incorrect: null
   severity: null
   difficulty: hard
   tags: [false_positive, optimization, batch]
   misleading_points: "Bypassing model events but intentional for bulk"
+
+- id: FP_018
+  category: false_positive
+  name: optimized_cache_warming
+  plan: "Pre-warm cache on deploy"
+  bug_description: null
+  correct: "Intentional full table load into Cache::forever()"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, cache]
+  misleading_points: "Looks like full table load bug but intentional"
+
+- id: FP_019
+  category: false_positive
+  name: optimized_denormalization
+  plan: "Denormalized for read performance"
+  bug_description: null
+  correct: "Stored computed column with proper sync triggers"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, denormalization]
+  misleading_points: "Duplication looks wrong but for performance"
+
+- id: FP_020
+  category: false_positive
+  name: optimized_async_write
+  plan: "Async write for throughput"
+  bug_description: null
+  correct: "Queue job with eventual consistency design"
+  incorrect: null
+  severity: null
+  difficulty: hard
+  tags: [false_positive, optimization, async]
+  misleading_points: "Eventual consistency looks like race condition"

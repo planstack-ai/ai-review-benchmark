@@ -57,6 +57,13 @@ FRAMEWORK_CONFIG = {
         "orm": "Spring Data JPA",
         "patterns_file": "patterns_springboot_java.yaml",
     },
+    "laravel": {
+        "impl_ext": ".php",
+        "language": "PHP",
+        "expert_role": "Senior Laravel developer",
+        "orm": "Eloquent ORM",
+        "patterns_file": "patterns_laravel.yaml",
+    },
 }
 
 
@@ -79,6 +86,7 @@ CATEGORY_PREFIXES = {
     "rails": "RAILS",
     "django": "DJANGO",
     "spring": "SPRING",
+    "laravel": "LARAVEL",
     "false_positive": "FP",
 }
 
@@ -223,6 +231,36 @@ It should contain realistic Spring Boot/Java code that would exist before the im
 - Use Java 21+ syntax and Spring Boot 3.2+ patterns
 - Use BigDecimal for monetary calculations
 - Include proper Spring annotations (@Entity, @Repository, @Service, etc.)
+
+Generate only the markdown content, no explanations."""
+    elif framework == "laravel":
+        prompt = f"""Generate a context.md file for an AI code review benchmark test case.
+
+This file represents the EXISTING CODEBASE that a code reviewer can reference.
+It should contain realistic Laravel/PHP code that would exist before the implementation under review.
+
+## Pattern Information
+- Category: {category}
+- Feature: {name}
+- Requirement: {plan}
+
+## Requirements for context.md
+
+1. Start with "# Existing Codebase" heading
+2. Include a "## Schema" section with Laravel migration definitions
+3. Include a "## Models" section with relevant Eloquent models
+4. Include useful scopes, relationships, accessors, and constants that SHOULD be used by the implementation
+5. The code should hint at the correct approach without explicitly stating it
+6. Use realistic Laravel conventions and patterns
+7. Keep it focused (100-150 lines max)
+
+## Important
+- Do NOT include the implementation under review
+- Do NOT include comments like "use this for X" - let the code speak for itself
+- Make it look like real production code extracted from a Laravel app
+- Use PHP 8.2+ syntax and Laravel 11+ patterns
+- Use proper type hints and return types
+- Include proper Laravel conventions (Eloquent, Facades, etc.)
 
 Generate only the markdown content, no explanations."""
     else:
@@ -472,6 +510,86 @@ The implementation MUST be consistent with the following existing codebase:
 - Do NOT wrap in markdown code blocks (no ```java)
 - Do NOT add any explanation before or after the code"""
 
+    elif framework == "laravel":
+        if is_fp:
+            prompt = f"""Generate a PHP service class for an AI code review benchmark (Laravel).
+
+## Pattern Information
+- Feature: {name.replace('_', ' ').title()}
+- Requirement: {plan}
+
+## Existing Codebase (context.md)
+The implementation MUST be consistent with the following existing codebase:
+
+{context_content}
+
+## Requirements
+
+1. Generate a complete, working PHP service class (40-100 lines)
+2. The implementation should be CORRECT - no bugs
+3. Follow Laravel conventions and PSR-12 best practices
+4. Include realistic method structure with private helpers
+5. Use meaningful variable names, type hints, and clear logic flow
+6. This is a FALSE POSITIVE test - the code should pass review
+
+## CRITICAL: Consistency with Existing Codebase
+- MUST use existing model classes, methods, and scopes exactly as defined in context.md
+- MUST use existing constants instead of redefining them
+- MUST use existing Eloquent relationships and scopes
+- MUST NOT call methods that don't exist in the model definitions
+- MUST match the exact method signatures from context.md
+
+## Important
+- Do NOT add any comments explaining the code is correct
+- Do NOT add TODO or FIXME comments
+- Make it look like natural production code
+- The code should be reviewable (not too simple, not too complex)
+- Use proper PHP 8.2+ syntax (constructor promotion, typed properties, etc.)
+
+## Output Format
+- Output ONLY raw PHP code
+- Start with: <?php
+- Include namespace and use statements
+- Do NOT wrap in markdown code blocks (no ```php)
+- Do NOT add any explanation before or after the code"""
+
+        else:
+            prompt = f"""Generate a PHP service class for an AI code review benchmark (Laravel).
+
+## Pattern Information
+- Feature: {name.replace('_', ' ').title()}
+- Requirement: {plan}
+
+## Bug to Embed
+- Description: {bug_description}
+- Incorrect pattern: {incorrect}
+- Correct pattern (for reference, do NOT use): {correct}
+
+## Requirements
+
+1. Generate a complete, working PHP service class (40-100 lines)
+2. The implementation MUST contain the bug described above
+3. The bug should be SUBTLE - not obvious at first glance
+4. Follow Laravel conventions and PSR-12 otherwise
+5. Include realistic method structure with private helpers
+6. Use meaningful variable names, type hints, and clear logic flow
+
+## Critical Rules
+- Do NOT add comments like "// BUG:" or "// TODO:" or "// FIXME:"
+- Do NOT add any comments that hint at the bug
+- Do NOT add comments explaining what's wrong
+- The buggy code should look natural and intentional
+- A reviewer should need to carefully read the code to find the bug
+- Use proper PHP 8.2+ syntax (constructor promotion, typed properties, etc.)
+- Include proper Laravel patterns (Eloquent, Facades, dependency injection, etc.)
+
+## Output Format
+- Output ONLY raw PHP code
+- Start with: <?php
+- Include namespace and use statements
+- Do NOT wrap in markdown code blocks (no ```php)
+- Do NOT add any explanation before or after the code"""
+
     else:  # Rails
         if is_fp:
             prompt = f"""Generate a Ruby service class for an AI code review benchmark.
@@ -557,6 +675,8 @@ The implementation MUST be consistent with the following existing codebase:
         content = content[7:]
     elif content.startswith("```java"):
         content = content[7:]
+    elif content.startswith("```php"):
+        content = content[6:]
     elif content.startswith("```"):
         content = content[3:]
     if content.endswith("```"):
@@ -597,7 +717,7 @@ def generate_meta_json(pattern: dict[str, Any]) -> dict[str, Any]:
         "tags": pattern.get("tags", []),
     }
 
-    # Add framework-specific fields for Django
+    # Add framework-specific fields
     if framework == "django":
         meta["framework"] = "django"
         meta["framework_version"] = "5.0+"
@@ -606,6 +726,10 @@ def generate_meta_json(pattern: dict[str, Any]) -> dict[str, Any]:
         meta["framework"] = "springboot-java"
         meta["framework_version"] = "3.2+"
         meta["java_version"] = "21+"
+    elif framework == "laravel":
+        meta["framework"] = "laravel"
+        meta["framework_version"] = "11+"
+        meta["php_version"] = "8.2+"
 
     return meta
 
@@ -743,7 +867,7 @@ def main() -> None:
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Model to use (default: {DEFAULT_MODEL})")
     parser.add_argument(
         "--framework",
-        choices=["rails", "django", "springboot-java"],
+        choices=["rails", "django", "springboot-java", "laravel"],
         default="rails",
         help="Target framework (default: rails)",
     )

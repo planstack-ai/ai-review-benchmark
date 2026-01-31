@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_019",
+  "category": "false_positive",
+  "axis": null,
+  "name": "optimized_denormalization",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Stored computed column with proper sync triggers",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "denormalization"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}
