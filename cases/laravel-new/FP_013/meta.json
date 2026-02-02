@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_013",
+  "category": "false_positive",
+  "axis": null,
+  "name": "intentional_update_mass",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "Intentional update() or updateQuietly() for performance",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "update",
+    "intentional"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,41 @@
+{
+  "case_id": "AUTH_008",
+  "category": "authorization",
+  "axis": "implicit_knowledge",
+  "name": "privilege_escalation",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Role hierarchy bypass allows managers to access ALL resources regardless of action permissions; owner check bypasses permission matrix entirely",
+  "bug_anchor": "$resourceClass::all()->toArray()",
+  "correct_implementation": "accessible_resources should respect action-specific permissions; owner check should not bypass role requirements",
+  "severity": "critical",
+  "tags": [
+    "authorization",
+    "security",
+    "privilege_escalation",
+    "rbac"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true,
+  "evaluation_mode": "dual",
+  "has_expected_critique": false,
+  "fix_required": true,
+  "must_find": [
+    {
+      "id": "privilege_escalation",
+      "category": "authorization",
+      "keywords": ["manager", "all", "bypass", "permission"],
+      "severity_expected": "critical",
+      "required": true
+    },
+    {
+      "id": "owner_bypass",
+      "category": "authorization",
+      "keywords": ["owner", "isResourceOwner", "bypass", "permission"],
+      "severity_expected": "major",
+      "required": false
+    }
+  ]
+}

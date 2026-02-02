@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_012",
+  "category": "false_positive",
+  "axis": null,
+  "name": "intentional_raw_sql",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "DB::select with proper bindings and sanitization",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "sql",
+    "intentional"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

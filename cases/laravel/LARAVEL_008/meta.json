@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_008",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "service_container_binding",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Using bind() instead of singleton() - new instance every resolve",
+  "bug_anchor": "$this->app->bind(PaymentServiceInterface::class",
+  "correct_implementation": "$this->app->singleton(PaymentService::class)",
+  "severity": "high",
+  "tags": [
+    "laravel",
+    "container",
+    "binding"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_016",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "carbon_mutable_bug",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Carbon mutability modifies original date unexpectedly",
+  "bug_anchor": "$order->created_at->addDays($finalDays)",
+  "correct_implementation": "$deliveryDate = $order->created_at->copy()->addDays(3)",
+  "severity": "high",
+  "tags": [
+    "laravel",
+    "carbon",
+    "mutable"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

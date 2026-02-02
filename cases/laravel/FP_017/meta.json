@@ -1,0 +1,21 @@
+{
+  "case_id": "FP_017",
+  "category": "false_positive",
+  "axis": null,
+  "name": "optimized_batch_insert",
+  "difficulty": "hard",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": null,
+  "correct_implementation": "insert() or upsert() with proper data handling",
+  "severity": null,
+  "tags": [
+    "false_positive",
+    "optimization",
+    "batch"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

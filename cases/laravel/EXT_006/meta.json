@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_006",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "shipping_error_swallowed",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Shipping API error swallowed - order marked as shipped incorrectly",
+  "bug_anchor": "return $response->json()",
+  "correct_implementation": "if (!$response->successful()) throw new ShippingException($response->body())",
+  "severity": "high",
+  "tags": [
+    "external",
+    "shipping",
+    "error"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

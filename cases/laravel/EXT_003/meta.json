@@ -1,0 +1,21 @@
+{
+  "case_id": "EXT_003",
+  "category": "external",
+  "axis": "implicit_knowledge",
+  "name": "api_call_in_transaction",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Payment charged inside transaction - charge succeeds even if rollback",
+  "bug_anchor": "$this->chargePayment($order, $paymentMethod)",
+  "correct_implementation": "DB::transaction(...); $this->chargePayment();",
+  "severity": "critical",
+  "tags": [
+    "external",
+    "transaction",
+    "api"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}
