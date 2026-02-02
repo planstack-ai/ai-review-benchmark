@@ -1,0 +1,21 @@
+{
+  "case_id": "STATE_007",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "delivery_status_regression",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Delivered can regress to shipping status",
+  "bug_anchor": "delivery.status = newStatus",
+  "correct_implementation": "if (delivery.status.ordinal >= newStatus.ordinal) throw InvalidStatusTransitionException(); delivery.status = newStatus",
+  "severity": "medium",
+  "tags": [
+    "state",
+    "delivery",
+    "regression"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

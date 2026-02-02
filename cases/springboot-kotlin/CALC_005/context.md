@@ -3,112 +3,136 @@
 ## Schema
 
 ```sql
-CREATE TABLE tax_rates (
+CREATE TABLE products (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    rate_type VARCHAR(50) NOT NULL,
-    rate_value DECIMAL(5,4) NOT NULL,
-    effective_date DATE NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
+    name VARCHAR(255) NOT NULL,
+    base_price DECIMAL(10,2) NOT NULL,
+    category VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_id BIGINT NOT NULL,
-    subtotal DECIMAL(10,2) NOT NULL,
-    tax_amount DECIMAL(10,2),
-    total_amount DECIMAL(10,2),
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'PENDING'
+    status VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE order_items (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    order_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
 );
 ```
 
 ## Entities
 
-```java
+```kotlin
 @Entity
-@Table(name = "tax_rates")
-public class TaxRate {
+@Table(name = "products")
+data class Product(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
-    @Column(name = "rate_type", nullable = false)
-    private String rateType;
+    @Column(nullable = false)
+    val name: String,
     
-    @Column(name = "rate_value", nullable = false, precision = 5, scale = 4)
-    private BigDecimal rateValue;
+    @Column(name = "base_price", nullable = false, precision = 10, scale = 2)
+    val basePrice: BigDecimal,
     
-    @Column(name = "effective_date", nullable = false)
-    private LocalDate effectiveDate;
-    
-    @Column(name = "is_active")
-    private Boolean isActive = true;
+    @Column(nullable = false)
+    val category: String,
     
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
-    // constructors, getters, setters
-}
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
 
 @Entity
 @Table(name = "orders")
-public class Order {
+data class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "customer_id", nullable = false)
-    private Long customerId;
-    
-    @Column(name = "subtotal", nullable = false, precision = 10, scale = 2)
-    private BigDecimal subtotal;
-    
-    @Column(name = "tax_amount", precision = 10, scale = 2)
-    private BigDecimal taxAmount;
-    
-    @Column(name = "total_amount", precision = 10, scale = 2)
-    private BigDecimal totalAmount;
+    val customerId: Long,
     
     @Column(name = "order_date")
-    private LocalDateTime orderDate;
+    val orderDate: LocalDateTime = LocalDateTime.now(),
     
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    val status: OrderStatus = OrderStatus.PENDING,
     
-    // constructors, getters, setters
-}
+    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val items: List<OrderItem> = emptyList()
+)
 
-public enum OrderStatus {
+@Entity
+@Table(name = "order_items")
+data class OrderItem(
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    val order: Order,
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    val product: Product,
+    
+    @Column(nullable = false)
+    val quantity: Int,
+    
+    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
+    val unitPrice: BigDecimal
+)
+
+enum class OrderStatus {
     PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
 }
 
 @Repository
-public interface TaxRateRepository extends JpaRepository<TaxRate, Long> {
-    
-    @Query("SELECT tr FROM TaxRate tr WHERE tr.rateType = :rateType AND tr.isActive = true ORDER BY tr.effectiveDate DESC")
-    Optional<TaxRate> findCurrentRateByType(@Param("rateType") String rateType);
-    
-    List<TaxRate> findByIsActiveTrueOrderByEffectiveDateDesc();
+interface ProductRepository : JpaRepository<Product, Long> {
+    fun findByCategory(category: String): List<Product>
+    fun findByBasePriceBetween(minPrice: BigDecimal, maxPrice: BigDecimal): List<Product>
 }
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByCustomerIdOrderByOrderDateDesc(Long customerId);
-    List<Order> findByStatusOrderByOrderDateDesc(OrderStatus status);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByCustomerId(customerId: Long): List<Order>
+    fun findByStatus(status: OrderStatus): List<Order>
+    fun findByOrderDateBetween(startDate: LocalDateTime, endDate: LocalDateTime): List<Order>
+}
+
+@Repository
+interface OrderItemRepository : JpaRepository<OrderItem, Long> {
+    fun findByOrderId(orderId: Long): List<OrderItem>
+    fun findByProductId(productId: Long): List<OrderItem>
 }
 
 @Service
-public interface TaxCalculationService {
-    BigDecimal calculateTaxAmount(BigDecimal subtotal);
-    BigDecimal calculateTotalWithTax(BigDecimal subtotal);
+interface OrderService {
+    fun createOrder(customerId: Long, items: List<OrderItemRequest>): Order
+    fun calculateOrderTotal(orderId: Long): BigDecimal
+    fun updateOrderStatus(orderId: Long, status: OrderStatus): Order
 }
 
-public final class TaxConstants {
-    public static final String STANDARD_TAX_TYPE = "STANDARD";
-    public static final String SALES_TAX_TYPE = "SALES";
-    public static final BigDecimal DEFAULT_TAX_RATE = new BigDecimal("0.1000");
-    
-    private TaxConstants() {}
-}
+data class OrderItemRequest(
+    val productId: Long,
+    val quantity: Int
+)
+
+data class OrderSummary(
+    val orderId: Long,
+    val subtotal: BigDecimal,
+    val taxAmount: BigDecimal,
+    val total: BigDecimal
+)
 ```

@@ -3,114 +3,103 @@ package com.example.inventory.service
 import com.example.inventory.entity.Product
 import com.example.inventory.repository.ProductRepository
 import com.example.inventory.dto.StockUpdateRequest
+import com.example.inventory.dto.StockMovementDto
 import com.example.inventory.exception.ProductNotFoundException
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.util.List
-import java.util.Optional
 
 @Service
 @Transactional
-class InventoryService {
+class InventoryService(
+    private val productRepository: ProductRepository
+) {
 
-    @Autowired
-    private ProductRepository productRepository
-
-    @Autowired
-    private AuditService auditService
-
-    fun createProduct(name: String, sku: String, price: BigDecimal, initialQuantity: Integer): Product {
-        Product product = new Product()
-        product.setName(name)
-        product.setSku(sku)
-        product.setPrice(price)
-        product.setQuantity(initialQuantity)
-        product.setCreatedAt(LocalDateTime.now())
-        product.setUpdatedAt(LocalDateTime.now())
+    fun updateStock(productId: Long, request: StockUpdateRequest): Product {
+        val product = findProductById(productId)
         
-        Product savedProduct = productRepository.save(product)
-        auditService.logProductCreation(savedProduct)
-        return savedProduct
+        return when (request.operation) {
+            "ADD" -> addStock(product, request.quantity)
+            "REMOVE" -> removeStock(product, request.quantity)
+            "SET" -> setStock(product, request.quantity)
+            else -> throw IllegalArgumentException("Invalid operation: ${request.operation}")
+        }
     }
 
-    fun updateStock(productId: Long, quantityChange: Integer): Product {
-        Product product = findProductById(productId)
-        Integer currentQuantity = product.Quantity
-        Integer newQuantity = currentQuantity + quantityChange
+    fun processStockMovement(movement: StockMovementDto): Product {
+        val product = findProductById(movement.productId)
         
-        product.setQuantity(newQuantity)
-        product.setUpdatedAt(LocalDateTime.now())
+        validateMovementQuantity(movement.quantity)
         
-        Product updatedProduct = productRepository.save(product)
-        auditService.logStockUpdate(updatedProduct, quantityChange)
+        val updatedProduct = when (movement.type) {
+            "SALE" -> processSale(product, movement.quantity)
+            "RETURN" -> processReturn(product, movement.quantity)
+            "ADJUSTMENT" -> processAdjustment(product, movement.quantity)
+            else -> throw IllegalArgumentException("Unknown movement type: ${movement.type}")
+        }
+        
+        logStockMovement(updatedProduct, movement)
         return updatedProduct
     }
 
-    fun processStockReduction(productId: Long, reductionAmount: Integer): Product {
-        if (reductionAmount <= 0) {
-            throw new IllegalArgumentException("Reduction amount must be positive")
-        }
-        
-        Product product = findProductById(productId)
-        validateProductActive(product)
-        
-        Integer currentStock = product.Quantity
-        Integer newStock = calculateNewStock(currentStock, reductionAmount)
-        
-        return updateProductStock(product, newStock)
+    @Transactional(readOnly = true)
+    fun getAvailableStock(productId: Long): Int {
+        return findProductById(productId).quantity
     }
 
-    fun List<Product> getLowStockProducts(threshold: Integer) {
-        return productRepository.findByQuantityLessThanEqual(threshold)
+    private fun addStock(product: Product, quantity: Int): Product {
+        product.quantity += quantity
+        product.lastUpdated = LocalDateTime.now()
+        return productRepository.save(product)
     }
 
-    fun restockProduct(productId: Long, additionalQuantity: Integer): Product {
-        if (additionalQuantity <= 0) {
-            throw new IllegalArgumentException("Additional quantity must be positive")
-        }
-        
-        Product product = findProductById(productId)
-        Integer currentQuantity = product.Quantity
-        Integer newQuantity = currentQuantity + additionalQuantity
-        
-        return updateProductStock(product, newQuantity)
+    private fun removeStock(product: Product, quantity: Int): Product {
+        product.quantity -= quantity
+        product.lastUpdated = LocalDateTime.now()
+        return productRepository.save(product)
+    }
+
+    private fun setStock(product: Product, quantity: Int): Product {
+        product.quantity = quantity
+        product.lastUpdated = LocalDateTime.now()
+        return productRepository.save(product)
+    }
+
+    private fun processSale(product: Product, quantity: Int): Product {
+        return removeStock(product, quantity)
+    }
+
+    private fun processReturn(product: Product, quantity: Int): Product {
+        return addStock(product, quantity)
+    }
+
+    private fun processAdjustment(product: Product, quantity: Int): Product {
+        return setStock(product, quantity)
     }
 
     private fun findProductById(productId: Long): Product {
-        Optional<Product> productOpt = productRepository.findById(productId)
-        if (!productOpt.isPresent()) {
-            throw new ProductNotFoundException("Product not found with ID: " + productId)
-        }
-        return productOpt.get()
+        return productRepository.findById(productId)
+            .orElseThrow { ProductNotFoundException("Product not found with id: $productId") }
     }
 
-    private fun validateProductActive(product: Product): {
-        if (!product.isActive()) {
-            throw new IllegalStateException("Cannot modify stock for inactive product")
+    private fun validateMovementQuantity(quantity: Int) {
+        if (quantity <= 0) {
+            throw IllegalArgumentException("Movement quantity must be positive")
         }
     }
 
-    private fun calculateNewStock(currentStock: Integer, reductionAmount: Integer): Integer {
-        return currentStock - reductionAmount
+    private fun logStockMovement(product: Product, movement: StockMovementDto) {
+        println("Stock movement logged: Product ${product.id}, Type: ${movement.type}, Quantity: ${movement.quantity}, New Stock: ${product.quantity}")
     }
 
-    private fun updateProductStock(product: Product, newQuantity: Integer): Product {
-        product.setQuantity(newQuantity)
-        product.setUpdatedAt(LocalDateTime.now())
-        
-        Product updatedProduct = productRepository.save(product)
-        auditService.logStockUpdate(updatedProduct, newQuantity - product.Quantity)
-        return updatedProduct
+    fun calculateStockValue(productId: Long): BigDecimal {
+        val product = findProductById(productId)
+        return product.price.multiply(BigDecimal.valueOf(product.quantity.toLong()))
     }
 
-    fun calculateTotalInventoryValue(): BigDecimal {
-        List<Product> allProducts = productRepository.findAll()
-        return allProducts.stream()
-                .filter(Product::isActive)
-                .map(product -> product.Price.multiply(BigDecimal("product.getQuantity("))))
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
+    fun isStockSufficient(productId: Long, requiredQuantity: Int): Boolean {
+        val availableStock = getAvailableStock(productId)
+        return availableStock >= requiredQuantity
     }
 }

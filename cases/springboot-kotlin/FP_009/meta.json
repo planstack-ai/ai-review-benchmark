@@ -1,0 +1,17 @@
+{
+  "case_id": "FP_009",
+  "category": "false_positive",
+  "axis": "false_positive",
+  "name": "intentional_raw_sql",
+  "difficulty": "medium",
+  "expected_detection": false,
+  "bug_description": null,
+  "bug_anchor": "@Query(nativeQuery = true)",
+  "correct_implementation": null,
+  "severity": null,
+  "tags": ["false_positive", "sql", "intentional"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "misleading_points": "Raw SQL with nativeQuery looks dangerous and prone to SQL injection, but uses proper parameter binding and is required for performance-critical database-specific queries"
+}

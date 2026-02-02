@@ -6,8 +6,8 @@
   "difficulty": "easy",
   "expected_detection": true,
   "bug_description": "Only checking start date, not end date",
-  "bug_anchor": "now.isAfter(campaign.getStartDate(\")\")",
-  "correct_implementation": "now.isAfter(campaign.getStartDate()) && now.isBefore(campaign.getEndDate())",
+  "bug_anchor": "now.isAfter(campaign.startDate)",
+  "correct_implementation": "now.isAfter(campaign.startDate) && now.isBefore(campaign.endDate)",
   "severity": "high",
   "tags": [
     "time",
@@ -16,6 +16,6 @@
   ],
   "framework": "springboot-kotlin",
   "framework_version": "3.2+",
-  "bug_anchor_verified": true,
-  "kotlin_version": "1.9+"
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
 }

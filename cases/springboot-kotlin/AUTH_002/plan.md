@@ -1,31 +1,29 @@
-# Shopping Cart Authorization Control
+# Cart Authorization - Prevent Unauthorized Cart Manipulation
 
 ## Overview
 
-This feature implements authorization controls for shopping cart operations in an e-commerce application. The system must ensure that users can only access and modify their own shopping carts, preventing unauthorized access to other users' cart data. This is a critical security requirement that protects user privacy and prevents malicious cart manipulation.
+This feature implements authorization controls for shopping cart operations to ensure users can only modify their own carts. The system must prevent users from accessing, modifying, or manipulating shopping carts that belong to other users, maintaining data privacy and security boundaries in the e-commerce application.
 
 ## Requirements
 
-1. Users must only be able to view their own cart contents
-2. Users must only be able to add items to their own cart
-3. Users must only be able to remove items from their own cart
-4. Users must only be able to update item quantities in their own cart
-5. Users must only be able to clear their own cart
-6. The system must verify cart ownership before performing any cart operation
-7. The system must return appropriate error responses when users attempt to access carts they don't own
-8. Cart operations must be authenticated - anonymous users cannot perform cart operations
-9. The system must use the authenticated user's identity to determine cart ownership
-10. All cart endpoints must implement proper authorization checks
+1. Users must only be able to access their own shopping cart
+2. All cart modification operations (add, remove, update quantities) must verify cart ownership
+3. Cart retrieval operations must validate that the requesting user owns the cart
+4. The system must return appropriate error responses when users attempt to access carts they don't own
+5. User authentication must be verified before any cart operations
+6. Cart ownership must be determined by matching the authenticated user ID with the cart's owner ID
+7. Anonymous or unauthenticated users must not be able to access any cart data
+8. The authorization check must occur before any cart business logic is executed
 
 ## Constraints
 
-1. Cart ownership verification must occur before any cart data is accessed or modified
-2. Error responses for unauthorized access must not reveal information about other users' carts
-3. The system must handle cases where a cart does not exist for a user
-4. Authorization checks must be consistent across all cart-related endpoints
-5. The system must prevent privilege escalation through cart operations
-6. Cart operations must fail securely when authorization checks fail
+1. Cart IDs must not be predictable or enumerable to prevent brute force attacks
+2. Error messages must not reveal information about the existence of other users' carts
+3. All cart endpoints must implement consistent authorization patterns
+4. The system must handle edge cases where cart ownership data is missing or corrupted
+5. Authorization failures must be logged for security monitoring
+6. The implementation must not bypass authorization checks in any code path
 
 ## References
 
-See context.md for existing authentication mechanisms, user management patterns, and related security implementations in the codebase.
+See context.md for existing authentication mechanisms, user management patterns, and cart data models used throughout the application.

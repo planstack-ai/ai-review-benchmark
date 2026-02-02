@@ -1,0 +1,21 @@
+{
+  "case_id": "STATE_006",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "refund_status_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Payment shows unpaid despite refund completion",
+  "bug_anchor": "refundRepository.save(refund)",
+  "correct_implementation": "payment.status = PaymentStatus.REFUNDED; payment.refundedAt = LocalDateTime.now(); paymentRepository.save(payment); refundRepository.save(refund)",
+  "severity": "high",
+  "tags": [
+    "state",
+    "refund",
+    "status"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

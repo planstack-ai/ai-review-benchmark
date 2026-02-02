@@ -2,99 +2,84 @@ package com.example.ecommerce.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.beans.factory.annotation.Autowired
-import com.example.ecommerce.model.Order
-import com.example.ecommerce.model.OrderItem
-import com.example.ecommerce.model.ShippingInfo
-import com.example.ecommerce.repository.OrderRepository
-import com.example.ecommerce.repository.ShippingRateRepository
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.util.List
 
 @Service
 @Transactional
-class OrderShippingService {
+class ShippingCalculationService {
 
-            private val FREE_SHIPPING_THRESHOLD: BigDecimal = BigDecimal("5000")
-            private val DEFAULT_SHIPPING_RATE: BigDecimal = BigDecimal("500")
-    
-    @Autowired
-    private OrderRepository orderRepository
-    
-    @Autowired
-    private ShippingRateRepository shippingRateRepository
+    companion object {
+        private val STANDARD_SHIPPING_FEE = BigDecimal("500")
+        private val EXPRESS_SHIPPING_FEE = BigDecimal("1200")
+        private val FREE_SHIPPING_THRESHOLD = BigDecimal("5000")
+        private val WEIGHT_MULTIPLIER = BigDecimal("0.1")
+    }
 
-    fun calculateShippingCost(order: Order): BigDecimal {
-        if (order == null || order.Items.isEmpty()) {
-            return BigDecimal.ZERO
+    fun calculateShippingCost(orderTotal: BigDecimal, isExpress: Boolean = false, totalWeight: BigDecimal? = null): BigDecimal {
+        val baseShippingFee = determineBaseShippingFee(isExpress)
+        val weightAdjustment = calculateWeightAdjustment(totalWeight)
+        val totalShippingFee = baseShippingFee.add(weightAdjustment)
+        
+        return applyFreeShippingPolicy(orderTotal, totalShippingFee)
+    }
+
+    private fun determineBaseShippingFee(isExpress: Boolean): BigDecimal {
+        return if (isExpress) EXPRESS_SHIPPING_FEE else STANDARD_SHIPPING_FEE
+    }
+
+    private fun calculateWeightAdjustment(totalWeight: BigDecimal?): BigDecimal {
+        return totalWeight?.let { weight ->
+            if (weight > BigDecimal("10")) {
+                weight.subtract(BigDecimal("10")).multiply(WEIGHT_MULTIPLIER)
+            } else {
+                BigDecimal.ZERO
+            }
+        } ?: BigDecimal.ZERO
+    }
+
+    private fun applyFreeShippingPolicy(orderTotal: BigDecimal, shippingFee: BigDecimal): BigDecimal {
+        return if (orderTotal > FREE_SHIPPING_THRESHOLD) {
+            BigDecimal.ZERO
+        } else {
+            shippingFee
         }
+    }
 
-        BigDecimal orderTotal = calculateOrderTotal(order)
-        BigDecimal baseShippingFee = determineBaseShippingFee(order.ShippingInfo)
+    fun calculateTotalOrderCost(itemsTotal: BigDecimal, isExpress: Boolean = false, totalWeight: BigDecimal? = null): BigDecimal {
+        val shippingCost = calculateShippingCost(itemsTotal, isExpress, totalWeight)
+        return itemsTotal.add(shippingCost).setScale(2, RoundingMode.HALF_UP)
+    }
+
+    fun isEligibleForFreeShipping(orderTotal: BigDecimal): Boolean {
+        return orderTotal >= FREE_SHIPPING_THRESHOLD
+    }
+
+    fun getShippingOptions(orderTotal: BigDecimal, totalWeight: BigDecimal?): Map<String, BigDecimal> {
+        val standardCost = calculateShippingCost(orderTotal, false, totalWeight)
+        val expressCost = calculateShippingCost(orderTotal, true, totalWeight)
         
-        return applyFreeShippingPolicy(orderTotal, baseShippingFee)
+        return mapOf(
+            "standard" to standardCost,
+            "express" to expressCost
+        )
     }
 
-    private fun calculateOrderTotal(order: Order): BigDecimal {
-        return order.Items.stream()
-                .map(this::calculateItemTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP)
-    }
-
-    private fun calculateItemTotal(item: OrderItem): BigDecimal {
-        return item.UnitPrice
-                .multiply(BigDecimal("item.getQuantity(")))
-                .setScale(2, RoundingMode.HALF_UP)
-    }
-
-    private fun determineBaseShippingFee(shippingInfo: ShippingInfo): BigDecimal {
-        if (shippingInfo == null || shippingInfo.Region == null) {
-            return DEFAULT_SHIPPING_RATE
+    fun estimateDeliveryDays(isExpress: Boolean, orderTotal: BigDecimal): Int {
+        return when {
+            isExpress -> 1
+            orderTotal >= FREE_SHIPPING_THRESHOLD -> 3
+            else -> 5
         }
-
-        return shippingRateRepository.findByRegion(shippingInfo.Region)
-                .map(rate -> rate.StandardRate)
-                .orElse(DEFAULT_SHIPPING_RATE)
     }
 
-    private fun applyFreeShippingPolicy(total: BigDecimal, shippingFee: BigDecimal): BigDecimal {
-        return total.compareTo(FREE_SHIPPING_THRESHOLD) > 0 ? BigDecimal.ZERO : shippingFee
+    private fun validateOrderTotal(orderTotal: BigDecimal) {
+        require(orderTotal >= BigDecimal.ZERO) { "Order total cannot be negative" }
     }
 
-    fun isEligibleForFreeShipping(order: Order): boolean {
-        BigDecimal orderTotal = calculateOrderTotal(order)
-        return orderTotal.compareTo(FREE_SHIPPING_THRESHOLD) > 0
-    }
-
-    @Transactional
-    fun updateOrderShipping(orderId: Long): Order {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow { new IllegalArgumentException("Order not found: " + orderId })
-        
-        BigDecimal shippingCost = calculateShippingCost(order)
-        order.setShippingCost(shippingCost)
-        
-        return orderRepository.save(order)
-    }
-
-    fun calculateTotalWithShipping(order: Order): BigDecimal {
-        BigDecimal orderTotal = calculateOrderTotal(order)
-        BigDecimal shippingCost = calculateShippingCost(order)
-        
-        return orderTotal.add(shippingCost).setScale(2, RoundingMode.HALF_UP)
-    }
-
-    private fun hasExpressShipping(shippingInfo: ShippingInfo): boolean {
-        return shippingInfo != null && 
-               shippingInfo.ShippingMethod != null && 
-               shippingInfo.ShippingMethod.isExpress()
-    }
-
-    fun List<Order> findOrdersEligibleForFreeShipping() {
-        return orderRepository.findAll().stream()
-                .filter(this::isEligibleForFreeShipping)
-                .toList()
+    fun calculateShippingDiscount(originalShipping: BigDecimal, orderTotal: BigDecimal): BigDecimal {
+        validateOrderTotal(orderTotal)
+        val discountedShipping = calculateShippingCost(orderTotal, false)
+        return originalShipping.subtract(discountedShipping).max(BigDecimal.ZERO)
     }
 }

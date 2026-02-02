@@ -1,0 +1,21 @@
+{
+  "case_id": "NOTIFY_005",
+  "category": "notification",
+  "axis": "spec_alignment",
+  "name": "recipient_mixup",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Email sent to wrong user due to variable scope",
+  "bug_anchor": "emailService.sendEmail(\n                to = user.email,",
+  "correct_implementation": "emailService.sendEmail(to = order.user.email, subject, body)",
+  "severity": "critical",
+  "tags": [
+    "notification",
+    "recipient",
+    "privacy"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

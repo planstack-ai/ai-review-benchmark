@@ -1,98 +1,112 @@
-package com.example.order.service
+package com.example.orderservice.service
 
-import com.example.order.entity.Order
-import com.example.order.entity.OrderStatus
-import com.example.order.exception.InvalidStateTransitionException
-import com.example.order.exception.OrderNotFoundException
-import com.example.order.repository.OrderRepository
+import com.example.orderservice.entity.Order
+import com.example.orderservice.entity.OrderStatus
+import com.example.orderservice.entity.OrderStatus.*
+import com.example.orderservice.repository.OrderRepository
+import com.example.orderservice.exception.OrderNotFoundException
+import com.example.orderservice.exception.InvalidOrderOperationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.util.*
 
 @Service
 @Transactional
-class OrderStateService(
+class OrderService(
     private val orderRepository: OrderRepository
 ) {
-    companion object {
-        private val CANCELLABLE_STATES = setOf(OrderStatus.PENDING, OrderStatus.CONFIRMED)
-    }
 
-    // BUG: Should validate state before cancellation
-    // Only PENDING or CONFIRMED orders should be cancellable
-    fun cancelOrder(orderId: Long): Order {
-        val order = orderRepository.findById(orderId)
-            .orElseThrow { OrderNotFoundException("Order not found: $orderId") }
-
-        // Missing state validation - should check if order.status in CANCELLABLE_STATES
-        order.status = OrderStatus.CANCELLED
-        order.cancelledAt = LocalDateTime.now()
-
-        return orderRepository.save(order)
-    }
-
-    fun confirmOrder(orderId: Long): Order {
-        val order = orderRepository.findById(orderId)
-            .orElseThrow { OrderNotFoundException("Order not found: $orderId") }
-
-        validateStateTransition(order, OrderStatus.CONFIRMED)
-
-        order.status = OrderStatus.CONFIRMED
-        order.confirmedAt = LocalDateTime.now()
-
-        return orderRepository.save(order)
-    }
-
-    fun shipOrder(orderId: Long): Order {
-        val order = orderRepository.findById(orderId)
-            .orElseThrow { OrderNotFoundException("Order not found: $orderId") }
-
-        validateStateTransition(order, OrderStatus.SHIPPED)
-
-        order.status = OrderStatus.SHIPPED
-        order.shippedAt = LocalDateTime.now()
-
-        return orderRepository.save(order)
-    }
-
-    fun completeOrder(orderId: Long): Order {
-        val order = orderRepository.findById(orderId)
-            .orElseThrow { OrderNotFoundException("Order not found: $orderId") }
-
-        validateStateTransition(order, OrderStatus.COMPLETED)
-
-        order.status = OrderStatus.COMPLETED
-        order.completedAt = LocalDateTime.now()
-
-        return orderRepository.save(order)
-    }
-
-    private fun validateStateTransition(order: Order, targetStatus: OrderStatus) {
-        val allowedTransitions = mapOf(
-            OrderStatus.PENDING to setOf(OrderStatus.CONFIRMED, OrderStatus.CANCELLED),
-            OrderStatus.CONFIRMED to setOf(OrderStatus.SHIPPED, OrderStatus.CANCELLED),
-            OrderStatus.SHIPPED to setOf(OrderStatus.COMPLETED),
-            OrderStatus.COMPLETED to emptySet<OrderStatus>(),
-            OrderStatus.CANCELLED to emptySet<OrderStatus>()
+    fun createOrder(customerId: Long, items: List<OrderItem>): Order {
+        val totalAmount = calculateTotalAmount(items)
+        val order = Order(
+            customerId = customerId,
+            items = items,
+            totalAmount = totalAmount,
+            status = PENDING,
+            createdAt = LocalDateTime.now()
         )
+        return orderRepository.save(order)
+    }
 
-        val allowed = allowedTransitions[order.status] ?: emptySet()
-        if (targetStatus !in allowed) {
-            throw InvalidStateTransitionException(
-                "Cannot transition from ${order.status} to $targetStatus"
-            )
+    fun confirmOrder(orderId: UUID): Order {
+        val order = findOrderById(orderId)
+        validateOrderStatusTransition(order.status, CONFIRMED)
+        
+        order.status = CONFIRMED
+        order.confirmedAt = LocalDateTime.now()
+        return orderRepository.save(order)
+    }
+
+    fun shipOrder(orderId: UUID): Order {
+        val order = findOrderById(orderId)
+        validateOrderStatusTransition(order.status, SHIPPED)
+        
+        order.status = SHIPPED
+        order.shippedAt = LocalDateTime.now()
+        return orderRepository.save(order)
+    }
+
+    fun cancelOrder(orderId: UUID, reason: String): Order {
+        val order = findOrderById(orderId)
+        
+        order.cancel()
+        order.cancellationReason = reason
+        order.cancelledAt = LocalDateTime.now()
+        
+        return orderRepository.save(order)
+    }
+
+    fun deliverOrder(orderId: UUID): Order {
+        val order = findOrderById(orderId)
+        validateOrderStatusTransition(order.status, DELIVERED)
+        
+        order.status = DELIVERED
+        order.deliveredAt = LocalDateTime.now()
+        return orderRepository.save(order)
+    }
+
+    @Transactional(readOnly = true)
+    fun getOrderById(orderId: UUID): Order = findOrderById(orderId)
+
+    @Transactional(readOnly = true)
+    fun getOrdersByCustomer(customerId: Long): List<Order> {
+        return orderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId)
+    }
+
+    private fun findOrderById(orderId: UUID): Order {
+        return orderRepository.findById(orderId)
+            .orElseThrow { OrderNotFoundException("Order not found with id: $orderId") }
+    }
+
+    private fun calculateTotalAmount(items: List<OrderItem>): BigDecimal {
+        return items.fold(BigDecimal.ZERO) { total, item ->
+            total.add(item.price.multiply(BigDecimal.valueOf(item.quantity.toLong())))
         }
     }
 
-    fun getOrderStatus(orderId: Long): OrderStatus {
-        val order = orderRepository.findById(orderId)
-            .orElseThrow { OrderNotFoundException("Order not found: $orderId") }
-        return order.status
-    }
+    private fun validateOrderStatusTransition(currentStatus: OrderStatus, targetStatus: OrderStatus) {
+        val validTransitions = mapOf(
+            PENDING to setOf(CONFIRMED, CANCELLED),
+            CONFIRMED to setOf(SHIPPED, CANCELLED),
+            SHIPPED to setOf(DELIVERED),
+            DELIVERED to emptySet(),
+            CANCELLED to emptySet()
+        )
 
-    fun canCancel(orderId: Long): Boolean {
-        val order = orderRepository.findById(orderId).orElse(null)
-            ?: return false
-        return order.status in CANCELLABLE_STATES
+        val allowedStatuses = validTransitions[currentStatus] ?: emptySet()
+        if (targetStatus !in allowedStatuses) {
+            throw InvalidOrderOperationException(
+                "Cannot transition from $currentStatus to $targetStatus"
+            )
+        }
     }
 }
+
+data class OrderItem(
+    val productId: Long,
+    val productName: String,
+    val price: BigDecimal,
+    val quantity: Int
+)

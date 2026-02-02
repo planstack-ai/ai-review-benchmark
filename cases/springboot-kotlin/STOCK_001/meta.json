@@ -6,7 +6,7 @@
   "difficulty": "hard",
   "expected_detection": true,
   "bug_description": "Race condition between stock check and decrement",
-  "bug_anchor": "if (stock.getQuantity(\") >= qty\") stock.setQuantity(stock.getQuantity(\") - qty\");",
+  "bug_anchor": "if (stock.quantity >= qty) stock.quantity = stock.quantity - qty",
   "correct_implementation": "@Modifying @Query(\\\"UPDATE Stock s SET s.quantity = s.quantity - :qty WHERE s.productId = :productId AND s.quantity >= :qty\\\")",
   "severity": "critical",
   "tags": [
@@ -16,6 +16,6 @@
   ],
   "framework": "springboot-kotlin",
   "framework_version": "3.2+",
-  "bug_anchor_verified": true,
-  "kotlin_version": "1.9+"
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
 }

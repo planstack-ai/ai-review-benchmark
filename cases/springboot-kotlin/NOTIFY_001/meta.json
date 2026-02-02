@@ -6,8 +6,8 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Async email failure silently ignored - no error handling",
-  "bug_anchor": "@Async public void sendEmail(\") { ... }",
-  "correct_implementation": "@Async public CompletableFuture<Void> sendEmail() { try { ... } catch (Exception e) { log.error(...); throw e; } }",
+  "bug_anchor": "@Async fun sendEmail() { ... }",
+  "correct_implementation": "@Async fun sendEmail(): CompletableFuture<Unit> { try { ... } catch (e: Exception) { logger.error(...); throw e } }",
   "severity": "medium",
   "tags": [
     "notification",
@@ -16,6 +16,6 @@
   ],
   "framework": "springboot-kotlin",
   "framework_version": "3.2+",
-  "bug_anchor_verified": false,
-  "kotlin_version": "1.9+"
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": false
 }

@@ -6,7 +6,7 @@
   "difficulty": "medium",
   "expected_detection": true,
   "bug_description": "Using system default timezone instead of specified timezone",
-  "bug_anchor": "LocalDateTime.now(\")",
+  "bug_anchor": "LocalDateTime.now()",
   "correct_implementation": "LocalDateTime.now(ZoneId.of(\\\"Asia/Tokyo\\\"))",
   "severity": "high",
   "tags": [
@@ -16,6 +16,6 @@
   ],
   "framework": "springboot-kotlin",
   "framework_version": "3.2+",
-  "bug_anchor_verified": true,
-  "kotlin_version": "1.9+"
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
 }

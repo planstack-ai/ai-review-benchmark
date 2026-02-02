@@ -5,8 +5,10 @@
 ```sql
 CREATE TABLE users (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -23,78 +25,85 @@ CREATE TABLE orders (
 
 ## Entities
 
-```java
+```kotlin
 @Entity
 @Table(name = "users")
-public class User {
+data class User(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(unique = true, nullable = false)
-    private String username;
+    val email: String,
     
-    @Column(unique = true, nullable = false)
-    private String email;
+    @Column(name = "password_hash", nullable = false)
+    val passwordHash: String,
     
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+    @Column(name = "first_name", nullable = false)
+    val firstName: String,
     
-    // constructors, getters, setters
-}
+    @Column(name = "last_name", nullable = false)
+    val lastName: String,
+    
+    @Column(name = "created_at")
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
 
 @Entity
 @Table(name = "orders")
-public class Order {
+data class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long = 0,
     
     @Column(name = "user_id", nullable = false)
-    private Long userId;
+    val userId: Long,
     
     @Column(name = "order_number", unique = true, nullable = false)
-    private String orderNumber;
+    val orderNumber: String,
     
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount;
+    val totalAmount: BigDecimal,
     
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    val status: OrderStatus,
     
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-    
-    // constructors, getters, setters
-}
+    @Column(name = "created_at")
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
 
-public enum OrderStatus {
+enum class OrderStatus {
     PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
 }
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByUsername(String username);
+interface UserRepository : JpaRepository<User, Long> {
+    fun findByEmail(email: String): User?
 }
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByUserId(Long userId);
-    Optional<Order> findByOrderNumber(String orderNumber);
-    Optional<Order> findByIdAndUserId(Long id, Long userId);
+interface OrderRepository : JpaRepository<Order, Long> {
+    fun findByUserId(userId: Long): List<Order>
+    fun findByOrderNumber(orderNumber: String): Order?
+    fun findByUserIdAndId(userId: Long, orderId: Long): Order?
 }
 
 @Service
-public interface UserService {
-    User getCurrentUser();
-    Optional<User> findByUsername(String username);
+interface UserService {
+    fun getCurrentUser(): User
+    fun findByEmail(email: String): User?
 }
 
 @Component
-public class SecurityUtils {
-    public static String getCurrentUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null ? authentication.getName() : null;
+class SecurityContext {
+    fun getCurrentUserId(): Long {
+        val authentication = SecurityContextHolder.getContext().authentication
+        return authentication.name.toLong()
+    }
+    
+    fun getCurrentUserEmail(): String {
+        val authentication = SecurityContextHolder.getContext().authentication
+        return authentication.principal as String
     }
 }
 ```

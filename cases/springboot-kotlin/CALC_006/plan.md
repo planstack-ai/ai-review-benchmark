@@ -2,27 +2,26 @@
 
 ## Overview
 
-This service determines whether an order qualifies for free shipping based on the order total amount. The business rule is designed to encourage larger purchases by offering free shipping as an incentive for customers who meet the minimum order threshold.
+This service determines whether an order qualifies for free shipping based on the order total amount. The business offers free shipping as an incentive for customers to reach a minimum purchase threshold, helping to increase average order value while providing customer benefits.
 
 ## Requirements
 
-1. The service must accept an order total amount as input
-2. The service must return a boolean value indicating whether the order qualifies for free shipping
-3. Orders with a total of 5000 yen or more must qualify for free shipping
-4. Orders with a total less than 5000 yen must not qualify for free shipping
-5. The service must handle the exact boundary value of 5000 yen correctly
-6. The service must be implemented as a Spring Boot component or service
-7. The calculation logic must be encapsulated in a dedicated method
-8. The service must handle numeric input appropriately for currency calculations
+1. The service must calculate free shipping eligibility for orders with a total of 5000 yen or more
+2. Orders with totals below 5000 yen must not qualify for free shipping
+3. The service must accept order total amounts as numeric input
+4. The service must return a boolean result indicating free shipping eligibility
+5. The calculation must use the exact threshold of 5000 yen (inclusive)
+6. The service must be implemented as a Spring Boot service component
+7. The service must handle the 5000 yen boundary case correctly (exactly 5000 yen qualifies)
 
 ## Constraints
 
-1. Input amounts must be non-negative values
-2. The service should handle null input gracefully
-3. Currency precision must be maintained throughout the calculation
-4. The 5000 yen threshold is inclusive (5000 yen qualifies for free shipping)
-5. Input validation should prevent invalid order amounts
+1. Order total amounts must be non-negative values
+2. Zero or negative order amounts should not qualify for free shipping
+3. The service should handle decimal amounts appropriately
+4. Currency is assumed to be Japanese Yen (JPY)
+5. No rounding or currency conversion is required
 
 ## References
 
-See context.md for existing service patterns and Spring Boot configuration examples in the codebase.
+See context.md for existing service patterns and architectural guidelines within the codebase.

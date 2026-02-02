@@ -1,100 +1,102 @@
-package com.example.benchmark.service
+package com.example.taxservice.service
 
-import com.example.benchmark.model.Order
-import com.example.benchmark.model.OrderItem
-import com.example.benchmark.model.TaxCalculation
-import com.example.benchmark.repository.TaxRateRepository
-import org.springframework.beans.factory.annotation.Autowired
+import com.example.taxservice.model.Order
+import com.example.taxservice.model.OrderItem
+import com.example.taxservice.model.TaxCalculationResult
+import com.example.taxservice.repository.TaxRateRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.util.List
+import java.time.LocalDateTime
 
 @Service
 @Transactional
-class TaxCalculationService {
+class TaxCalculationService(
+    private val taxRateRepository: TaxRateRepository
+) {
 
-    @Autowired
-    private TaxRateRepository taxRateRepository
-
-    fun calculateOrderTax(order: Order): TaxCalculation {
-        if (order == null || order.Items == null || order.Items.isEmpty()) {
-            return createEmptyTaxCalculation()
-        }
-
-        BigDecimal subtotal = calculateSubtotal(order.Items)
-        BigDecimal taxAmount = calculateTaxAmount(subtotal)
-        BigDecimal total = subtotal.add(taxAmount)
-
-        return buildTaxCalculation(subtotal, taxAmount, total, order.Id)
-    }
-
-    fun List<TaxCalculation> calculateBulkOrderTax(List<Order> orders) {
-        return orders.stream()
-                .map(this::calculateOrderTax)
-                .toList()
+    fun calculateOrderTax(order: Order): TaxCalculationResult {
+        val subtotal = calculateSubtotal(order.items)
+        val taxAmount = calculateTaxAmount(subtotal)
+        val total = subtotal.add(taxAmount)
+        
+        return TaxCalculationResult(
+            orderId = order.id,
+            subtotal = subtotal,
+            taxAmount = taxAmount,
+            total = total,
+            calculatedAt = LocalDateTime.now()
+        )
     }
 
     fun calculateTaxForAmount(amount: BigDecimal): BigDecimal {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO
-        }
         return calculateTaxAmount(amount)
     }
 
-    private fun calculateSubtotal(List<OrderItem> items): BigDecimal {
-        return items.stream()
-                .map(this::calculateItemTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
+    fun getEffectiveTaxRate(): BigDecimal {
+        return taxRateRepository.findCurrentRate() ?: BigDecimal("0.10")
+    }
+
+    private fun calculateSubtotal(items: List<OrderItem>): BigDecimal {
+        return items.fold(BigDecimal.ZERO) { acc, item ->
+            acc.add(calculateItemTotal(item))
+        }
     }
 
     private fun calculateItemTotal(item: OrderItem): BigDecimal {
-        BigDecimal price = item.Price
-        BigDecimal quantity = BigDecimal("item.getQuantity("))
-        return price.multiply(quantity).setScale(2, RoundingMode.HALF_UP)
+        return item.unitPrice.multiply(BigDecimal(item.quantity))
+            .setScale(2, RoundingMode.HALF_UP)
     }
 
     private fun calculateTaxAmount(subtotal: BigDecimal): BigDecimal {
-        if (subtotal == null || subtotal.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO
-        }
-        
-        return subtotal.multiply(BigDecimal("0.08"))
+        return if (isTaxExempt(subtotal)) {
+            BigDecimal.ZERO
+        } else {
+            subtotal.multiply(BigDecimal("0.08"))
                 .setScale(2, RoundingMode.HALF_UP)
-    }
-
-    private fun TaxCalculation buildTaxCalculation(subtotal: BigDecimal, taxAmount: BigDecimal, 
-                                             BigDecimal total, Long orderId) {
-        TaxCalculation calculation = new TaxCalculation()
-        calculation.setOrderId(orderId)
-        calculation.setSubtotal(subtotal)
-        calculation.setTaxAmount(taxAmount)
-        calculation.setTotal(total)
-        calculation.setTaxRate(getCurrentTaxRate())
-        return calculation
-    }
-
-    private fun createEmptyTaxCalculation(): TaxCalculation {
-        TaxCalculation calculation = new TaxCalculation()
-        calculation.setSubtotal(BigDecimal.ZERO)
-        calculation.setTaxAmount(BigDecimal.ZERO)
-        calculation.setTotal(BigDecimal.ZERO)
-        calculation.setTaxRate(getCurrentTaxRate())
-        return calculation
-    }
-
-    private fun getCurrentTaxRate(): BigDecimal {
-        return taxRateRepository.findCurrentRate()
-    }
-
-    fun isValidTaxCalculation(calculation: TaxCalculation): boolean {
-        if (calculation == null) {
-            return false
         }
+    }
+
+    private fun isTaxExempt(amount: BigDecimal): Boolean {
+        return amount <= BigDecimal.ZERO
+    }
+
+    fun validateTaxCalculation(result: TaxCalculationResult): Boolean {
+        val recalculatedSubtotal = result.subtotal
+        val expectedTax = calculateTaxAmount(recalculatedSubtotal)
+        val expectedTotal = recalculatedSubtotal.add(expectedTax)
         
-        BigDecimal expectedTax = calculateTaxAmount(calculation.Subtotal)
-        return expectedTax.compareTo(calculation.TaxAmount) == 0
+        return result.taxAmount.compareTo(expectedTax) == 0 &&
+               result.total.compareTo(expectedTotal) == 0
+    }
+
+    fun applyTaxExemption(orderId: Long, exemptionCode: String): TaxCalculationResult? {
+        return taxRateRepository.findExemptionByCode(exemptionCode)?.let { exemption ->
+            TaxCalculationResult(
+                orderId = orderId,
+                subtotal = BigDecimal.ZERO,
+                taxAmount = BigDecimal.ZERO,
+                total = BigDecimal.ZERO,
+                calculatedAt = LocalDateTime.now(),
+                exemptionApplied = exemption.code
+            )
+        }
+    }
+
+    fun calculateQuarterlyTaxSummary(orders: List<Order>): Map<String, BigDecimal> {
+        val totalSubtotal = orders.sumOf { order -> 
+            calculateSubtotal(order.items) 
+        }
+        val totalTax = calculateTaxAmount(totalSubtotal)
+        
+        return mapOf(
+            "subtotal" to totalSubtotal,
+            "tax" to totalTax,
+            "total" to totalSubtotal.add(totalTax),
+            "averageOrderValue" to if (orders.isNotEmpty()) {
+                totalSubtotal.divide(BigDecimal(orders.size), 2, RoundingMode.HALF_UP)
+            } else BigDecimal.ZERO
+        )
     }
 }

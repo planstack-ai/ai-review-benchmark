@@ -1,0 +1,17 @@
+{
+  "case_id": "SPRING_013",
+  "category": "spring",
+  "axis": "implicit_knowledge",
+  "name": "dto_validation_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "@Valid missing on nested DTO - validation annotations in nested object ignored",
+  "bug_anchor": "data class OrderRequest(\n    @field:NotBlank(message = \"Customer email is required\")\n    val customerEmail: String,\n\n    // BUG: Missing @Valid annotation on nested list\n    // Validation annotations in OrderItemRequest will be ignored\n    // Invalid items (blank product name, negative quantity/price) will pass validation\n    @field:NotEmpty(message = \"Order must contain at least one item\")\n    val items: List<OrderItemRequest>",
+  "correct_implementation": "data class OrderRequest(@field:NotBlank val customerEmail: String, @field:Valid val items: List<OrderItemRequest>)",
+  "severity": "high",
+  "tags": ["spring", "validation", "dto"],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

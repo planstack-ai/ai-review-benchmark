@@ -1,0 +1,21 @@
+{
+  "case_id": "AUTH_005",
+  "category": "authorization",
+  "axis": "spec_alignment",
+  "name": "guest_member_pricing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Guest users getting member pricing - membership check hole",
+  "bug_anchor": "if (memberPrice != null) {",
+  "correct_implementation": "if (memberPrice != null && currentUser?.membershipType?.isMember() == true) {",
+  "severity": "high",
+  "tags": [
+    "authorization",
+    "membership",
+    "pricing"
+  ],
+  "framework": "springboot-kotlin",
+  "framework_version": "3.2+",
+  "kotlin_version": "1.9+",
+  "bug_anchor_verified": true
+}

@@ -4,118 +4,89 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.util.List
-import java.util.Map
-import java.util.HashMap
 
 @Service
 @Transactional
-class PricingCalculationService {
+class PricingService {
 
-            private val TAX_RATE: BigDecimal = new BigDecimal("0.08"")
-            private val DISCOUNT_THRESHOLD: BigDecimal = new BigDecimal("100.00"")
-            private val PREMIUM_DISCOUNT: BigDecimal = new BigDecimal("0.15"")
-            private val STANDARD_DISCOUNT: BigDecimal = new BigDecimal("0.10"")
-
-    fun calculateTotalPrice(List<PriceItem> items, customerTier: String): BigDecimal {
-        BigDecimal subtotal = calculateSubtotal(items)
-        BigDecimal discountAmount = calculateDiscount(subtotal, customerTier)
-        BigDecimal discountedPrice = subtotal.subtract(discountAmount)
-        BigDecimal taxAmount = calculateTax(discountedPrice)
-        
+    fun calculateTotalPrice(basePrice: BigDecimal, taxRate: BigDecimal, discountPercentage: BigDecimal): BigDecimal {
+        val discountAmount = calculateDiscountAmount(basePrice, discountPercentage)
+        val discountedPrice = basePrice.subtract(discountAmount)
+        val taxAmount = calculateTaxAmount(discountedPrice, taxRate)
         return discountedPrice.add(taxAmount).setScale(2, RoundingMode.HALF_UP)
     }
 
-    private fun calculateSubtotal(List<PriceItem> items): BigDecimal {
-        BigDecimal total = BigDecimal.ZERO
+    fun calculateItemizedTotal(items: List<PriceItem>): BigDecimal {
+        return items.fold(BigDecimal.ZERO) { total, item ->
+            val itemTotal = calculateItemPrice(item)
+            total.add(itemTotal)
+        }
+    }
+
+    fun calculateShippingCost(weight: BigDecimal, distance: BigDecimal): BigDecimal {
+        val baseShippingRate = BigDecimal("2.50")
+        val weightMultiplier = BigDecimal("0.75")
+        val distanceMultiplier = BigDecimal("0.15")
         
-        for (PriceItem item : items) {
-            BigDecimal itemTotal = item.UnitPrice.multiply(BigDecimal(item.Quantity))
-            total = total.add(itemTotal)
-        }
+        val weightCost = weight.multiply(weightMultiplier)
+        val distanceCost = distance.multiply(distanceMultiplier)
         
-        return total
+        return baseShippingRate.add(weightCost).add(distanceCost).setScale(2, RoundingMode.HALF_UP)
     }
 
-    private fun calculateDiscount(subtotal: BigDecimal, customerTier: String): BigDecimal {
-        if (subtotal.compareTo(DISCOUNT_THRESHOLD) < 0) {
-            return BigDecimal.ZERO
+    fun applyPromotionalDiscount(originalPrice: BigDecimal, promoCode: String): BigDecimal {
+        val discountRate = getPromotionalRate(promoCode)
+        return if (discountRate > 0.0) {
+            val discount = originalPrice.multiply(BigDecimal.valueOf(discountRate))
+            originalPrice.subtract(discount)
+        } else {
+            originalPrice
         }
-
-        BigDecimal discountRate = getDiscountRate(customerTier)
-        return subtotal.multiply(discountRate).setScale(2, RoundingMode.HALF_UP)
     }
 
-    private fun getDiscountRate(customerTier: String): BigDecimal {
-        if ("PREMIUM".equalsIgnoreCase(customerTier)) {
-            return PREMIUM_DISCOUNT
-        } else if ("STANDARD".equalsIgnoreCase(customerTier)) {
-            return STANDARD_DISCOUNT
+    private fun calculateDiscountAmount(price: BigDecimal, discountPercentage: BigDecimal): BigDecimal {
+        return price.multiply(discountPercentage.divide(BigDecimal("100"), 4, RoundingMode.HALF_UP))
+    }
+
+    private fun calculateTaxAmount(price: BigDecimal, taxRate: BigDecimal): BigDecimal {
+        return price.multiply(taxRate).setScale(2, RoundingMode.HALF_UP)
+    }
+
+    private fun calculateItemPrice(item: PriceItem): BigDecimal {
+        val unitPrice = item.unitPrice
+        val quantity = BigDecimal.valueOf(item.quantity.toDouble())
+        return unitPrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP)
+    }
+
+    private fun getPromotionalRate(promoCode: String): Double {
+        return when (promoCode.uppercase()) {
+            "SAVE10" -> 0.1
+            "SAVE20" -> 0.2
+            "WELCOME" -> 0.15
+            "STUDENT" -> 0.25
+            else -> 0.0
         }
-        return BigDecimal.ZERO
     }
 
-    private fun calculateTax(amount: BigDecimal): BigDecimal {
-        return amount.multiply(TAX_RATE).setScale(2, RoundingMode.HALF_UP)
-    }
-
-    fun Map<String, BigDecimal> calculatePriceBreakdown(List<PriceItem> items, customerTier: String) {
-        Map<String, BigDecimal> breakdown = new HashMap<>()
+    fun calculateSubscriptionPrice(monthlyRate: BigDecimal, months: Int, annualDiscountRate: Double): BigDecimal {
+        val totalMonthly = monthlyRate.multiply(BigDecimal.valueOf(months.toDouble()))
         
-        BigDecimal subtotal = calculateSubtotal(items)
-        BigDecimal discountAmount = calculateDiscount(subtotal, customerTier)
-        BigDecimal discountedPrice = subtotal.subtract(discountAmount)
-        BigDecimal taxAmount = calculateTax(discountedPrice)
-        BigDecimal processingFee = calculateProcessingFee(discountedPrice)
-        BigDecimal total = discountedPrice.add(taxAmount).add(processingFee)
-        
-        breakdown.put("subtotal", subtotal)
-        breakdown.put("discount", discountAmount)
-        breakdown.put("tax", taxAmount)
-        breakdown.put("processingFee", processingFee)
-        breakdown.put("total", total)
-        
-        return breakdown
+        return if (months >= 12) {
+            val annualDiscount = totalMonthly.multiply(BigDecimal.valueOf(annualDiscountRate))
+            totalMonthly.subtract(annualDiscount)
+        } else {
+            totalMonthly
+        }.setScale(2, RoundingMode.HALF_UP)
     }
 
-    private fun calculateProcessingFee(amount: BigDecimal): BigDecimal {
-        double baseRate = 0.1
-        double additionalRate = 0.2
-        double totalRate = baseRate + additionalRate
-        
-        return amount.multiply(BigDecimal(totalRate)).setScale(2, RoundingMode.HALF_UP)
-    }
-
-    fun applyBulkDiscount(originalPrice: BigDecimal, quantity: int): BigDecimal {
-        if (quantity >= 10) {
-            BigDecimal bulkDiscountRate = BigDecimal("0.05")
-            BigDecimal discountAmount = originalPrice.multiply(bulkDiscountRate)
-            return originalPrice.subtract(discountAmount)
-        }
-        return originalPrice
-    }
-
-    public static class PriceItem {
-        private BigDecimal unitPrice
-        private int quantity
-        private String itemCode
-
-        fun PriceItem(unitPrice: BigDecimal, quantity: int, itemCode: String) {
-            unitPrice = unitPrice
-            quantity = quantity
-            itemCode = itemCode
-        }
-
-        fun getUnitPrice(): BigDecimal {
-            return unitPrice
-        }
-
-        fun getQuantity(): int {
-            return quantity
-        }
-
-        fun getItemCode(): String {
-            return itemCode
-        }
+    fun validatePriceRange(price: BigDecimal, minPrice: BigDecimal, maxPrice: BigDecimal): Boolean {
+        return price >= minPrice && price <= maxPrice
     }
 }
+
+data class PriceItem(
+    val name: String,
+    val unitPrice: BigDecimal,
+    val quantity: Int,
+    val category: String
+)
