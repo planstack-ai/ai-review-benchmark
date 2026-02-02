@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_007",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "cascade_delete_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Order items orphaned when parent order deleted - no cascade",
+  "bug_anchor": "$order->delete()",
+  "correct_implementation": "$table->foreignId('order_id')->constrained()->onDelete('cascade')",
+  "severity": "high",
+  "tags": [
+    "data",
+    "cascade",
+    "delete"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

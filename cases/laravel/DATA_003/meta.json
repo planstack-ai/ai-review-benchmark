@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_003",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "optimistic_lock_missing",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "No optimistic locking - last write wins, losing intermediate changes",
+  "bug_anchor": "$order->update($updateData)",
+  "correct_implementation": "use HasVersion trait or manual lock_version check",
+  "severity": "high",
+  "tags": [
+    "data",
+    "locking",
+    "concurrent"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

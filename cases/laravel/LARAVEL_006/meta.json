@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_006",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "mass_assignment_unguarded",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Mass assignment vulnerability - is_admin can be set via request",
+  "bug_anchor": "$order = Order::create($request->all())",
+  "correct_implementation": "$order = Order::create($request->only(['quantity', 'product_id']))",
+  "severity": "critical",
+  "tags": [
+    "laravel",
+    "security",
+    "mass_assignment"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_004",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "middleware_order_wrong",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Authorization middleware runs before auth - user is null",
+  "bug_anchor": "'can:manage-orders',\n            'auth'",
+  "correct_implementation": "['auth', 'can:manage-orders']",
+  "severity": "critical",
+  "tags": [
+    "laravel",
+    "middleware",
+    "order"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

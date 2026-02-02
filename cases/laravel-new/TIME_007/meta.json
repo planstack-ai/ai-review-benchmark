@@ -1,0 +1,21 @@
+{
+  "case_id": "TIME_007",
+  "category": "time",
+  "axis": "spec_alignment",
+  "name": "business_day_calculation",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Weekends and holidays not excluded from business days",
+  "bug_anchor": "$date->addDays($businessDays)",
+  "correct_implementation": "Carbon::addWeekdays(3)",
+  "severity": "medium",
+  "tags": [
+    "time",
+    "business_day",
+    "holiday"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "case_id": "LARAVEL_003",
+  "category": "laravel",
+  "axis": "implicit_knowledge",
+  "name": "event_listener_order",
+  "difficulty": "hard",
+  "expected_detection": true,
+  "bug_description": "Event listener order not guaranteed - inventory updated before validation",
+  "bug_anchor": "Event::dispatch(new OrderInventoryUpdated($order))",
+  "correct_implementation": "EventServiceProvider with explicit listener order or priority",
+  "severity": "high",
+  "tags": [
+    "laravel",
+    "event",
+    "order"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

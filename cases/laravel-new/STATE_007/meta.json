@@ -1,0 +1,21 @@
+{
+  "case_id": "STATE_007",
+  "category": "state",
+  "axis": "spec_alignment",
+  "name": "delivery_status_regression",
+  "difficulty": "medium",
+  "expected_detection": true,
+  "bug_description": "Delivered can regress to shipping status",
+  "bug_anchor": "if ($currentStatus === 'delivered' && $newStatus === 'shipped')",
+  "correct_implementation": "if ($order->isDelivered() && $newStatus === 'shipping') throw new InvalidTransitionException",
+  "severity": "medium",
+  "tags": [
+    "state",
+    "delivery",
+    "regression"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}

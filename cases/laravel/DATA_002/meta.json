@@ -1,0 +1,21 @@
+{
+  "case_id": "DATA_002",
+  "category": "data",
+  "axis": "implicit_knowledge",
+  "name": "unique_constraint_missing",
+  "difficulty": "easy",
+  "expected_detection": true,
+  "bug_description": "Unique constraint missing at DB level - race condition allows duplicates",
+  "bug_anchor": "'email' => 'required|email|unique:users'",
+  "correct_implementation": "$table->unique('email')",
+  "severity": "critical",
+  "tags": [
+    "data",
+    "unique",
+    "constraint"
+  ],
+  "framework": "laravel",
+  "framework_version": "11+",
+  "php_version": "8.2+",
+  "bug_anchor_verified": true
+}
